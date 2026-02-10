@@ -1,0 +1,32 @@
+import { createContext, useContext, useState } from 'react';
+import { ROLES } from '../constants/roles';
+
+const AuthContext = createContext(null);
+
+export const AuthProvider = ({ children }) => {
+    const [user, setUser] = useState(null);
+
+    const login = (userData) => {
+        // Simulate role assignment based on email for testing
+        // In a real app, this would come from the backend API response
+        let role = ROLES.MANAGER;
+
+        if (userData.email.includes('admin')) role = ROLES.ADMIN;
+        if (userData.email.includes('super')) role = ROLES.SUPER_ADMIN;
+        if (userData.email.includes('team')) role = ROLES.TEAM_LEAD;
+
+        setUser({ ...userData, role });
+    };
+
+    const logout = () => {
+        setUser(null);
+    };
+
+    return (
+        <AuthContext.Provider value={{ user, login, logout }}>
+            {children}
+        </AuthContext.Provider>
+    );
+};
+
+export const useAuth = () => useContext(AuthContext);
