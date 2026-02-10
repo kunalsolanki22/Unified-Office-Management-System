@@ -1,15 +1,62 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  --color-primary: #1e3a8a;
+  /* Deep Blue */
+  --color-primary-light: #3b82f6;
+  /* Lighter Blue */
+  --color-secondary: #FFB012;
+  /* Cygnet Yellow */
+  --color-secondary-light: #ffc24d;
+  /* Lighter Yellow */
+
+  --color-orange-500: #FFB012;
+  --color-orange-600: #db970f;
+
+  --color-background: #f8fafc;
+  /* Slate 50 */
+  --color-surface: #ffffff;
+
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-in: slide-in 0.4s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      transform: translateX(-20px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+}
+
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: #1e293b;
+  /* Slate 800 */
 }
 
 body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  /* Basic reset for h-screen layouts */
-  height: 100vh;
+  min-height: 100vh;
   width: 100vw;
   overflow-x: hidden;
 }

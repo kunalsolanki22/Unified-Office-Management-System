@@ -6,12 +6,18 @@ import { ROLES } from '../constants/roles';
 // Layouts
 import MainLayout from '../layouts/MainLayout';
 import AuthLayout from '../layouts/AuthLayout';
+import SuperAdminLayout from '../layouts/SuperAdminLayout';
 
 // Pages
 import Login from '../pages/public/Login';
+import SuperAdminDashboard from '../pages/super-admin/Dashboard';
+import AdminManagement from '../pages/super-admin/AdminManagement';
+import Attendance from '../pages/super-admin/Attendance';
+import Holidays from '../pages/super-admin/Holidays';
+import ActionHub from '../pages/super-admin/ActionHub';
+import Analytics from '../pages/super-admin/Analytics';
 
 // Placeholder Pages - Actual content to be implemented
-const SuperAdminDashboard = () => <div>Super Admin Dashboard</div>;
 const AdminDashboard = () => <div>Admin Dashboard</div>;
 const ManagerDashboard = () => <div>Manager Dashboard</div>;
 const TeamLeadDashboard = () => <div>Team Lead Dashboard</div>;
@@ -28,13 +34,20 @@ const AppRoutes = () => {
                     <Route path={ROUTES.UNAUTHORIZED} element={<Unauthorized />} />
                 </Route>
 
-                {/* Protected Routes */}
-                <Route element={<MainLayout />}>
-
-                    {/* Super Admin Routes */}
-                    <Route element={<ProtectedRoutes allowedRoles={[ROLES.SUPER_ADMIN]} />}>
+                {/* Super Admin Routes */}
+                <Route element={<ProtectedRoutes allowedRoles={[ROLES.SUPER_ADMIN]} />}>
+                    <Route element={<SuperAdminLayout />}>
                         <Route path={ROUTES.SUPER_ADMIN_DASHBOARD} element={<SuperAdminDashboard />} />
+                        <Route path={ROUTES.SUPER_ADMIN_ADMINS} element={<AdminManagement />} />
+                        <Route path={ROUTES.SUPER_ADMIN_ATTENDANCE} element={<Attendance />} />
+                        <Route path={ROUTES.SUPER_ADMIN_HOLIDAYS} element={<Holidays />} />
+                        <Route path={ROUTES.SUPER_ADMIN_ACTIONS} element={<ActionHub />} />
+                        <Route path={ROUTES.SUPER_ADMIN_ANALYTICS} element={<Analytics />} />
                     </Route>
+                </Route>
+
+                {/* Protected Routes (Main Layout) */}
+                <Route element={<MainLayout />}>
 
                     {/* Admin Routes */}
                     <Route element={<ProtectedRoutes allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
