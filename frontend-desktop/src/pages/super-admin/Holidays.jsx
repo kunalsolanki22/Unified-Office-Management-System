@@ -1,100 +1,145 @@
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-react';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { CalendarDays, ChevronLeft, ChevronRight, Calendar, Bookmark, Hash } from 'lucide-react';
 
 const Holidays = () => {
+    const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const dates = Array.from({ length: 28 }, (_, i) => i + 1); // Feb 2026 has 28 days
+
+    const [holidays, setHolidays] = useState([
+        { date: 'Jan 26, 2026', name: 'Republic Day', day: 'Monday', category: 'NATIONAL', status: 'COMPLETED', color: 'text-green-500' },
+        { date: 'Feb 26, 2026', name: 'Maha Shivratri', day: 'Thursday', category: 'RELIGIOUS', status: 'UPCOMING', color: 'text-[#f9b012]' },
+        { date: 'Mar 14, 2026', name: 'Holi', day: 'Saturday', category: 'FESTIVAL', status: 'SCHEDULED', color: 'text-slate-400' },
+        { date: 'Mar 29, 2026', name: 'Ram Navami', day: 'Sunday', category: 'RELIGIOUS', status: 'SCHEDULED', color: 'text-slate-400' },
+        { date: 'Apr 10, 2026', name: 'Good Friday', day: 'Friday', category: 'RELIGIOUS', status: 'SCHEDULED', color: 'text-slate-400' },
+    ]);
+
     return (
-        <div className="space-y-6">
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900"><span className="text-blue-900">Holiday</span> <span className="text-orange-500">Registry</span></h1>
-                <p className="text-slate-500 text-sm uppercase tracking-wider">Manage global off-days for the administrative force</p>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-8"
+        >
+            <div className="mb-2">
+                <h1 className="text-2xl font-bold text-[#1a367c] mb-1">
+                    HOLIDAY <span className="text-[#f9b012]">REGISTRY</span>
+                </h1>
+                <p className="text-sm text-[#8892b0] font-medium tracking-wide uppercase">
+                    Manage Global Off-Days for the Administrative Force
+                </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Calendar Section */}
-                <div className="lg:col-span-2">
-                    <Card className="p-8 border-none shadow-sm rounded-3xl min-h-[500px]">
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-2 text-blue-900 font-bold text-xl">
-                                <CalendarIcon className="h-6 w-6 text-orange-500" />
-                                February 2026
-                            </div>
-                            <div className="flex gap-2">
-                                <button className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 text-slate-400 hover:text-slate-600">
-                                    <ChevronLeft className="h-5 w-5" />
-                                </button>
-                                <button className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 text-slate-400 hover:text-slate-600">
-                                    <ChevronRight className="h-5 w-5" />
-                                </button>
-                            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
+                {/* Calendar Card */}
+                <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100">
+                    <div className="flex justify-between items-center mb-8">
+                        <div className="flex items-center gap-3 text-lg font-bold text-[#1a367c]">
+                            <CalendarDays className="w-5 h-5 text-[#f9b012]" />
+                            February 2026
                         </div>
-
-                        <div className="grid grid-cols-7 gap-4 text-center mb-4">
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                                <div key={day} className="text-xs font-bold text-slate-300 uppercase tracking-wider">{day}</div>
-                            ))}
+                        <div className="flex gap-2">
+                            <button className="w-8 h-8 rounded-lg bg-[#f8f9fa] flex items-center justify-center hover:bg-slate-100 transition-colors text-[#333]">
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <button className="w-8 h-8 rounded-lg bg-[#f8f9fa] flex items-center justify-center hover:bg-slate-100 transition-colors text-[#333]">
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
                         </div>
+                    </div>
 
-                        <div className="grid grid-cols-7 gap-4 text-center">
-                            {/* Empty cells for start of month (Feb 2026 starts on Sunday) */}
-
-                            {/* Days 1-28 */}
-                            {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => {
-                                const isSelected = day === 26;
-                                return (
-                                    <div
-                                        key={day}
-                                        className={`
-                                        h-10 w-10 mx-auto flex items-center justify-center rounded-xl text-sm font-medium transition-all cursor-pointer
-                                        ${isSelected ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 scale-110' : 'text-blue-900 hover:bg-slate-50'}
-                                    `}
-                                    >
-                                        {day}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        <div className="mt-12 h-1 w-12 mx-auto bg-orange-500 rounded-full"></div>
-                    </Card>
-
-                    <div className="mt-8">
-                        <h3 className="text-blue-900 font-bold text-lg mb-4">Scheduled Observances</h3>
+                    <div className="grid grid-cols-7 gap-4 mb-4">
+                        {days.map(day => (
+                            <div key={day} className="text-center text-[0.7rem] font-bold text-[#8892b0] tracking-wider">{day}</div>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-4">
+                        {dates.map(date => {
+                            const isSelected = date === 26;
+                            return (
+                                <div
+                                    key={date}
+                                    className={`h-12 rounded-xl flex items-center justify-center text-sm font-bold cursor-pointer transition-all duration-300
+                                        ${isSelected
+                                            ? 'bg-[#f9b012] text-white shadow-lg shadow-orange-500/30 scale-110'
+                                            : 'text-[#1a367c] hover:bg-[#f8f9fa]'
+                                        }`}
+                                >
+                                    {date}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
-                {/* Proclaim Holiday Form */}
-                <div>
-                    <Card className="p-8 border-none shadow-sm rounded-3xl h-full flex flex-col">
-                        <h3 className="text-blue-900 font-bold text-lg mb-8 uppercase tracking-wide">Proclaim Holiday</h3>
+                {/* Proclaim Form */}
+                <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col h-full">
+                    <h3 className="text-lg font-bold text-[#1a367c] mb-8">PROCLAIM HOLIDAY</h3>
 
-                        <div className="space-y-6 flex-1">
-                            <div>
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Event Name</label>
-                                <div className="bg-slate-50 rounded-xl px-4 py-3 text-slate-500 text-sm">
-                                    e.g. Maha Shivratri
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Execution Date</label>
-                                <div className="bg-slate-50 rounded-xl px-4 py-3 text-slate-900 font-medium text-sm flex items-center justify-between">
-                                    dd / mm / yyyy
-                                    <CalendarIcon className="h-4 w-4 text-slate-400" />
-                                </div>
-                            </div>
+                    <div className="space-y-6 flex-1">
+                        <div className="space-y-2">
+                            <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider block">EVENT NAME</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Maha Shivratri"
+                                className="w-full bg-[#f8f9fa] p-4 rounded-xl text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium placeholder:text-[#999]"
+                            />
                         </div>
+                        <div className="space-y-2">
+                            <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider block">EXECUTION DATE</label>
+                            <input
+                                type="text"
+                                placeholder="dd / mm / yyyy"
+                                className="w-full bg-[#f8f9fa] p-4 rounded-xl text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium placeholder:text-[#999]"
+                            />
+                        </div>
+                    </div>
 
-                        <Button className="w-full bg-blue-900 hover:bg-blue-800 text-white rounded-xl py-6 shadow-xl shadow-blue-900/20 mt-auto">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Commit to Registry
-                        </Button>
-                        <div className="h-1 w-12 mx-auto bg-orange-500 rounded-full mt-6"></div>
-                    </Card>
+                    <button className="w-full mt-auto bg-[#1a367c] text-white py-4 rounded-full text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all shadow-lg shadow-blue-900/10 flex items-center justify-center gap-2">
+                        + COMMIT TO REGISTRY
+                    </button>
                 </div>
             </div>
-        </div>
+
+            {/* List Section */}
+            <div>
+                <div className="flex items-center gap-3 mb-6 text-[#1a367c] font-bold text-lg">
+                    <Bookmark className="w-5 h-5" />
+                    ANNOUNCED HOLIDAYS
+                </div>
+
+                <div className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-slate-100">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="bg-[#f8f9fa] text-left">
+                                <th className="p-6 text-[0.75rem] font-bold text-[#8892b0] tracking-widest uppercase">Date</th>
+                                <th className="p-6 text-[0.75rem] font-bold text-[#8892b0] tracking-widest uppercase">Event Name</th>
+                                <th className="p-6 text-[0.75rem] font-bold text-[#8892b0] tracking-widest uppercase">Day</th>
+                                <th className="p-6 text-[0.75rem] font-bold text-[#8892b0] tracking-widest uppercase">Category</th>
+                                <th className="p-6 text-[0.75rem] font-bold text-[#8892b0] tracking-widest uppercase">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {holidays.map((h, i) => (
+                                <tr key={i} className="border-b border-slate-50 hover:bg-[#fafbfb] transition-colors last:border-none">
+                                    <td className="p-6 text-sm font-bold text-[#1a367c]">{h.date}</td>
+                                    <td className="p-6 text-sm font-medium text-[#1a367c]">{h.name}</td>
+                                    <td className="p-6 text-sm text-[#8892b0]">{h.day}</td>
+                                    <td className="p-6">
+                                        <span className="inline-block px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide bg-[#f9b012]/10 text-[#f9b012] uppercase">
+                                            {h.category}
+                                        </span>
+                                    </td>
+                                    <td className={`p-6 text-xs font-bold tracking-wide uppercase ${h.color}`}>
+                                        {h.status}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </motion.div>
     );
 };
+
 export default Holidays;

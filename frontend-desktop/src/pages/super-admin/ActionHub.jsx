@@ -1,74 +1,57 @@
-import { Car, Utensils, Monitor, Clock } from 'lucide-react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { HoverEffectCard } from '../../components/ui/Card';
-
-const container = {
-    hidden: { opacity: 0 },
-    show: {
-        opacity: 1,
-        transition: { staggerChildren: 0.1 }
-    }
-};
-
-const item = {
-    hidden: { opacity: 0, scale: 0.9 },
-    show: { opacity: 1, scale: 1 }
-};
+import { Car, Coffee, Monitor, Users, HardDrive } from 'lucide-react';
 
 const ActionHub = () => {
     const actions = [
-        {
-            title: 'Parking Manager',
-            subtitle: 'Slot & Capacity Controls',
-            icon: Car,
-            color: 'slate'
-        },
-        {
-            title: 'Cafeteria Ops',
-            subtitle: 'Food & Desk Oversight',
-            icon: Utensils,
-            color: 'slate'
-        },
-        {
-            title: 'Hardware Registry',
-            subtitle: 'Inventory Assignment',
-            icon: Monitor,
-            color: 'slate'
-        },
-        {
-            title: 'Attendance Hub',
-            subtitle: 'Workforce Adjudication',
-            icon: Clock,
-            color: 'slate'
-        },
+        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
+        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
+        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation' },
+        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling' },
+        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment' },
     ];
 
     return (
         <motion.div
-            className="space-y-6"
-            variants={container}
-            initial="hidden"
-            animate="show"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-8"
         >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {actions.map((action, index) => (
-                    <motion.div key={index} variants={item}>
-                        <HoverEffectCard className="p-8 flex flex-col items-start justify-between min-h-[220px] rounded-3xl border-none shadow-sm">
-                            <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-blue-900 mb-6">
-                                <action.icon className="h-6 w-6" />
-                            </div>
+            <div className="mb-2">
+                <h1 className="text-2xl font-bold text-[#1a367c] mb-1">
+                    ACTION <span className="text-[#f9b012]">HUB</span>
+                </h1>
+                <p className="text-sm text-[#8892b0] font-medium tracking-wide uppercase">
+                    Centralized Controls for Operational Modules
+                </p>
+            </div>
 
-                            <div className="mt-auto">
-                                <h3 className="text-lg font-bold text-blue-900 leading-tight mb-1">{action.title}</h3>
-                                <p className="text-xs text-slate-400 font-medium">{action.subtitle}</p>
-                            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {actions.map((action, idx) => (
+                    <motion.div
+                        key={idx}
+                        whileHover={{ y: -5, boxShadow: '0 10px 30px rgba(0, 0, 0, 0.06)' }}
+                        className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group min-h-[250px] justify-center transition-all duration-300"
+                    >
+                        <div className="absolute inset-0 bg-radial-gradient from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
-                            <div className="w-12 h-1 bg-orange-500 rounded-full mt-6"></div>
-                        </HoverEffectCard>
+                        <div className="w-16 h-16 bg-[#f8f9fa] rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:text-[#f9b012] transition-colors relative z-10">
+                            <action.icon className="w-7 h-7" strokeWidth={1.5} />
+                        </div>
+
+                        <h3 className="text-sm font-bold text-[#1a367c] tracking-wide mb-2 leading-tight relative z-10 w-full">
+                            {action.label.split(' ').map((line, i) => (
+                                <span key={i} className="block">{line}</span>
+                            ))}
+                        </h3>
+                        <p className="text-[0.65rem] text-[#8892b0] font-medium relative z-10">{action.sub}</p>
+
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-[#f9b012] rounded-t-lg transition-all duration-300 group-hover:w-full group-hover:rounded-none"></div>
                     </motion.div>
                 ))}
             </div>
         </motion.div>
     );
 };
+
 export default ActionHub;

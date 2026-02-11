@@ -1,135 +1,238 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Car, Utensils, Monitor, Clock, ArrowRight } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { Card, HoverEffectCard } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
-import { Button } from '../../components/ui/Button';
-
-const container = {
-    hidden: { opacity: 0 },
-    show: {
-        opacity: 1,
-        transition: { staggerChildren: 0.1 }
-    }
-};
-
-const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-};
+import {
+    CalendarCheck,
+    Bell,
+    X,
+    Plus,
+    Car,
+    Coffee,
+    Monitor,
+    Users,
+    HardDrive,
+    ArrowRight
+} from 'lucide-react';
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const [announcements, setAnnouncements] = useState([
+        { id: 1, date: 'FEB 10', title: 'Town Hall Meeting', desc: 'Quadrimester updates with CEO. 4:00 PM IST.' },
+        { id: 2, date: 'FEB 08', title: 'Policy Update: Remote Work', desc: 'Revised guidelines available in HR Registry.' }
+    ]);
+    const [showForm, setShowForm] = useState(false);
+    const [newAnnouncement, setNewAnnouncement] = useState({ date: '', title: '', desc: '' });
+
+    const handleAddAnnouncement = () => {
+        if (newAnnouncement.date && newAnnouncement.title && newAnnouncement.desc) {
+            setAnnouncements([{ id: Date.now(), ...newAnnouncement }, ...announcements]);
+            setNewAnnouncement({ date: '', title: '', desc: '' });
+            setShowForm(false);
+        }
+    };
+
+    const handleDeleteAnnouncement = (id) => {
+        if (window.confirm('Are you sure you want to remove this announcement?')) {
+            setAnnouncements(announcements.filter(a => a.id !== id));
+        }
+    };
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0 }
+    };
 
     return (
         <motion.div
-            className="space-y-8"
-            variants={container}
+            variants={containerVariants}
             initial="hidden"
-            animate="show"
+            animate="visible"
+            className="space-y-8"
         >
-            {/* Header Section */}
-            <motion.div variants={item} className="flex items-end justify-between">
-                <div>
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Management Portal</div>
-                    <h1 className="text-3xl font-bold text-blue-900">Good Morning, Super Admin</h1>
-                </div>
-                <div className="mb-1">
-                    <Badge variant="success" className="bg-green-50 text-green-600 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-green-100 flex items-center gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                        System Nominal
-                    </Badge>
-                </div>
-            </motion.div>
+            {/* Top Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Admin Attendance Card */}
+                <motion.div
+                    variants={itemVariants}
+                    className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col justify-between min-h-[320px] relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                >
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-orange-50 rounded-bl-full -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
 
-            {/* Action Cards Row */}
-            <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="p-8 border-none shadow-xl bg-white rounded-3xl relative overflow-hidden group">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-orange-500"></div>
-                    <h3 className="text-lg font-bold text-blue-900 uppercase tracking-wide mb-2">Admin Attendance</h3>
-                    <p className="text-sm text-slate-500 font-medium mb-8">System-wide verification cycle for Feb 24 is pending.</p>
-
-                    <Button
-                        onClick={() => navigate('/super-admin/attendance')}
-                        className="w-full bg-blue-900 hover:bg-blue-800 text-white py-4 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-blue-900/10 active:scale-[0.98] transition-all"
-                    >
-                        Launch Adjudication
-                    </Button>
-                </Card>
-
-                <Card className="p-8 border-none shadow-xl bg-white rounded-3xl relative overflow-hidden group">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-orange-500"></div>
-                    <h3 className="text-lg font-bold text-blue-900 uppercase tracking-wide mb-2">Holiday Protocol</h3>
-                    <p className="text-sm text-slate-500 font-medium mb-8">Next public holiday: Maha Shivratri (Feb 26).</p>
-
-                    <Button
-                        onClick={() => navigate('/super-admin/holidays')}
-                        className="w-full bg-blue-900 hover:bg-blue-800 text-white py-4 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-blue-900/10 active:scale-[0.98] transition-all"
-                    >
-                        Manage Holiday Calendar
-                    </Button>
-                </Card>
-            </motion.div>
-
-            {/* Analytics Row */}
-            <motion.div variants={item}>
-                <Card className="p-8 border-none shadow-xl bg-white rounded-3xl">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">Real-Time Force Analytics</h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-x divide-slate-100">
-                        <div className="flex flex-col items-center">
-                            <div className="text-5xl font-bold text-blue-900 mb-1">92%</div>
-                            <div className="h-1 w-8 bg-green-500 rounded-full mb-3"></div>
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Presence Rate</div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-4">
+                            <CalendarCheck className="w-4 h-4 text-[#f9b012]" />
+                            ADMIN ATTENDANCE
                         </div>
-                        <div className="flex flex-col items-center">
-                            <div className="text-5xl font-bold text-blue-900 mb-1">14</div>
-                            <div className="h-1 w-8 bg-orange-500 rounded-full mb-3"></div>
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pending Leaves</div>
+                        <div className="text-[2.2rem] font-extrabold text-[#1a367c] leading-tight mb-2 bg-gradient-to-r from-[#1a367c] to-[#2c4a96] bg-clip-text text-transparent">
+                            Verification<br />Pending
                         </div>
-                        <div className="flex flex-col items-center">
-                            <div className="text-5xl font-bold text-blue-900 mb-1">03</div>
-                            <div className="h-1 w-8 bg-red-500 rounded-full mb-3"></div>
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">System Flags</div>
-                        </div>
+                        <p className="text-[#8892b0] text-[0.95rem] leading-relaxed max-w-[90%]">
+                            System-wide verification cycle for Feb 24 requires immediate attention.
+                        </p>
                     </div>
-                </Card>
-            </motion.div>
 
-            {/* Module Proxies Section */}
-            <motion.div variants={item} className="space-y-6">
-                <div className="flex items-center justify-between px-2">
-                    <h2 className="text-sm font-bold text-blue-900 uppercase tracking-widest">Module Proxies</h2>
-                    <button
-                        onClick={() => navigate('/super-admin/actions')}
-                        className="text-[10px] font-bold text-orange-500 uppercase tracking-widest hover:text-orange-600 transition-colors flex items-center gap-1"
-                    >
-                        View Master Hub <ArrowRight className="h-3 w-3" />
-                    </button>
-                </div>
+                    <div className="relative z-10">
+                        <button
+                            onClick={() => navigate('/super-admin/attendance')}
+                            className="bg-[#1a367c] text-white px-7 py-3.5 rounded-xl text-xs font-bold tracking-widest flex items-center gap-3 hover:bg-[#2c4a96] transition-all hover:shadow-lg hover:shadow-blue-900/20 group/btn"
+                        >
+                            LAUNCH ADJUDICATION
+                            <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                        </button>
+                        <div className="h-1 w-10 bg-[#f9b012] mt-6 rounded-full transition-all duration-300 group-hover:w-20"></div>
+                    </div>
+                </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                    <HoverEffectCard className="p-8 flex items-center justify-between rounded-3xl border-none shadow-xl bg-white cursor-pointer group" onClick={() => navigate('/super-admin/actions')}>
-                        <div>
-                            <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-900 mb-4 group-hover:scale-110 transition-transform">
-                                <Car className="h-6 w-6" />
-                            </div>
-                            <h3 className="text-lg font-bold text-blue-900">Parking Manager</h3>
-                            <p className="text-xs text-slate-400 font-medium">Slot & Capacity Controls</p>
+                {/* Organization Announcements Card */}
+                <motion.div
+                    variants={itemVariants}
+                    className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col min-h-[320px] relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                >
+                    <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-6">
+                        <Bell className="w-4 h-4 text-[#f9b012]" />
+                        ORGANIZATION ANNOUNCEMENTS
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                        <AnimatePresence>
+                            {announcements.map((ann) => (
+                                <motion.div
+                                    key={ann.id}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    className="flex gap-4 pb-4 border-b border-slate-100 group/item relative"
+                                >
+                                    <button
+                                        onClick={() => handleDeleteAnnouncement(ann.id)}
+                                        className="absolute right-0 top-0 w-6 h-6 bg-red-50 text-red-500 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                    <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">{ann.date}</div>
+                                    <div className="flex-1 pr-6">
+                                        <div className="font-bold text-[#1a367c] text-sm mb-1">{ann.title}</div>
+                                        <div className="text-xs text-[#8892b0]">{ann.desc}</div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+
+                    <AnimatePresence>
+                        {showForm && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="border-t border-dashed border-slate-200 mt-4 pt-4 overflow-hidden"
+                            >
+                                <div className="space-y-3">
+                                    <input
+                                        type="text"
+                                        placeholder="DATE (e.g. FEB 12)"
+                                        className="w-full bg-slate-50 text-xs p-2 rounded border border-slate-200 focus:outline-none focus:border-[#1a367c]"
+                                        value={newAnnouncement.date}
+                                        onChange={e => setNewAnnouncement({ ...newAnnouncement, date: e.target.value.toUpperCase() })}
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="TITLE"
+                                        className="w-full bg-slate-50 text-xs p-2 rounded border border-slate-200 focus:outline-none focus:border-[#1a367c]"
+                                        value={newAnnouncement.title}
+                                        onChange={e => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="DESCRIPTION"
+                                        className="w-full bg-slate-50 text-xs p-2 rounded border border-slate-200 focus:outline-none focus:border-[#1a367c]"
+                                        value={newAnnouncement.desc}
+                                        onChange={e => setNewAnnouncement({ ...newAnnouncement, desc: e.target.value })}
+                                    />
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleAddAnnouncement}
+                                            className="flex-1 bg-[#1a367c] text-white text-[0.65rem] font-bold py-2 rounded hover:bg-[#2c4a96]"
+                                        >
+                                            PUBLISH
+                                        </button>
+                                        <button
+                                            onClick={() => setShowForm(false)}
+                                            className="flex-1 bg-slate-100 text-[#8892b0] text-[0.65rem] font-bold py-2 rounded hover:bg-slate-200"
+                                        >
+                                            CANCEL
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {!showForm && (
+                        <div className="mt-4 pt-2">
+                            <button
+                                onClick={() => setShowForm(true)}
+                                className="bg-[#1a367c] text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-[#2c4a96] transition-all shadow-md hover:shadow-lg"
+                            >
+                                <Plus className="w-3.5 h-3.5" /> POST UPDATE
+                            </button>
                         </div>
-                    </HoverEffectCard>
+                    )}
+                </motion.div>
+            </div>
 
-                    <HoverEffectCard className="p-8 flex items-center justify-between rounded-3xl border-none shadow-xl bg-white cursor-pointer group" onClick={() => navigate('/super-admin/actions')}>
-                        <div>
-                            <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-900 mb-4 group-hover:scale-110 transition-transform">
-                                <Utensils className="h-6 w-6" />
+            {/* Quick Actions */}
+            <div>
+                <motion.div
+                    variants={itemVariants}
+                    className="flex items-center justify-between mb-6"
+                >
+                    <h3 className="text-sm font-bold text-[#1a367c] tracking-widest">QUICK ACTIONS</h3>
+                </motion.div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    {[
+                        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
+                        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
+                        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation' },
+                        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling' },
+                        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment' },
+                    ].map((action, idx) => (
+                        <motion.div
+                            key={idx}
+                            variants={itemVariants}
+                            whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)' }}
+                            onClick={() => navigate('/super-admin/actions')}
+                            className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group"
+                        >
+                            <div className="absolute inset-0 bg-radial-gradient from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                            <div className="w-16 h-16 bg-[#f8f9fa] rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:text-[#f9b012] transition-colors relative z-10">
+                                <action.icon className="w-7 h-7" strokeWidth={1.5} />
                             </div>
-                            <h3 className="text-lg font-bold text-blue-900">Cafeteria Ops</h3>
-                            <p className="text-xs text-slate-400 font-medium">Food & Desk Oversight</p>
-                        </div>
-                    </HoverEffectCard>
+
+                            <h3 className="text-sm font-bold text-[#1a367c] tracking-wide mb-2 leading-tight relative z-10">
+                                {action.label.split(' ').map((line, i) => (
+                                    <span key={i} className="block">{line}</span>
+                                ))}
+                            </h3>
+                            <p className="text-[0.65rem] text-[#8892b0] font-medium relative z-10">{action.sub}</p>
+
+                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-[#f9b012] rounded-t-lg transition-all duration-300 group-hover:w-full group-hover:rounded-none"></div>
+                        </motion.div>
+                    ))}
                 </div>
-            </motion.div>
+            </div>
         </motion.div>
     );
 };
