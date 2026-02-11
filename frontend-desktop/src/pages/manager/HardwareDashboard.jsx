@@ -6,7 +6,6 @@ const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
 };
-
 const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
@@ -28,13 +27,14 @@ function HardwareDashboard() {
     const navigate = useNavigate();
 
     return (
-        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
             <motion.div variants={itemVariants}>
-                <p className="text-[0.65rem] uppercase tracking-[1.5px] text-[#8892b0] mb-0.5 font-bold">Management Portal</p>
-                <h1 className="text-[1.8rem] font-extrabold text-[#1a367c]">
-                    Hardware <span className="text-[#f9b012]">Registry</span>
+                <h1 className="text-2xl font-bold text-[#1a367c] mb-1">
+                    HARDWARE <span className="text-[#f9b012]">REGISTRY</span>
                 </h1>
-                <p className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] font-bold mt-1">Inventory Assignment & Asset Control</p>
+                <p className="text-sm text-[#8892b0] font-medium tracking-wide uppercase">
+                    Inventory Assignment & Asset Control
+                </p>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -42,7 +42,7 @@ function HardwareDashboard() {
                     <motion.div
                         key={stat.label}
                         variants={itemVariants}
-                        className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                        className="bg-white p-8 rounded-[20px] shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                     >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-full -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
                         <p className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] font-bold mb-3 relative z-10">{stat.label}</p>
@@ -66,7 +66,7 @@ function HardwareDashboard() {
                                 variants={itemVariants}
                                 whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0,0,0,0.1)' }}
                                 onClick={() => navigate(item.path)}
-                                className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group"
+                                className="bg-white rounded-[20px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group"
                             >
                                 <div className="w-16 h-16 bg-[#f8f9fa] rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:text-[#f9b012] transition-colors">
                                     <Icon className="w-7 h-7" strokeWidth={1.5} />
