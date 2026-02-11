@@ -1,76 +1,84 @@
 import { useState } from 'react';
-import { Card } from '../../components/ui/Card';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+};
 
 const generateSlots = (floor, count) =>
     Array.from({ length: count }, (_, i) => ({
         id: `${floor}-${String(i + 1).padStart(2, '0')}`,
-        floor,
         status: Math.random() > 0.4 ? 'Occupied' : 'Available',
-        assignedTo: Math.random() > 0.4 ? 'Employee' : '-',
     }));
 
 const groundFloor = generateSlots('G', 30);
 const firstFloor = generateSlots('F1', 30);
 
 function ParkingSlots() {
-    const [slots] = useState({ ground: groundFloor, first: firstFloor });
     const [activeFloor, setActiveFloor] = useState('ground');
-
-    const current = slots[activeFloor];
-    const available = current.filter(s => s.status === 'Available').length;
-    const occupied = current.filter(s => s.status === 'Occupied').length;
+    const slots = activeFloor === 'ground' ? groundFloor : firstFloor;
+    const available = slots.filter(s => s.status === 'Available').length;
+    const occupied = slots.filter(s => s.status === 'Occupied').length;
 
     return (
-        <div>
-            <div className="mb-8">
-                <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Parking Manager</p>
-                <h1 className="text-3xl font-bold text-slate-900">
-                    Slot <span className="text-orange-400">Map</span>
+        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+            <motion.div variants={itemVariants}>
+                <p className="text-[0.65rem] uppercase tracking-[1.5px] text-[#8892b0] mb-0.5 font-bold">Parking Manager</p>
+                <h1 className="text-[1.8rem] font-extrabold text-[#1a367c]">
+                    Slot <span className="text-[#f9b012]">Map</span>
                 </h1>
-                <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Floor-wise Slot Availability</p>
-            </div>
+                <p className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] font-bold mt-1">Floor-wise Slot Availability</p>
+            </motion.div>
 
-            <div className="flex gap-3 mb-6">
-                <button
-                    onClick={() => setActiveFloor('ground')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium uppercase tracking-widest ${activeFloor === 'ground' ? 'bg-[#1a3a5c] text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                >
-                    Ground Floor
-                </button>
-                <button
-                    onClick={() => setActiveFloor('first')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium uppercase tracking-widest ${activeFloor === 'first' ? 'bg-[#1a3a5c] text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                >
-                    First Floor
-                </button>
-            </div>
+            <motion.div variants={itemVariants} className="flex gap-3">
+                {['ground', 'first'].map(floor => (
+                    <button
+                        key={floor}
+                        onClick={() => setActiveFloor(floor)}
+                        className={`px-6 py-3 rounded-xl text-xs font-bold tracking-widest transition-all ${
+                            activeFloor === floor
+                                ? 'bg-[#1a367c] text-white shadow-lg shadow-[#1a367c26]'
+                                : 'bg-white text-[#8892b0] border border-[#e0e0e0] hover:bg-[#1a367c] hover:text-white hover:shadow-lg'
+                        }`}
+                    >
+                        {floor === 'ground' ? 'GROUND FLOOR' : 'FIRST FLOOR'}
+                    </button>
+                ))}
+            </motion.div>
 
-            <div className="flex gap-4 mb-6">
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <div className="w-4 h-4 rounded bg-green-100 border border-green-300"></div> Available ({available})
+            <motion.div variants={itemVariants} className="flex gap-6">
+                <div className="flex items-center gap-2 text-xs text-[#8892b0] font-bold">
+                    <div className="w-4 h-4 rounded bg-green-50 border border-green-300"></div>
+                    AVAILABLE ({available})
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <div className="w-4 h-4 rounded bg-red-100 border border-red-300"></div> Occupied ({occupied})
+                <div className="flex items-center gap-2 text-xs text-[#8892b0] font-bold">
+                    <div className="w-4 h-4 rounded bg-red-50 border border-red-300"></div>
+                    OCCUPIED ({occupied})
                 </div>
-            </div>
+            </motion.div>
 
-            <Card>
+            <motion.div variants={itemVariants} className="bg-white rounded-[24px] shadow-sm border border-slate-100 p-8">
                 <div className="grid grid-cols-6 md:grid-cols-10 gap-3">
-                    {current.map(slot => (
+                    {slots.map(slot => (
                         <div
                             key={slot.id}
-                            className={`rounded-lg p-3 text-center text-xs font-medium border ${
+                            className={`rounded-xl p-3 text-center text-xs font-bold border transition-all hover:-translate-y-1 ${
                                 slot.status === 'Available'
                                     ? 'bg-green-50 border-green-200 text-green-700'
-                                    : 'bg-red-50 border-red-200 text-red-700'
+                                    : 'bg-red-50 border-red-200 text-red-600'
                             }`}
                         >
                             {slot.id}
                         </div>
                     ))}
                 </div>
-            </Card>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }
 

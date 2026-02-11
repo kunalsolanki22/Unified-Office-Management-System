@@ -1,108 +1,84 @@
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
-    LayoutDashboard,
-    Monitor,
-    ClipboardList,
-    Package,
-    Building2,
-    Car,
-    MapPin,
-    CheckSquare,
-    LogOut
+    LayoutDashboard, ClipboardList, Package, Building2,
+    Car, MapPin, CheckSquare, LogOut
 } from 'lucide-react';
-import { cn } from '../../utils/cn';
 import logo from '../../assets/cygnet-logo.png';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-
-const hardwareItems = [
-    { icon: LayoutDashboard, label: 'DASHBOARD', path: '/manager/hardware/dashboard' },
-    { icon: ClipboardList, label: 'REQUESTS', path: '/manager/hardware/requests' },
-    { icon: Package, label: 'ASSETS', path: '/manager/hardware/assets' },
-    { icon: Building2, label: 'VENDORS', path: '/manager/hardware/vendors' },
-];
-
-const parkingItems = [
-    { icon: Car, label: 'DASHBOARD', path: '/manager/parking/dashboard' },
-    { icon: MapPin, label: 'SLOT MAP', path: '/manager/parking/slots' },
-    { icon: CheckSquare, label: 'REQUESTS', path: '/manager/parking/requests' },
-];
-
-const NavItem = ({ item }) => {
-    const location = useLocation();
-    const isActive = location.pathname === item.path;
-    const Icon = item.icon;
-
-    return (
-        <Link
-            to={item.path}
-            className={cn(
-                "group relative flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all",
-                isActive
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-            )}
-        >
-            <Icon className={cn("h-5 w-5 transition-colors", isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />
-            {item.label}
-            {isActive && (
-                <motion.div
-                    layoutId="manager-sidebar-active"
-                    className="absolute left-0 h-8 w-1 rounded-r-full bg-blue-600"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                />
-            )}
-        </Link>
-    );
-};
 
 const Sidebar = () => {
-    const { logout } = useAuth();
-    const navigate = useNavigate();
+    const location = useLocation();
+    const isActive = (path) => location.pathname === path;
 
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
+    const hardwareItems = [
+        { name: 'Dashboard', path: '/manager/hardware/dashboard', icon: LayoutDashboard },
+        { name: 'Requests', path: '/manager/hardware/requests', icon: ClipboardList },
+        { name: 'Assets', path: '/manager/hardware/assets', icon: Package },
+        { name: 'Vendors', path: '/manager/hardware/vendors', icon: Building2 },
+    ];
+
+    const parkingItems = [
+        { name: 'Dashboard', path: '/manager/parking/dashboard', icon: Car },
+        { name: 'Slot Map', path: '/manager/parking/slots', icon: MapPin },
+        { name: 'Requests', path: '/manager/parking/requests', icon: CheckSquare },
+    ];
 
     return (
-        <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-slate-200 bg-white shadow-sm">
-            <div className="flex h-16 items-center border-b border-slate-100 px-6">
-                <Link to="/manager/hardware/dashboard" className="flex items-center gap-3">
-                    <img src={logo} alt="Cygnet.One" className="h-8 w-auto object-contain" />
-                    <span className="text-xl font-bold text-slate-900 tracking-tight">
-                        CYGNET<span style={{ color: '#ffb012' }}>.ONE</span>
-                    </span>
-                </Link>
+        <aside className="w-[260px] bg-white text-[#1a367c] flex flex-col p-8 border-r border-[#e0e0e0] flex-shrink-0 h-full z-50">
+            <div className="flex items-center gap-3 mb-12">
+                <img src={logo} alt="Cygnet Logo" className="w-10 h-10 object-contain" />
+                <h2 className="text-lg font-bold text-[#1a367c] leading-tight tracking-tight">
+                    CYGNET<span className="text-[#f9b012]">.ONE</span>
+                </h2>
             </div>
 
-            <div className="p-4 overflow-y-auto h-[calc(100vh-8rem)]">
-                <div className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    IT HARDWARE
+            <div className="mb-8">
+                <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-bold pl-1">
+                    IT Hardware
                 </div>
-                <nav className="space-y-1 mb-6">
-                    {hardwareItems.map(item => <NavItem key={item.path} item={item} />)}
-                </nav>
-
-                <div className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    PARKING
-                </div>
-                <nav className="space-y-1">
-                    {parkingItems.map(item => <NavItem key={item.path} item={item} />)}
-                </nav>
+                {hardwareItems.map((item) => (
+                    <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 mb-2
+                            ${isActive(item.path)
+                                ? 'bg-[#1a367c] text-white shadow-lg shadow-[#1a367c26]'
+                                : 'text-[#8892b0] hover:bg-[#1a367c] hover:text-white hover:shadow-lg hover:shadow-[#1a367c26]'
+                            }`}
+                    >
+                        <item.icon className="w-5 h-5" />
+                        {item.name}
+                    </Link>
+                ))}
             </div>
 
-            <div className="absolute bottom-4 left-4 right-4">
-                <button
-                    onClick={handleLogout}
-                    className="group flex w-full items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition-colors hover:text-red-600 uppercase tracking-widest"
+            <div className="mb-8">
+                <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-bold pl-1">
+                    Parking
+                </div>
+                {parkingItems.map((item) => (
+                    <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 mb-2
+                            ${isActive(item.path)
+                                ? 'bg-[#1a367c] text-white shadow-lg shadow-[#1a367c26]'
+                                : 'text-[#8892b0] hover:bg-[#1a367c] hover:text-white hover:shadow-lg hover:shadow-[#1a367c26]'
+                            }`}
+                    >
+                        <item.icon className="w-5 h-5" />
+                        {item.name}
+                    </Link>
+                ))}
+            </div>
+
+            <div className="mt-auto">
+                <Link
+                    to="/login"
+                    className="flex items-center gap-2.5 text-[#8892b0] text-[0.8rem] font-medium cursor-pointer hover:text-[#1a367c] transition-colors pl-2"
                 >
-                    <LogOut className="h-5 w-5 text-slate-400 transition-colors group-hover:text-red-500" />
+                    <LogOut className="w-4 h-4" />
                     EXIT PORTAL
-                </button>
+                </Link>
             </div>
         </aside>
     );

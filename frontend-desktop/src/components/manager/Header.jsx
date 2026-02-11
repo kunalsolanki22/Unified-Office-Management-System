@@ -1,26 +1,39 @@
-import { Bell } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { Search, Bell } from 'lucide-react';
 
 const Header = () => {
-    const { user } = useAuth();
-
     return (
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-8 shadow-sm">
-            <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 w-64">
-                <span className="text-xs text-slate-400 uppercase tracking-widest">Command Node...</span>
+        <header className="h-[90px] flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-40 border-b border-transparent pt-2.5 mb-8">
+            <div>
+                <p className="text-[0.65rem] uppercase tracking-[1.5px] text-[#8892b0] mb-0.5 font-bold">
+                    MANAGER PORTAL
+                </p>
+                <h2 className="text-[1.1rem] text-[#1a367c] font-bold">Have a good day 😊</h2>
             </div>
-            <div className="flex items-center gap-4">
-                <button className="relative rounded-full p-2 text-slate-500 hover:bg-slate-100">
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-orange-400"></span>
-                </button>
-                <div className="flex items-center gap-3">
-                    <div className="text-right">
-                        <p className="text-xs font-semibold text-slate-700 uppercase tracking-widest">IT MANAGER</p>
-                        <p className="text-xs text-green-500 uppercase tracking-widest">ONLINE</p>
+
+            <div className="flex items-center gap-6">
+                <div className="hidden md:flex items-center bg-[#f8f9fa] rounded-full px-5 py-2.5 w-[300px] lg:w-[350px] border border-[#e0e0e0]">
+                    <Search className="w-4 h-4 text-[#b0b0b0]" />
+                    <input
+                        type="text"
+                        placeholder="SEARCH COMMAND NODE..."
+                        className="border-none bg-transparent outline-none ml-2.5 w-full text-[0.8rem] tracking-wide text-[#1a367c] placeholder:text-[#b0b0b0] placeholder:text-[0.7rem] placeholder:tracking-[1.5px] font-medium"
+                    />
+                </div>
+
+                <div className="flex items-center gap-6 ml-2">
+                    <div className="relative cursor-pointer group">
+                        <Bell className="w-5 h-5 text-[#0a192f] transition-transform group-hover:scale-110" />
+                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#f9b012] rounded-full border-2 border-white"></div>
                     </div>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a3a5c] text-white text-sm font-bold">
-                        {user?.email?.[0]?.toUpperCase() || 'M'}
+
+                    <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                        <div className="text-right hidden sm:block">
+                            <div className="text-[0.75rem] font-bold text-[#1a367c]">IT MANAGER</div>
+                            <div className="text-[0.65rem] text-[#f9b012] font-semibold text-right">Hardware & Parking</div>
+                        </div>
+                        <div className="w-10 h-10 bg-[#1a367c] text-white rounded-full flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-blue-50">
+                            M
+                        </div>
                     </div>
                 </div>
             </div>

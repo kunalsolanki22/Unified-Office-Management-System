@@ -1,7 +1,16 @@
 import { useState } from 'react';
-import { Card } from '../../components/ui/Card';
+import { motion } from 'framer-motion';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../../components/ui/Table';
-import { Badge } from '../../components/ui/Badge';
+import { Search } from 'lucide-react';
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+};
 
 const mockRequests = [
     { id: 1, employee: 'Karan Sharma', type: 'New Laptop', urgency: 'High', status: 'Pending', date: '10 Feb 2026' },
@@ -24,62 +33,65 @@ function HardwareRequests() {
     const handleReject = (id) => setRequests(requests.map(r => r.id === id ? { ...r, status: 'Rejected' } : r));
 
     return (
-        <div>
-            <div className="mb-8">
-                <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Hardware Manager</p>
-                <h1 className="text-3xl font-bold text-slate-900">
-                    Hardware <span className="text-orange-400">Requests</span>
+        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+            <motion.div variants={itemVariants}>
+                <p className="text-[0.65rem] uppercase tracking-[1.5px] text-[#8892b0] mb-0.5 font-bold">Hardware Manager</p>
+                <h1 className="text-[1.8rem] font-extrabold text-[#1a367c]">
+                    Hardware <span className="text-[#f9b012]">Requests</span>
                 </h1>
-                <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Review & Process Employee Requests</p>
-            </div>
+                <p className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] font-bold mt-1">Review & Process Employee Requests</p>
+            </motion.div>
 
-            <Card>
-                <input
-                    type="text"
-                    placeholder="Search by employee or type..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="mb-4 border border-slate-200 rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                />
+            <motion.div variants={itemVariants} className="bg-white rounded-[24px] shadow-sm border border-slate-100 p-8">
+                <div className="flex items-center bg-[#f8f9fa] rounded-full px-5 py-2.5 w-[300px] border border-[#e0e0e0] mb-6">
+                    <Search className="w-4 h-4 text-[#b0b0b0]" />
+                    <input
+                        type="text"
+                        placeholder="SEARCH EMPLOYEE OR TYPE..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="border-none bg-transparent outline-none ml-2.5 w-full text-[0.8rem] tracking-wide text-[#1a367c] placeholder:text-[#b0b0b0] placeholder:text-[0.7rem] placeholder:tracking-[1.5px] font-medium"
+                    />
+                </div>
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Employee</TableHead>
-                            <TableHead>Request Type</TableHead>
-                            <TableHead>Urgency</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Actions</TableHead>
+                            <TableHead className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] font-bold">Employee</TableHead>
+                            <TableHead className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] font-bold">Request Type</TableHead>
+                            <TableHead className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] font-bold">Urgency</TableHead>
+                            <TableHead className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] font-bold">Date</TableHead>
+                            <TableHead className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] font-bold">Status</TableHead>
+                            <TableHead className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] font-bold">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filtered.map(req => (
                             <TableRow key={req.id}>
-                                <TableCell className="font-medium text-slate-800">{req.employee}</TableCell>
-                                <TableCell className="text-slate-600">{req.type}</TableCell>
+                                <TableCell className="font-bold text-[#1a367c] text-sm">{req.employee}</TableCell>
+                                <TableCell className="text-[#8892b0] text-sm">{req.type}</TableCell>
                                 <TableCell>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                        req.urgency === 'High' ? 'bg-red-100 text-red-600' :
-                                        req.urgency === 'Medium' ? 'bg-yellow-100 text-yellow-600' :
-                                        'bg-green-100 text-green-600'
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide ${
+                                        req.urgency === 'High' ? 'bg-red-50 text-red-500' :
+                                        req.urgency === 'Medium' ? 'bg-yellow-50 text-yellow-600' :
+                                        'bg-green-50 text-green-600'
                                     }`}>{req.urgency}</span>
                                 </TableCell>
-                                <TableCell className="text-slate-500">{req.date}</TableCell>
+                                <TableCell className="text-[#8892b0] text-sm">{req.date}</TableCell>
                                 <TableCell>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                        req.status === 'Approved' ? 'bg-green-100 text-green-600' :
-                                        req.status === 'Rejected' ? 'bg-red-100 text-red-600' :
-                                        'bg-yellow-100 text-yellow-600'
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide ${
+                                        req.status === 'Approved' ? 'bg-green-50 text-green-600' :
+                                        req.status === 'Rejected' ? 'bg-red-50 text-red-500' :
+                                        'bg-[#fff8e6] text-[#f9b012]'
                                     }`}>{req.status}</span>
                                 </TableCell>
                                 <TableCell>
                                     {req.status === 'Pending' && (
                                         <div className="flex gap-2">
-                                            <button onClick={() => handleApprove(req.id)} className="bg-[#1a3a5c] text-white px-3 py-1 rounded text-xs hover:bg-[#16324f] uppercase tracking-widest">
-                                                Approve
+                                            <button onClick={() => handleApprove(req.id)} className="bg-[#1a367c] text-white px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all">
+                                                APPROVE
                                             </button>
-                                            <button onClick={() => handleReject(req.id)} className="border border-red-400 text-red-400 px-3 py-1 rounded text-xs hover:bg-red-50 uppercase tracking-widest">
-                                                Reject
+                                            <button onClick={() => handleReject(req.id)} className="border border-red-300 text-red-500 px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest hover:bg-red-50 transition-all">
+                                                REJECT
                                             </button>
                                         </div>
                                     )}
@@ -88,8 +100,8 @@ function HardwareRequests() {
                         ))}
                     </TableBody>
                 </Table>
-            </Card>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }
 

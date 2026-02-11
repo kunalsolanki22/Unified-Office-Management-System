@@ -4,11 +4,15 @@ import Header from '../components/manager/Header';
 
 const ManagerLayout = () => {
     return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased overflow-x-hidden">
-            <Sidebar />
-            <div className="pl-64 transition-all">
-                <Header />
-                <main className="p-8">
+        <div className="flex min-h-screen bg-[#f8f9fa]">
+            <div className="sticky top-0 h-screen">
+                <Sidebar />
+            </div>
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="px-8">
+                    <Header />
+                </div>
+                <main className="flex-1 px-8 pb-8">
                     <div className="mx-auto max-w-7xl">
                         <Outlet />
                     </div>
