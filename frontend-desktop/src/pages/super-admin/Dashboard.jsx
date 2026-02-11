@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
     CalendarCheck,
+    CalendarDays,
     Bell,
     X,
     Plus,
@@ -60,7 +61,7 @@ const Dashboard = () => {
             className="space-y-8"
         >
             {/* Top Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Admin Attendance Card */}
                 <motion.div
                     variants={itemVariants}
@@ -188,6 +189,42 @@ const Dashboard = () => {
                             </button>
                         </div>
                     )}
+                </motion.div>
+
+                {/* Upcoming Holidays Card */}
+                <motion.div
+                    variants={itemVariants}
+                    className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col min-h-[320px] relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                >
+                    <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-6">
+                        <CalendarDays className="w-4 h-4 text-[#f9b012]" />
+                        UPCOMING HOLIDAYS
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                        {[
+                            { date: 'FEB 26', title: 'Maha Shivratri', desc: 'Public Holiday' },
+                            { date: 'MAR 14', title: 'Holi', desc: 'Festival of Colors' }
+                        ].map((holiday, idx) => (
+                            <div key={idx} className="flex gap-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0 last:mb-0">
+                                <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">{holiday.date}</div>
+                                <div className="flex-1">
+                                    <div className="font-bold text-[#1a367c] text-sm mb-1">{holiday.title}</div>
+                                    <div className="text-xs text-[#8892b0]">{holiday.desc}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-auto pt-4 border-t border-slate-50">
+                        <button
+                            onClick={() => navigate('/super-admin/holidays')}
+                            className="w-full bg-[#f8f9fa] text-[#1a367c] py-3 rounded-xl text-xs font-bold tracking-widest flex items-center justify-center gap-2 hover:bg-[#1a367c] hover:text-white transition-all group/btn"
+                        >
+                            VIEW CALENDAR
+                            <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                        </button>
+                    </div>
                 </motion.div>
             </div>
 
