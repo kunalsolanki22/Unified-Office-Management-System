@@ -3,6 +3,7 @@ import 'employee_profile_screen.dart';
 import '../cafeteria_screen.dart';
 import '../parking_screen.dart';
 import '../it_support_screen.dart';
+import '../desk_booking_screen.dart';
 
 class EmployeeDashboard extends StatefulWidget {
   final String userName;
@@ -42,22 +43,43 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
       backgroundColor: bgGray,
       appBar: AppBar(
         backgroundColor: navyColor,
-        title: const Text('Company Directory'),
+        foregroundColor: Colors.white,
+        title: const Text(
+          'Company Directory',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         centerTitle: true,
         elevation: 0,
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.contacts, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(Icons.contacts, size: 40, color: navyColor),
+            ),
+            const SizedBox(height: 20),
+            const Text(
               'Directory',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: navyColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Find your team members',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
               ),
             ),
           ],
@@ -72,22 +94,43 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
       backgroundColor: bgGray,
       appBar: AppBar(
         backgroundColor: navyColor,
-        title: const Text('Leave Requests'),
+        foregroundColor: Colors.white,
+        title: const Text(
+          'Leave Requests',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         centerTitle: true,
         elevation: 0,
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.calendar_today, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(Icons.calendar_today, size: 40, color: Color(0xFFD97706)),
+            ),
+            const SizedBox(height: 20),
+            const Text(
               'Leave Requests',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: navyColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Manage your time off',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
               ),
             ),
           ],
@@ -360,9 +403,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const CafeteriaScreen(
-                        initialShowDeskBooking: false,
-                      ),
+                      builder: (context) => const CafeteriaScreen(),
                     ),
                   );
                 },
@@ -404,9 +445,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const CafeteriaScreen(
-                        initialShowDeskBooking: true,
-                      ),
+                      builder: (context) => const DeskBookingScreen(),
                     ),
                   );
                 },
