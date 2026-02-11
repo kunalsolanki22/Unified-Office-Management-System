@@ -1,8 +1,9 @@
+import React from 'react';
 import { Outlet } from 'react-router-dom';
-import Sidebar from '../components/super-admin/Sidebar';
-import Header from '../components/super-admin/Header';
+import Sidebar from '../components/admin/Sidebar';
+import Header from '../components/admin/Header';
 
-const SuperAdminLayout = () => {
+const AdminLayout = () => {
     return (
         <div className="flex h-screen overflow-hidden bg-[#f4f7f6] text-[#333] font-sans">
             {/* Sidebar */}
@@ -11,7 +12,7 @@ const SuperAdminLayout = () => {
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-y-auto bg-white px-10 transition-all duration-300">
                 <Header />
-                <main className="flex-1 py-8 animate-fade-in">
+                <main className="flex-1 py-8 animate-fade-in pb-20">
                     <Outlet />
                 </main>
             </div>
@@ -19,4 +20,4 @@ const SuperAdminLayout = () => {
     );
 };
 
-export default SuperAdminLayout;
+export default AdminLayout;

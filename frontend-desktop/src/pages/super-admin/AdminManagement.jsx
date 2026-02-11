@@ -1,178 +1,180 @@
-import { useState } from 'react';
-import { Plus, Search, Trash2, Shield, AlertCircle, ChevronDown } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Badge } from '../../components/ui/Badge';
-import { Modal } from '../../components/ui/Modal';
-import { cn } from '../../utils/cn';
-
-const initialAdmins = [
-    { id: 1, name: 'Sarah Miller', email: 's.miller@cygnet.one', role: 'Regional Admin', assigned: 'Jan 12, 2026', avatar: 'S', color: 'bg-blue-900' },
-    { id: 2, name: 'David Chen', email: 'd.chen@cygnet.one', role: 'Infrastructure Lead', assigned: 'Feb 05, 2026', avatar: 'D', color: 'bg-blue-900' },
-    { id: 3, name: 'Elena Vance', email: 'e.vance@cygnet.one', role: 'Security Admin', assigned: 'Dec 22, 2025', avatar: 'E', color: 'bg-blue-900' },
-    { id: 4, name: 'Marcus Bell', email: 'm.bell@cygnet.one', role: 'Food Admin', assigned: 'Nov 15, 2025', avatar: 'M', color: 'bg-blue-900' },
-    { id: 5, name: 'Priya Verma', email: 'p.verma@cygnet.one', role: 'Desk Admin', assigned: 'Oct 30, 2025', avatar: 'P', color: 'bg-blue-900' },
-];
-
-const container = {
-    hidden: { opacity: 0 },
-    show: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.1
-        }
-    }
-};
-
-const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-};
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Trash2, Edit2, Mail, Shield, X, Check } from 'lucide-react';
 
 const AdminManagement = () => {
-    const [admins, setAdmins] = useState(initialAdmins);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [showForm, setShowForm] = useState(false);
+    const [admins, setAdmins] = useState([
+        { id: 1, name: 'Sarah Miller', date: 'JAN 12, 2026', role: 'REGIONAL ADMIN', email: 's.miller@cygnet.one', avatarColor: 'bg-blue-800', initial: 'S' },
+        { id: 2, name: 'David Chen', date: 'FEB 05, 2026', role: 'INFRASTRUCTURE LEAD', email: 'd.chen@cygnet.one', avatarColor: 'bg-indigo-600', roleColor: 'bg-indigo-50 text-indigo-700', initial: 'D' },
+        { id: 3, name: 'Elena Vance', date: 'DEC 22, 2025', role: 'SECURITY ADMIN', email: 'e.vance@cygnet.one', avatarColor: 'bg-orange-600', roleColor: 'bg-emerald-50 text-emerald-700', initial: 'E' },
+    ]);
+    const [newAdmin, setNewAdmin] = useState({ name: '', email: '', role: '', date: new Date().toLocaleDateString() });
 
-    const filteredAdmins = admins.filter(admin =>
-        admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        admin.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleAddAdmin = () => {
+        if (newAdmin.name && newAdmin.email && newAdmin.role) {
+            setAdmins([
+                ...admins,
+                {
+                    id: Date.now(),
+                    ...newAdmin,
+                    initial: newAdmin.name[0].toUpperCase(),
+                    avatarColor: 'bg-slate-700'
+                }
+            ]);
+            setNewAdmin({ name: '', email: '', role: '', date: new Date().toLocaleDateString() });
+            setShowForm(false);
+        }
+    };
+
+    const handleDelete = (id) => {
+        if (confirm('Revoke admin privileges?')) {
+            setAdmins(admins.filter(a => a.id !== id));
+        }
+    };
 
     return (
-        <div className="space-y-8">
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col sm:flex-row sm:items-end justify-between gap-6"
-            >
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+        >
+            <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-3xl font-bold text-blue-900 uppercase tracking-tight">
-                        Admin <span className="text-orange-500">Master Registry</span>
+                    <h1 className="text-2xl font-bold text-[#1a367c] mb-1">
+                        ADMIN <span className="text-[#f9b012]">MASTER REGISTRY</span>
                     </h1>
-                    <p className="text-slate-400 mt-1 text-xs font-bold uppercase tracking-widest">Provision and revoke command-level authorities</p>
+                    <p className="text-sm text-[#8892b0] font-medium tracking-wide uppercase">
+                        Provision and Revoke Command-Level Authorities
+                    </p>
                 </div>
-                <Button
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-blue-900 hover:bg-blue-800 text-white shadow-xl shadow-blue-900/20 px-6 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
+                <button
+                    onClick={() => setShowForm(!showForm)}
+                    className="bg-[#1a367c] text-white px-6 py-3 rounded-full text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2"
                 >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Provision Admin
-                </Button>
-            </motion.div>
+                    <Plus className="w-4 h-4" /> ADD ADMIN
+                </button>
+            </div>
 
-            <Card className="p-0 overflow-visible border-none shadow-none bg-transparent">
-                <div className="bg-white rounded-3xl shadow-xl ring-1 ring-slate-100 p-8 min-h-[500px]">
-                    <div className="flex items-center gap-4 mb-2">
-                        <div className="relative w-full max-w-[300px]">
-                            <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search Command Node..."
-                                className="w-full pl-10 pr-4 py-3 rounded-xl border-none bg-slate-50 text-xs font-bold text-slate-700 placeholder:text-slate-400 uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <table className="w-full text-left border-collapse mt-4">
-                        <thead className="border-b border-transparent">
-                            <tr>
-                                <th className="px-6 py-6 text-[10px] font-bold text-slate-300 uppercase tracking-[0.15em]">Command Node</th>
-                                <th className="px-6 py-6 text-[10px] font-bold text-slate-300 uppercase tracking-[0.15em]">Auth Protocol</th>
-                                <th className="px-6 py-6 text-[10px] font-bold text-slate-300 uppercase tracking-[0.15em]">Access Link</th>
-                                <th className="px-6 py-6 text-[10px] font-bold text-slate-300 uppercase tracking-[0.15em] text-right">Operations</th>
-                            </tr>
-                        </thead>
-                        <motion.tbody
-                            variants={container}
-                            initial="hidden"
-                            animate="show"
-                            className="divide-y divide-slate-50"
-                        >
-                            {filteredAdmins.map((admin) => (
-                                <motion.tr
-                                    key={admin.id}
-                                    variants={item}
-                                    className="group hover:bg-slate-50/30 transition-colors"
-                                >
-                                    <td className="px-6 py-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm shrink-0", admin.color)}>
-                                                {admin.avatar}
-                                            </div>
-                                            <div>
-                                                <div className="font-bold text-blue-900 text-sm mb-1">{admin.name}</div>
-                                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Assigned: {admin.assigned}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-6">
-                                        <div className="inline-flex items-center px-4 py-2 rounded-lg bg-blue-50 text-blue-900 text-[10px] font-bold uppercase tracking-wider">
-                                            {admin.role}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-6">
-                                        <div className="flex items-center gap-3 text-sm font-medium text-slate-500">
-                                            <div className="text-slate-400">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
-                                            </div>
-                                            <span className="text-xs font-semibold text-slate-500">{admin.email}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-6 text-right">
-                                        <div className="flex items-center justify-end">
-                                            <Button variant="ghost" size="icon" className="h-10 w-10 text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </motion.tr>
-                            ))}
-                        </motion.tbody>
-                    </table>
-                </div>
-            </Card>
-
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Provision New Admin">
-                <div className="space-y-6">
-                    <div className="bg-blue-50 p-4 rounded-xl flex items-start gap-3 border border-blue-100">
-                        <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-blue-800">New admins will receive an encrypted onboarding link. 2FA setup is mandatory for Command Node access.</p>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Full Name</label>
-                            <Input placeholder="e.g. Jonathan Ive" className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white transition-all" />
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Email Address</label>
-                            <Input placeholder="e.g. j.ive@cygnet.one" className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white transition-all" />
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Role Authority</label>
-                            <div className="relative">
-                                <select className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none">
-                                    <option>Regional Admin</option>
-                                    <option>Infrastructure Lead</option>
-                                    <option>Security Admin</option>
-                                </select>
-                                <ChevronDown className="absolute right-4 top-4 h-4 w-4 text-slate-500 pointer-events-none" />
+            <AnimatePresence>
+                {showForm && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="bg-white rounded-[20px] p-8 shadow-sm border border-slate-100 overflow-hidden"
+                    >
+                        <h3 className="text-sm font-bold text-[#1a367c] mb-6 tracking-wide">PROVISION NEW ADMINISTRATOR</h3>
+                        <div className="grid grid-cols-2 gap-6 mb-6">
+                            <div className="space-y-2">
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">FULL NAME</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Sarah Miller"
+                                    className="w-full bg-[#f8f9fa] p-3 rounded-lg text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium"
+                                    value={newAdmin.name}
+                                    onChange={e => setNewAdmin({ ...newAdmin, name: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">EMAIL ADDRESS</label>
+                                <input
+                                    type="email"
+                                    placeholder="e.g. s.miller@cygnet.one"
+                                    className="w-full bg-[#f8f9fa] p-3 rounded-lg text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium"
+                                    value={newAdmin.email}
+                                    onChange={e => setNewAdmin({ ...newAdmin, email: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">INITIAL ROLE</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Regional Admin"
+                                    className="w-full bg-[#f8f9fa] p-3 rounded-lg text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium"
+                                    value={newAdmin.role}
+                                    onChange={e => setNewAdmin({ ...newAdmin, role: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">ASSIGNMENT DATE</label>
+                                <input
+                                    type="text"
+                                    value={newAdmin.date}
+                                    readOnly
+                                    className="w-full bg-[#f8f9fa] p-3 rounded-lg text-sm border-none outline-none text-[#8892b0] font-medium cursor-not-allowed"
+                                />
                             </div>
                         </div>
-                    </div>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowForm(false)}
+                                className="px-6 py-3 rounded-xl border border-red-100 text-red-500 text-xs font-bold hover:bg-red-50 transition-colors"
+                            >
+                                CANCEL
+                            </button>
+                            <button
+                                onClick={handleAddAdmin}
+                                className="px-6 py-3 rounded-xl bg-[#1a367c] text-white text-xs font-bold hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/10"
+                            >
+                                + CREATE ADMIN
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-                    <div className="flex justify-end gap-3 pt-4">
-                        <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-xl hover:bg-slate-100">Cancel</Button>
-                        <Button className="bg-blue-900 hover:bg-blue-800 text-white rounded-xl shadow-lg shadow-blue-900/20">Commit to Registry</Button>
-                    </div>
+            <div className="bg-white rounded-[20px] p-6 shadow-sm border border-slate-100">
+                <div className="grid grid-cols-[0.5fr_2fr_2fr_2fr_0.5fr] pb-4 border-b border-slate-100 mb-4 px-4 text-[0.7rem] font-bold text-[#8892b0] tracking-widest">
+                    <div></div>
+                    <div>COMMAND NODE</div>
+                    <div>AUTH PROTOCOL</div>
+                    <div>ACCESS LINK</div>
+                    <div></div>
                 </div>
-            </Modal>
-        </div>
+
+                <div className="space-y-1">
+                    {admins.map((admin) => (
+                        <motion.div
+                            key={admin.id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="grid grid-cols-[0.5fr_2fr_2fr_2fr_0.5fr] items-center p-4 rounded-xl hover:bg-[#fafbfb] transition-colors group"
+                        >
+                            <div>
+                                <div className={`w-9 h-9 ${admin.avatarColor} text-white rounded-lg flex items-center justify-center font-bold shadow-sm`}>
+                                    {admin.initial}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-sm font-bold text-[#1a367c]">{admin.name}</div>
+                                <div className="text-[0.65rem] text-[#8892b0] font-medium mt-0.5 tracking-wide">ASSIGNED: {admin.date}</div>
+                            </div>
+                            <div>
+                                <span className={`px-3 py-1.5 rounded-full text-[0.65rem] font-bold tracking-wide ${admin.roleColor || 'bg-blue-50 text-blue-800'}`}>
+                                    {admin.role.toUpperCase()}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-[#555] font-medium">
+                                <Mail className="w-3.5 h-3.5 text-[#b0b0b0]" />
+                                {admin.email}
+                            </div>
+                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(admin.id)}
+                                    className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
+        </motion.div>
     );
 };
 

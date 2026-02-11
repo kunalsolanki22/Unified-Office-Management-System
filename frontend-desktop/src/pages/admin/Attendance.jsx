@@ -11,18 +11,18 @@ const Attendance = () => {
         >
             <div className="mb-2">
                 <h1 className="text-2xl font-bold text-[#1a367c] mb-1">
-                    ATTENDANCE <span className="text-[#f9b012]">ADJUDICATION</span>
+                    MANAGER ATTENDANCE <span className="text-[#f9b012]">VALIDATION</span>
                 </h1>
                 <p className="text-sm text-[#8892b0] font-medium tracking-wide uppercase">
-                    Audit Performance & Manage Administrator Clearances
+                    Verify Domain Leads & Approve Leave Requests
                 </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Daily Audit */}
+                {/* Manager Audit */}
                 <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100">
                     <div className="flex justify-between items-center mb-6">
-                        <div className="text-lg font-bold text-[#1a367c]">Daily Audit</div>
+                        <div className="text-lg font-bold text-[#1a367c]">Manager Audit</div>
                         <div className="p-2 bg-orange-50 rounded-lg">
                             <Clock className="w-5 h-5 text-[#f9b012]" />
                         </div>
@@ -30,7 +30,7 @@ const Attendance = () => {
 
                     <div className="space-y-4">
                         {[
-                            { name: 'Karan Sharma', role: 'FOOD ADMIN', time: '09:24 AM', status: 'FLAGGED', note: 'LATE CLOCK-IN (24M)', color: 'bg-red-50 text-red-500', initial: 'K', initialBg: 'bg-[#1a4d8c]' },
+                            { name: 'James Carter', role: 'PARKING LEAD', time: '09:24 AM', status: 'FLAGGED', note: 'LATE CLOCK-IN (24M)', color: 'bg-red-50 text-red-500', initial: 'J', initialBg: 'bg-[#1a4d8c]' },
                             { name: 'Priya Verma', role: 'DESK ADMIN', time: '08:58 AM', status: 'VERIFIED', note: 'ON-TIME ENTRY', color: 'bg-green-50 text-green-600', initial: 'P', initialBg: 'bg-slate-800' },
                             { name: 'Marcus Bell', role: 'INFRASTRUCTURE', time: 'PENDING', status: 'PENDING', note: 'SYSTEM CHECK REQUIRED', color: 'bg-amber-50 text-amber-600', initial: 'M', initialBg: 'bg-slate-800' },
                         ].map((item, idx) => (
@@ -53,14 +53,14 @@ const Attendance = () => {
                     </div>
 
                     <button className="w-full mt-6 bg-[#1a367c] text-white py-4 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/10">
-                        AUTHORIZE DAILY BATCH
+                        AUTHORIZE MANAGER LOGS
                     </button>
                 </div>
 
-                {/* Leave Petitions */}
+                {/* Leave Requests */}
                 <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100">
                     <div className="flex justify-between items-center mb-6">
-                        <div className="text-lg font-bold text-[#1a367c]">Leave Petitions</div>
+                        <div className="text-lg font-bold text-[#1a367c]">Leave Requests</div>
                         <div className="p-2 bg-blue-50 rounded-lg">
                             <AlertCircle className="w-5 h-5 text-[#1a367c]" />
                         </div>
@@ -68,8 +68,8 @@ const Attendance = () => {
 
                     <div className="space-y-6">
                         {[
-                            { name: 'Elena Vance', type: 'EMERGENCY • 2 DAYS', reason: 'Critical Family Matter. Operational redundancy confirmed via Node Cluster B.', color: 'text-red-500' },
-                            { name: 'David Chen', type: 'ANNUAL LEAVE • 5 DAYS', reason: 'Project Transition Break. Operational redundancy confirmed via Node Cluster B.', color: 'text-amber-500' },
+                            { name: 'Elena Vance', type: 'SECURITY • EMERGENCY • 2 DAYS', reason: 'Critical Family Matter. Operational redundancy confirmed via Node Cluster B.', color: 'text-red-500' },
+                            { name: 'David Chen', type: 'INFRASTRUCTURE • ANNUAL LEAVE • 5 DAYS', reason: 'Project Transition Break. Operational redundancy confirmed via Node Cluster B.', color: 'text-amber-500' },
                         ].map((leave, idx) => (
                             <div key={idx} className="bg-[#f8f9fa] p-6 rounded-2xl">
                                 <div className="flex justify-between items-start mb-3">

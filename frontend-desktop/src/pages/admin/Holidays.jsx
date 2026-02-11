@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, ChevronLeft, ChevronRight, Calendar, Bookmark, Hash } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Bookmark } from 'lucide-react';
 
 const Holidays = () => {
     const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-    const dates = Array.from({ length: 28 }, (_, i) => i + 1); // Feb 2026 has 28 days
+    const dates = Array.from({ length: 28 }, (_, i) => i + 1);
 
-    const [holidays, setHolidays] = useState([
+    const [holidays] = useState([
         { date: 'Jan 26, 2026', name: 'Republic Day', day: 'Monday', category: 'NATIONAL', status: 'COMPLETED', color: 'text-green-500' },
         { date: 'Feb 26, 2026', name: 'Maha Shivratri', day: 'Thursday', category: 'RELIGIOUS', status: 'UPCOMING', color: 'text-[#f9b012]' },
         { date: 'Mar 14, 2026', name: 'Holi', day: 'Saturday', category: 'FESTIVAL', status: 'SCHEDULED', color: 'text-slate-400' },
@@ -71,37 +71,19 @@ const Holidays = () => {
                     </div>
                 </div>
 
-                {/* Proclaim Form */}
-                <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col h-full">
-                    <h3 className="text-lg font-bold text-[#1a367c] mb-8">PROCLAIM HOLIDAY</h3>
-
-                    <div className="space-y-6 flex-1">
-                        <div className="space-y-2">
-                            <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider block">EVENT NAME</label>
-                            <input
-                                type="text"
-                                placeholder="e.g. Maha Shivratri"
-                                className="w-full bg-[#f8f9fa] p-4 rounded-xl text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium placeholder:text-[#999]"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider block">EXECUTION DATE</label>
-                            <input
-                                type="text"
-                                placeholder="dd / mm / yyyy"
-                                className="w-full bg-[#f8f9fa] p-4 rounded-xl text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium placeholder:text-[#999]"
-                            />
-                        </div>
+                {/* Info Card or Empty space filler based on needs - keeping it to match layout structure */}
+                <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col justify-center items-center text-center">
+                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-[#1a367c]">
+                        <CalendarDays className="w-8 h-8" />
                     </div>
-
-                    <button className="w-full mt-auto bg-[#1a367c] text-white py-4 rounded-full text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all shadow-lg shadow-blue-900/10 flex items-center justify-center gap-2">
-                        + COMMIT TO REGISTRY
-                    </button>
+                    <h3 className="text-lg font-bold text-[#1a367c] mb-2">Upcoming Holiday</h3>
+                    <p className="text-sm text-[#f9b012] font-bold uppercase tracking-widest mb-1">Maha Shivratri</p>
+                    <p className="text-xs text-[#8892b0]">February 26, 2026</p>
                 </div>
             </div>
 
             {/* List Section */}
-            <div>
+            <div className="mt-10">
                 <div className="flex items-center gap-3 mb-6 text-[#1a367c] font-bold text-lg">
                     <Bookmark className="w-5 h-5" />
                     ANNOUNCED HOLIDAYS

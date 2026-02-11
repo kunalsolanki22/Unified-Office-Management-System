@@ -13,6 +13,11 @@ export const ROUTES = {
 
     // Admin
     ADMIN_DASHBOARD: '/admin/dashboard',
+    ADMIN_USER_DIRECTORY: '/admin/user-directory',
+    ADMIN_ATTENDANCE: '/admin/attendance',
+    ADMIN_HOLIDAYS: '/admin/holidays',
+    ADMIN_ACTION_HUB: '/admin/action-hub',
+    ADMIN_MY_ATTENDANCE: '/admin/my-attendance',
 
     // Manager
     MANAGER_DASHBOARD: '/manager/dashboard',

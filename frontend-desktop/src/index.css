@@ -43,6 +43,15 @@
       opacity: 1;
     }
   }
+
+  /* Super Admin Colors */
+  --color-primary-dark: #1a367c;
+  --color-primary-light: #2c4a96;
+  --color-accent-orange: #f9b012;
+  --color-text-light: #ccd6f6;
+  --color-text-muted: #8892b0;
+  --color-bg-light: #f4f7f6;
+
 }
 
 :root {
