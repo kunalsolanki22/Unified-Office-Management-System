@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'employee_profile_screen.dart';
 import '../cafeteria_screen.dart';
 import '../parking_screen.dart';
+import '../it_support_screen.dart';
 
 class EmployeeDashboard extends StatefulWidget {
   final String userName;
@@ -372,7 +373,12 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                 iconBgColor: const Color(0xFFFAF5FF),
                 title: 'IT Support',
                 onTap: () {
-                  // Handle IT support
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ITSupportScreen(),
+                    ),
+                  );
                 },
               ),
               _buildQuickServiceCard(
