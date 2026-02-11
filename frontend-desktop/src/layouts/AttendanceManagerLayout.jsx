@@ -11,7 +11,7 @@ const AttendanceManagerLayout = () => {
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-y-auto bg-white px-10 transition-all duration-300">
                 <Header />
-                <main className="flex-1 py-8 animate-fade-in pb-20">
+                <main className="flex-1 py-8 animate-fade-in">
                     <Outlet />
                 </main>
             </div>

@@ -1,19 +1,35 @@
+import { Bell } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
+    const { user } = useAuth();
+
     return (
-        <header className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-                <button className="text-gray-500 focus:outline-none lg:hidden">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4 6H20M4 12H20M4 18H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                </button>
+        <header className="h-[90px] flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-40 border-b border-transparent pt-2.5 mb-8">
+            <div>
+                <p className="text-[0.65rem] uppercase tracking-[1.5px] text-[#8892b0] mb-0.5 font-bold">
+                    Cafeteria Manager Portal
+                </p>
+                <h2 className="text-[1.1rem] text-[#1a367c] font-bold">Have a good day 😊</h2>
             </div>
-            <div className="flex items-center">
-                <div className="relative">
-                    <button className="flex items-center text-gray-500 hover:text-gray-700 focus:outline-none">
-                        <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-200">Cafeteria Manager</span>
-                    </button>
+
+            <div className="flex items-center gap-6">
+                {/* User Actions */}
+                <div className="flex items-center gap-6 ml-2">
+                    <div className="relative cursor-pointer group">
+                        <Bell className="w-5 h-5 text-[#0a192f] transition-transform group-hover:scale-110" />
+                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#f9b012] rounded-full border-2 border-white"></div>
+                    </div>
+
+                    <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                        <div className="text-right hidden sm:block">
+                            <div className="text-[0.75rem] font-bold text-[#1a367c]">{user?.name || 'User'}</div>
+                            <div className="text-[0.65rem] text-[#f9b012] font-semibold text-right">Cafeteria Manager</div>
+                        </div>
+                        <div className="w-10 h-10 bg-[#1a367c] text-white rounded-full flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-blue-50">
+                            {user?.name ? user.name.charAt(0).toUpperCase() : 'C'}
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>

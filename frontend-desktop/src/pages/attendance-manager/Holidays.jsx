@@ -1,125 +1,81 @@
-import { motion } from 'framer-motion';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 
 const Holidays = () => {
-    const upcomingHolidays = [
-        { date: 'FEB 26', name: 'Maha Shivratri', type: 'Public Holiday', day: 'Wednesday' },
-        { date: 'MAR 14', name: 'Holi', type: 'Festival', day: 'Friday' },
-        { date: 'MAR 30', name: 'Idul Fitr', type: 'Public Holiday', day: 'Monday' },
-        { date: 'APR 10', name: 'Ram Navami', type: 'Restricted Holiday', day: 'Thursday' },
-    ];
-
-    const calendarGrid = Array(35).fill(null).map((_, i) => i + 1); // Simple grid for visual
+    const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    // Generating dummy calendar days for Feb 2026
+    const calendarDays = [];
+    for (let i = 0; i < 3; i++) calendarDays.push(null); // Empty slots
+    for (let i = 1; i <= 28; i++) calendarDays.push(i);
 
     return (
-        <div className="space-y-8">
-            <div>
-                <h1 className="text-2xl font-bold text-[#1a367c] flex items-center gap-2">
-                    HOLIDAY <span className="text-[#f9b012]">REGISTRY</span>
+        <div className="space-y-6">
+            <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-bold text-[#1a367c]">
+                    ORGANIZATION <span className="text-[#f9b012]">CALENDAR</span>
                 </h1>
-                <p className="text-sm text-[#8892b0] font-medium mt-1 uppercase tracking-wide">
-                    Organizational Calendar & Leave Planning
+                <p className="text-xs uppercase tracking-wider text-[#8892b0] font-medium">
+                    Manage Public Holidays & Restricted Leaves
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Upcoming List */}
-                <div className="lg:col-span-1 space-y-6">
-                    <h3 className="text-sm font-bold text-[#1a367c] uppercase tracking-widest flex items-center gap-2.5">
-                        <CalendarIcon className="w-5 h-5" />
-                        UPCOMING PUBLIC HOLIDAYS
-                    </h3>
-
-                    <div className="bg-white rounded-[24px] shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="divide-y divide-slate-50">
-                            {upcomingHolidays.map((holiday, idx) => (
-                                <motion.div
-                                    key={idx}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: idx * 0.1 }}
-                                    className="p-6 hover:bg-slate-50 transition-colors group cursor-pointer"
-                                >
-                                    <div className="flex items-center gap-5">
-                                        <div className="bg-[#f8f9fa] rounded-xl p-3 min-w-[70px] text-center border border-slate-100 group-hover:border-[#f9b012] transition-colors">
-                                            <div className="text-[0.65rem] font-bold text-[#8892b0] uppercase mb-1">{holiday.date.split(' ')[0]}</div>
-                                            <div className="text-xl font-extrabold text-[#1a367c]">{holiday.date.split(' ')[1]}</div>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-bold text-[#1a367c] mb-1">{holiday.name}</h4>
-                                            <div className="text-xs text-[#8892b0] font-medium uppercase tracking-wide">
-                                                {holiday.day} • <span className="text-[#f9b012]">{holiday.type}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
+                <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100">
+                    <div className="flex justify-between items-center mb-8">
+                        <div className="text-[1.1rem] font-bold text-[#1a367c] flex items-center gap-2">
+                            FEBRUARY 2026
+                            <span className="text-slate-300">|</span>
+                            <span className="text-xs text-[#8892b0] font-semibold tracking-wide">Q1 FY26</span>
                         </div>
-                        <div className="p-4 bg-slate-50 text-center border-t border-slate-100">
-                            <button className="text-xs font-bold text-[#1a367c] uppercase tracking-widest hover:text-[#f9b012] transition-colors">
-                                Download Yearly Calendar
+                        <div className="flex gap-2">
+                            <button className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[#1a367c] hover:bg-[#1a367c] hover:text-white transition-all">
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <button className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[#1a367c] hover:bg-[#1a367c] hover:text-white transition-all">
+                                <ChevronRight className="w-4 h-4" />
                             </button>
                         </div>
+                    </div>
+
+                    <div className="grid grid-cols-7 text-center">
+                        {days.map(day => (
+                            <div key={day} className="text-xs font-bold text-[#8892b0] mb-4">{day}</div>
+                        ))}
+                        {calendarDays.map((date, index) => (
+                            <div
+                                key={index}
+                                className={`h-[50px] flex items-center justify-center text-sm font-semibold rounded-lg mb-2 transition-all cursor-pointer
+                                    ${!date ? '' :
+                                        date === 10 || date === 26
+                                            ? 'bg-[#f9b012] text-white shadow-lg shadow-orange-200 scale-105'
+                                            : 'text-[#1a367c] hover:bg-slate-50'
+                                    }`}
+                            >
+                                {date}
+                            </div>
+                        ))}
                     </div>
                 </div>
 
-                {/* Calendar View */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="flex justify-between items-center">
-                        <h3 className="text-sm font-bold text-[#1a367c] uppercase tracking-widest flex items-center gap-2.5">
-                            CALENDAR VIEW
-                        </h3>
-                        <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100">
-                            <button className="p-1 hover:bg-slate-100 rounded-full transition-colors">
-                                <ChevronLeft className="w-4 h-4 text-[#1a367c]" />
-                            </button>
-                            <span className="text-xs font-bold text-[#1a367c] uppercase tracking-widest w-[100px] text-center">FEB 2026</span>
-                            <button className="p-1 hover:bg-slate-100 rounded-full transition-colors">
-                                <ChevronRight className="w-4 h-4 text-[#1a367c]" />
-                            </button>
-                        </div>
+                <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 h-fit">
+                    <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-6">
+                        <CalendarDays className="w-4 h-4 text-[#f9b012]" />
+                        UPCOMING HOLIDAYS
                     </div>
 
-                    <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100">
-                        {/* Days Header */}
-                        <div className="grid grid-cols-7 mb-6">
-                            {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
-                                <div key={day} className="text-center text-[0.65rem] font-bold text-[#8892b0] tracking-widest">
-                                    {day}
-                                </div>
-                            ))}
+                    <div className="space-y-4">
+                        <div className="flex gap-4 pb-4 border-b border-slate-100">
+                            <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">FEB 26</div>
+                            <div className="flex-1">
+                                <div className="font-bold text-[#1a367c] text-sm mb-1">Maha Shivratri</div>
+                                <div className="text-xs text-[#8892b0]">Public Holiday</div>
+                            </div>
                         </div>
-
-                        {/* Calendar Grid */}
-                        <div className="grid grid-cols-7 gap-4">
-                            {/* Empty slots for start of month */}
-                            {[...Array(6)].map((_, i) => <div key={`empty-${i}`}></div>)}
-
-                            {/* Days */}
-                            {[...Array(28)].map((_, i) => {
-                                const day = i + 1;
-                                const isHoliday = day === 26;
-                                const isWeekend = (i + 7) % 7 === 0 || (i + 7) % 7 === 6; // Mock weekend logic
-
-                                return (
-                                    <div
-                                        key={day}
-                                        className={`
-                                            aspect-square rounded-2xl flex flex-col items-center justify-center relative cursor-pointer group transition-all
-                                            ${isHoliday ? 'bg-[#f9b012] text-white shadow-md shadow-orange-200 scale-105' : 'hover:bg-slate-50 text-[#1a367c]'}
-                                            ${day === 10 ? 'border-2 border-[#1a367c]' : ''}
-                                        `}
-                                    >
-                                        <span className={`text-sm font-bold ${isWeekend && !isHoliday ? 'text-red-300' : ''}`}>{day}</span>
-                                        {isHoliday && (
-                                            <div className="absolute bottom-2 w-1 h-1 bg-white rounded-full"></div>
-                                        )}
-                                        {day === 10 && (
-                                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#1a367c] rounded-full border-2 border-white"></div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                        <div className="flex gap-4">
+                            <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">MAR 14</div>
+                            <div className="flex-1">
+                                <div className="font-bold text-[#1a367c] text-sm mb-1">Holi</div>
+                                <div className="text-xs text-[#8892b0]">Festival of Colors</div>
+                            </div>
                         </div>
                     </div>
                 </div>

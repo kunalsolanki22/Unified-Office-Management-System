@@ -1,98 +1,58 @@
-import { motion } from 'framer-motion';
-import { Clock, Calendar, CheckCircle, AlertTriangle, Coffee } from 'lucide-react';
 
 const MyAttendance = () => {
-    const stats = [
-        { label: 'Present Days', value: '18', total: '/ 22', icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50' },
-        { label: 'Leaves Taken', value: '1', total: '/ 12', icon: Coffee, color: 'text-blue-500', bg: 'bg-blue-50' },
-        { label: 'Avg Hours', value: '8.4', total: 'Hrs', icon: Clock, color: 'text-[#f9b012]', bg: 'bg-orange-50' },
-        { label: 'Pending Approvals', value: '0', total: 'Req', icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50' },
-    ];
-
-    const logs = [
-        { date: 'Feb 10, 2026', checkIn: '09:02 AM', checkOut: '06:15 PM', status: 'Present', duration: '9h 13m' },
-        { date: 'Feb 09, 2026', checkIn: '08:55 AM', checkOut: '06:05 PM', status: 'Present', duration: '9h 10m' },
-        { date: 'Feb 08, 2026', checkIn: '-', checkOut: '-', status: 'Weekend', duration: '-' },
-        { date: 'Feb 07, 2026', checkIn: '-', checkOut: '-', status: 'Weekend', duration: '-' },
-        { date: 'Feb 06, 2026', checkIn: '09:15 AM', checkOut: '06:30 PM', status: 'Present', duration: '9h 15m' },
-    ];
-
     return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-2xl font-bold text-[#1a367c] flex items-center gap-2">
-                        MY ATTENDANCE <span className="text-[#f9b012]">& LEAVES</span>
-                    </h1>
-                    <p className="text-sm text-[#8892b0] font-medium mt-1 uppercase tracking-wide">
-                        Personal Attendance Records & Leave Application
-                    </p>
-                </div>
-                <button className="bg-[#1a367c] text-white px-6 py-3 rounded-xl text-xs font-bold tracking-widest hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    APPLY FOR LEAVE
-                </button>
+        <div className="space-y-6">
+            <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-bold text-[#1a367c]">
+                    MY <span className="text-[#f9b012]">ATTENDANCE</span>
+                </h1>
+                <p className="text-xs uppercase tracking-wider text-[#8892b0] font-medium">
+                    View your personal attendance records
+                </p>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, idx) => (
-                    <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-100 flex items-center gap-5"
-                    >
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stat.bg} ${stat.color}`}>
-                            <stat.icon className="w-6 h-6" />
+            <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
+                <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100">
+                    <h3 className="text-[1.1rem] font-bold text-[#1a367c] mb-6 flex items-center gap-2">REGULARIZE ATTENDANCE</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div className="space-y-2">
+                            <label className="text-[0.7rem] text-[#8892b0] font-bold uppercase tracking-wider block">DATE</label>
+                            <input type="date" className="w-full bg-slate-50 border-none rounded-lg py-3 px-4 text-sm text-[#1a367c] focus:ring-2 focus:ring-[#1a367c]/20" />
                         </div>
-                        <div>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-extrabold text-[#1a367c]">{stat.value}</span>
-                                <span className="text-xs font-bold text-[#8892b0]">{stat.total}</span>
-                            </div>
-                            <div className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wide">{stat.label}</div>
+                        <div className="space-y-2">
+                            <label className="text-[0.7rem] text-[#8892b0] font-bold uppercase tracking-wider block">REASON</label>
+                            <select className="w-full bg-slate-50 border-none rounded-lg py-3 px-4 text-sm text-[#1a367c] focus:ring-2 focus:ring-[#1a367c]/20">
+                                <option>Forgot to Check-in</option>
+                                <option>Technical Issue</option>
+                                <option>On Duty</option>
+                            </select>
                         </div>
-                    </motion.div>
-                ))}
-            </div>
-
-            {/* Attendance Log Table */}
-            <div className="bg-white rounded-[24px] shadow-sm border border-slate-100 overflow-hidden">
-                <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-                    <h3 className="text-sm font-bold text-[#1a367c] uppercase tracking-widest">Recent Activity Log</h3>
-                    <div className="text-xs font-bold text-[#8892b0]">FEB 2026</div>
+                    </div>
+                    <div className="space-y-2 mb-8">
+                        <label className="text-[0.7rem] text-[#8892b0] font-bold uppercase tracking-wider block">DESCRIPTION</label>
+                        <textarea className="w-full bg-slate-50 border-none rounded-lg py-3 px-4 text-sm text-[#1a367c] focus:ring-2 focus:ring-[#1a367c]/20" rows="3" placeholder="Enter details..."></textarea>
+                    </div>
+                    <button className="bg-[#1a367c] text-white px-6 py-3 rounded-xl text-xs font-bold tracking-widest shadow-lg shadow-[#1a367c]/20 hover:bg-[#2c4a96] transition-all">
+                        SUBMIT REQUEST
+                    </button>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-[#f8f9fa]">
-                            <tr>
-                                <th className="px-8 py-4 text-left text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-widest">Date</th>
-                                <th className="px-8 py-4 text-left text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-widest">Check In</th>
-                                <th className="px-8 py-4 text-left text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-widest">Check Out</th>
-                                <th className="px-8 py-4 text-left text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-widest">Status</th>
-                                <th className="px-8 py-4 text-left text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-widest">Duration</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {logs.map((log, idx) => (
-                                <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-8 py-5 text-sm font-bold text-[#1a367c]">{log.date}</td>
-                                    <td className="px-8 py-5 text-sm font-medium text-slate-600">{log.checkIn}</td>
-                                    <td className="px-8 py-5 text-sm font-medium text-slate-600">{log.checkOut}</td>
-                                    <td className="px-8 py-5">
-                                        <span className={`text-[0.65rem] font-bold px-3 py-1 rounded-full uppercase tracking-wide ${log.status === 'Present' ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500'
-                                            }`}>
-                                            {log.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-8 py-5 text-sm font-bold text-[#1a367c]">{log.duration}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 h-fit">
+                    <h3 className="text-[1.1rem] font-bold text-[#1a367c] mb-6">SUMMARY</h3>
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50">
+                            <div className="text-3xl font-extrabold text-[#1a367c]">22</div>
+                            <div className="text-xs font-bold text-[#8892b0] uppercase tracking-wider">Present Days</div>
+                        </div>
+                        <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50">
+                            <div className="text-3xl font-extrabold text-[#1a367c]">2</div>
+                            <div className="text-xs font-bold text-[#8892b0] uppercase tracking-wider">Leaves Taken</div>
+                        </div>
+                        <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50">
+                            <div className="text-3xl font-extrabold text-[#1a367c]">0</div>
+                            <div className="text-xs font-bold text-[#8892b0] uppercase tracking-wider">Lates</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

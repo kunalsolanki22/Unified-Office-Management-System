@@ -1,66 +1,51 @@
-import { motion } from 'framer-motion';
-import { Shield, Coffee, Car, Ticket, Activity, Users, FileText, Settings, ExternalLink } from 'lucide-react';
+import { Car, Coffee, Monitor, Users, HardDrive, ArrowRight } from 'lucide-react';
 
 const ActionHub = () => {
-    const services = [
-        { icon: Activity, title: 'System Health', desc: 'Monitor node status', color: 'text-green-500', bg: 'bg-green-50' },
-        { icon: Shield, title: 'Access Control', desc: 'Manage door permissions', color: 'text-[#1a367c]', bg: 'bg-[#1a367c]/5' },
-        { icon: Coffee, title: 'Cafeteria Services', desc: 'View menu & orders', color: 'text-[#f9b012]', bg: 'bg-[#f9b012]/10' },
-        { icon: Users, title: 'Visitor Pass', desc: 'Issue temporary badges', color: 'text-purple-500', bg: 'bg-purple-50' },
-        { icon: Car, title: 'Parking', desc: 'Slot allocation & logs', color: 'text-blue-500', bg: 'bg-blue-50' },
-        { icon: Ticket, title: 'Support Ticket', desc: 'Raise IT/Admin requests', color: 'text-red-500', bg: 'bg-red-50' },
-        { icon: FileText, title: 'Reports', desc: 'Download audit logs', color: 'text-slate-600', bg: 'bg-slate-100' },
-        { icon: Settings, title: 'Settings', desc: 'Configure portal vars', color: 'text-slate-600', bg: 'bg-slate-100' },
+    const actions = [
+        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
+        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
+        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation' },
+        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling' },
+        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment' },
     ];
 
     return (
         <div className="space-y-8">
-            <div>
-                <h1 className="text-2xl font-bold text-[#1a367c] flex items-center gap-2">
-                    SERVICES <span className="text-[#f9b012]">& ACTION HUB</span>
+            <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-bold text-[#1a367c]">
+                    QUICK <span className="text-[#f9b012]">ACTIONS</span>
                 </h1>
-                <p className="text-sm text-[#8892b0] font-medium mt-1 uppercase tracking-wide">
-                    Internal Tools & Quick Actions
+                <p className="text-xs uppercase tracking-wider text-[#8892b0] font-medium">
+                    Access Frequently Used Services
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {services.map((service, idx) => (
-                    <motion.div
+            <div className="flex flex-wrap justify-center gap-6">
+                {actions.map((action, idx) => (
+                    <div
                         key={idx}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.05 }}
-                        className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer relative overflow-hidden"
+                        className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group hover:-translate-y-2 hover:shadow-xl transition-all duration-300"
                     >
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-slate-100 to-transparent rounded-bl-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
-
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 ${service.bg} ${service.color}`}>
-                            <service.icon className="w-6 h-6" />
+                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:bg-[#1a367c] group-hover:text-white transition-colors duration-300">
+                            <action.icon className="w-7 h-7" strokeWidth={1.5} />
                         </div>
 
-                        <h3 className="text-base font-bold text-[#1a367c] mb-1 group-hover:text-[#f9b012] transition-colors">
-                            {service.title}
+                        <h3 className="text-sm font-bold text-[#1a367c] tracking-wide mb-2 group-hover:text-[#1a367c] transition-colors">
+                            {action.label.split(' ').map((line, i) => (
+                                <span key={i} className="block">{line}</span>
+                            ))}
                         </h3>
-                        <p className="text-xs text-[#8892b0] uppercase tracking-wide font-medium">
-                            {service.desc}
-                        </p>
+                        <div className="text-xs text-[#8892b0] leading-relaxed mb-6 px-4">{action.sub}</div>
 
-                        <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <ExternalLink className="w-4 h-4 text-[#1a367c]" />
+                        <div className="mt-auto opacity-0 transform translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                            <span className="text-xs font-bold text-[#f9b012] flex items-center gap-1">
+                                LAUNCH <ArrowRight className="w-3 h-3" />
+                            </span>
                         </div>
-                    </motion.div>
-                ))}
-            </div>
 
-            <div className="bg-[#f8f9fa] border border-slate-200 rounded-[20px] p-8 mt-12 text-center">
-                <h3 className="text-sm font-bold text-[#1a367c] uppercase tracking-widest mb-3">Need Access to More Tools?</h3>
-                <p className="text-sm text-[#8892b0] max-w-lg mx-auto mb-6">
-                    Request elevated privileges or access to specific departmental tools through the Super Admin console or contact IT Support.
-                </p>
-                <button className="bg-white border border-[#1a367c] text-[#1a367c] px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-[#1a367c] hover:text-white transition-all">
-                    Contact IT Support
-                </button>
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#f9b012] rounded-t-lg transition-all duration-300 group-hover:w-full group-hover:rounded-none"></div>
+                    </div>
+                ))}
             </div>
         </div>
     );

@@ -48,7 +48,7 @@ function Login() {
         else if (email.includes('admin')) role = ROLES.ADMIN;
         else if (email.includes('team')) role = ROLES.TEAM_LEAD;
         else if (email.includes('attendance')) role = ROLES.ATTENDANCE_MANAGER;
-        else if (email.includes('cafeteria')) role = ROLES.MANAGER;
+        else if (email.includes('cafeteria')) role = ROLES.CAFETERIA_MANAGER;
 
         login({ email, role });
 
@@ -70,6 +70,9 @@ function Login() {
                 break;
             case ROLES.ATTENDANCE_MANAGER:
                 navigate('/attendance-manager/dashboard');
+                break;
+            case ROLES.CAFETERIA_MANAGER:
+                navigate('/cafeteria-manager/dashboard');
                 break;
             default:
                 navigate(ROUTES.UNAUTHORIZED);

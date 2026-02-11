@@ -1,18 +1,18 @@
-
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/cafeteria-manager/Sidebar';
 import Header from '../components/cafeteria-manager/Header';
 
 const CafeteriaManagerLayout = () => {
     return (
-        <div className="flex h-screen bg-gray-100">
+        <div className="flex h-screen overflow-hidden bg-[#f4f7f6] text-[#333] font-sans">
+            {/* Sidebar */}
             <Sidebar />
-            <div className="flex flex-col flex-1 overflow-hidden">
+
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col overflow-y-auto bg-white px-10 transition-all duration-300">
                 <Header />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200">
-                    <div className="container mx-auto px-6 py-8">
-                        <Outlet />
-                    </div>
+                <main className="flex-1 py-8 animate-fade-in">
+                    <Outlet />
                 </main>
             </div>
         </div>
