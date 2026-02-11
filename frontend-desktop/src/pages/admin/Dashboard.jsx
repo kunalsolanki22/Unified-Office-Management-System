@@ -144,7 +144,7 @@ const Dashboard = () => {
                     <h3 className="text-sm font-bold text-[#1a367c] tracking-widest">QUICK ACTIONS</h3>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                <div className="flex flex-wrap justify-center gap-6">
                     {[
                         { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
                         { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
@@ -157,7 +157,7 @@ const Dashboard = () => {
                             variants={itemVariants}
                             whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)' }}
                             onClick={() => navigate('/admin/action-hub')}
-                            className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group"
+                            className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group"
                         >
                             <div className="absolute inset-0 bg-radial-gradient from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
