@@ -4,25 +4,18 @@ import { ROUTES } from '../constants/routes';
 import { ROLES } from '../constants/roles';
 
 // Layouts
-import MainLayout from '../layouts/MainLayout';
 import AuthLayout from '../layouts/AuthLayout';
-import SuperAdminLayout from '../layouts/SuperAdminLayout';
+
+// Module Routes
+import SuperAdminRoutes from './modules/SuperAdminRoutes';
+import AdminRoutes from './modules/AdminRoutes';
+import ManagerRoutes from './modules/ManagerRoutes';
+import TeamLeadRoutes from './modules/TeamLeadRoutes';
 
 // Pages
 import Login from '../pages/public/Login';
-import SuperAdminDashboard from '../pages/super-admin/Dashboard';
-import AdminManagement from '../pages/super-admin/AdminManagement';
-import Attendance from '../pages/super-admin/Attendance';
-import Holidays from '../pages/super-admin/Holidays';
-import ActionHub from '../pages/super-admin/ActionHub';
-import Analytics from '../pages/super-admin/Analytics';
 
-// Placeholder Pages - Actual content to be implemented
-const AdminDashboard = () => <div>Admin Dashboard</div>;
-const ManagerDashboard = () => <div>Manager Dashboard</div>;
-const TeamLeadDashboard = () => <div>Team Lead Dashboard</div>;
 const Unauthorized = () => <div>Unauthorized</div>;
-const NotFound = () => <div>404 Not Found</div>;
 
 const AppRoutes = () => {
     return (
@@ -34,36 +27,24 @@ const AppRoutes = () => {
                     <Route path={ROUTES.UNAUTHORIZED} element={<Unauthorized />} />
                 </Route>
 
-                {/* Super Admin Routes */}
+                {/* Super Admin Module */}
                 <Route element={<ProtectedRoutes allowedRoles={[ROLES.SUPER_ADMIN]} />}>
-                    <Route element={<SuperAdminLayout />}>
-                        <Route path={ROUTES.SUPER_ADMIN_DASHBOARD} element={<SuperAdminDashboard />} />
-                        <Route path={ROUTES.SUPER_ADMIN_ADMINS} element={<AdminManagement />} />
-                        <Route path={ROUTES.SUPER_ADMIN_ATTENDANCE} element={<Attendance />} />
-                        <Route path={ROUTES.SUPER_ADMIN_HOLIDAYS} element={<Holidays />} />
-                        <Route path={ROUTES.SUPER_ADMIN_ACTIONS} element={<ActionHub />} />
-                        <Route path={ROUTES.SUPER_ADMIN_ANALYTICS} element={<Analytics />} />
-                    </Route>
+                    <Route path="/super-admin/*" element={<SuperAdminRoutes />} />
                 </Route>
 
-                {/* Protected Routes (Main Layout) */}
-                <Route element={<MainLayout />}>
+                {/* Admin Module */}
+                <Route element={<ProtectedRoutes allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
+                    <Route path="/admin/*" element={<AdminRoutes />} />
+                </Route>
 
-                    {/* Admin Routes */}
-                    <Route element={<ProtectedRoutes allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
-                        <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboard />} />
-                    </Route>
+                {/* Manager Module */}
+                <Route element={<ProtectedRoutes allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
+                    <Route path="/manager/*" element={<ManagerRoutes />} />
+                </Route>
 
-                    {/* Manager Routes */}
-                    <Route element={<ProtectedRoutes allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
-                        <Route path={ROUTES.MANAGER_DASHBOARD} element={<ManagerDashboard />} />
-                    </Route>
-
-                    {/* Team Lead Routes */}
-                    <Route element={<ProtectedRoutes allowedRoles={[ROLES.TEAM_LEAD, ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
-                        <Route path={ROUTES.TEAM_LEAD_DASHBOARD} element={<TeamLeadDashboard />} />
-                    </Route>
-
+                {/* Team Lead Module */}
+                <Route element={<ProtectedRoutes allowedRoles={[ROLES.TEAM_LEAD, ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
+                    <Route path="/team-lead/*" element={<TeamLeadRoutes />} />
                 </Route>
 
                 {/* Fallback */}

@@ -1,6 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, CalendarCheck, CalendarDays, Zap, LogOut } from 'lucide-react';
-
+import { LayoutDashboard, Users, CalendarCheck, CalendarDays, Zap, LogOut, CheckSquare } from 'lucide-react';
 import logo from '../../assets/cygnet-logo.png';
 
 const Sidebar = () => {
@@ -9,15 +8,16 @@ const Sidebar = () => {
     // Helper to determine if a route is active
     const isActive = (path) => location.pathname === path;
 
-    const navItems = [
-        { name: 'Dashboard', path: '/super-admin/dashboard', icon: LayoutDashboard },
-        { name: 'Admin', path: '/super-admin/admins', icon: Users },
-        { name: 'Attendance', path: '/super-admin/attendance', icon: CalendarCheck },
-        { name: 'Holidays', path: '/super-admin/holidays', icon: CalendarDays },
+    const corePillars = [
+        { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { name: 'User Directory', path: '/admin/user-directory', icon: Users },
+        { name: 'Attendance', path: '/admin/attendance', icon: CalendarCheck },
+        { name: 'Holidays', path: '/admin/holidays', icon: CalendarDays },
     ];
 
     const accessTools = [
-        { name: 'Action Hub', path: '/super-admin/actions', icon: Zap },
+        { name: 'My Attendance', path: '/admin/my-attendance', icon: CheckSquare },
+        { name: 'Action Hub', path: '/admin/action-hub', icon: Zap },
     ];
 
     return (
@@ -37,7 +37,7 @@ const Sidebar = () => {
                 <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-bold pl-1">
                     Core Pillars
                 </div>
-                {navItems.map((item) => (
+                {corePillars.map((item) => (
                     <Link
                         key={item.path}
                         to={item.path}
