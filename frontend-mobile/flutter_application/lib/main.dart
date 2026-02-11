@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/employee/employee_dashboard.dart';
 
 void main() {
   runApp(const MyApp());
@@ -327,11 +328,17 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Add your login logic here
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Login successful!'),
-        backgroundColor: Colors.green,
+    // Extract user name from email for greeting
+    final userName = email.split('@').first;
+    final displayName = userName.isNotEmpty
+        ? userName[0].toUpperCase() + userName.substring(1)
+        : 'User';
+
+    // Navigate to Employee Dashboard
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EmployeeDashboard(userName: displayName),
       ),
     );
   }
