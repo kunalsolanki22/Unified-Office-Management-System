@@ -15,11 +15,18 @@ class CafeteriaScreen extends StatefulWidget {
 class _CafeteriaScreenState extends State<CafeteriaScreen> {
 
   late bool _isOrderingFood; // Toggle state
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _isOrderingFood = !widget.initialShowDeskBooking;
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -31,9 +38,17 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
           children: [
             _buildAppBar(context),
             Expanded(
-              child: _isOrderingFood
-                  ? _buildFoodMenu()
-                  : _buildDeskBookingView(),
+              child: Scrollbar(
+                controller: _scrollController,
+                thumbVisibility: true,
+                trackVisibility: true,
+                interactive: true,
+                thickness: 8.0,
+                radius: const Radius.circular(8),
+                child: _isOrderingFood
+                    ? _buildFoodMenu()
+                    : _buildDeskBookingView(),
+              ),
             ),
           ],
         ),
@@ -88,25 +103,58 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
             ],
           ),
           const Spacer(),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Center(
-              child: Text(
-                'A',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A237E),
+          GestureDetector(
+            onTap: () {
+              Navigator.pop(context, 'profile');
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Text(
+                  'A',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A237E),
+                  ),
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'Search for food...',
+          hintStyle: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 14,
+          ),
+          prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        ),
       ),
     );
   }
@@ -207,10 +255,13 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
 
   Widget _buildFoodMenu() {
     return ListView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       children: [
         _buildToggleButtons(),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+        _buildSearchBar(),
+        const SizedBox(height: 16),
         _buildMenuItem(
           icon: Icons.lunch_dining,
           iconColor: Colors.orange,
@@ -237,6 +288,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
 
   Widget _buildDeskBookingView() {
     return ListView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       children: [
         _buildToggleButtons(),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'manager/reporting_manager_dashboard.dart';
-import 'manager/attendance_manager_dashboard.dart';
+import 'manager/manager_dashboard.dart';
+import 'forgot_password_screen.dart';
 import 'employee/employee_dashboard.dart';
 
 class LoginPage extends StatefulWidget {
@@ -78,12 +78,15 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         const SizedBox(width: 12),
-        const Text(
-          'Cygnet.One',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A2E),
+        Flexible(
+          child: const Text(
+            'Unified Office Management',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A1A2E),
+            ),
           ),
         ),
       ],
@@ -254,7 +257,12 @@ class _LoginPageState extends State<LoginPage> {
     return Align(
       alignment: Alignment.centerRight,
       child: TextButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+          );
+        },
         style: TextButton.styleFrom(
           padding: EdgeInsets.zero,
           minimumSize: Size.zero,
@@ -296,7 +304,19 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    if (email.toLowerCase().contains('reporting')) {
+    // Extract name from email (everything before @)
+    String name = "User";
+    if (email.contains('@')) {
+      String rawName = email.split('@')[0];
+      // Capitalize first letter
+      if (rawName.isNotEmpty) {
+        name = rawName[0].toUpperCase() + rawName.substring(1);
+      }
+    }
+
+    if (email.toLowerCase().contains('reporting') || 
+        email.toLowerCase().contains('manager') || 
+        email.toLowerCase().contains('attendance')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Login Successful'),
@@ -305,25 +325,16 @@ class _LoginPageState extends State<LoginPage> {
       );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const ReportingManagerDashboard()),
-      );
-    } else if (email.toLowerCase().contains('manager') || email.toLowerCase().contains('attendance')) {
-       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Login Successful'),
-          backgroundColor: Colors.green,
+        MaterialPageRoute(
+          builder: (context) => ManagerDashboard(managerName: name),
         ),
-      );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const AttendanceManagerDashboard()),
       );
     } else {
       // Employee login - route to employee dashboard
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Login Successful'),
-          backgroundColor: Colors.green,
+          content: Text('Login Unsuccessful. Invalid Credentials.'),
+          backgroundColor: Colors.red,
         ),
       );
       Navigator.pushReplacement(

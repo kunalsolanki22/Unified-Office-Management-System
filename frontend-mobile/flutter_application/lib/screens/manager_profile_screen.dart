@@ -1,25 +1,47 @@
 import 'package:flutter/material.dart';
 import '../login_screen.dart';
 
-class ReportingManagerProfileScreen extends StatelessWidget {
+class ManagerProfileScreen extends StatefulWidget {
   final VoidCallback? onBack;
 
-  const ReportingManagerProfileScreen({super.key, this.onBack});
+  const ManagerProfileScreen({super.key, this.onBack});
+
+  @override
+  State<ManagerProfileScreen> createState() => _ManagerProfileScreenState();
+}
+
+class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          _buildHeader(context),
-          const SizedBox(height: 32),
-          _buildProfileSection(),
-          const SizedBox(height: 32),
-          _buildAccountDetails(),
-          const SizedBox(height: 48),
-          _buildLogoutButton(context),
-        ],
+    return Scrollbar(
+      controller: _scrollController,
+      thumbVisibility: true,
+      trackVisibility: true,
+      interactive: true,
+      thickness: 8.0,
+      radius: const Radius.circular(8),
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            _buildHeader(context),
+            const SizedBox(height: 32),
+            _buildProfileSection(),
+            const SizedBox(height: 32),
+            _buildAccountDetails(),
+            const SizedBox(height: 48),
+            _buildLogoutButton(context),
+          ],
+        ),
       ),
     );
   }
@@ -45,10 +67,10 @@ class ReportingManagerProfileScreen extends StatelessWidget {
             child: IconButton(
               icon: const Icon(Icons.chevron_left, color: Color(0xFF1A237E)),
               onPressed: () {
-                if (onBack != null) {
-                  onBack!();
+                if (widget.onBack != null) {
+                  widget.onBack!();
                 } else {
-                   Navigator.of(context).maybePop();
+                  Navigator.of(context).maybePop();
                 }
               },
             ),
@@ -80,7 +102,7 @@ class ReportingManagerProfileScreen extends StatelessWidget {
               ),
               child: const Center(
                 child: Text(
-                  'RM',
+                  'M',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w400,
@@ -129,7 +151,7 @@ class ReportingManagerProfileScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
              Text(
-              'REPORTING MANAGER',
+              'MANAGER',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,

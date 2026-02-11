@@ -12,6 +12,13 @@ class _ParkingScreenState extends State<ParkingScreen> {
 
   String? _selectedSlotId;
   SlotType? _selectedSlotStatus;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,16 +28,115 @@ class _ParkingScreenState extends State<ParkingScreen> {
         child: Column(
           children: [
             _buildAppBar(context),
-            _buildLevelToggle(),
-            const SizedBox(height: 24),
             Expanded(
-              child: _buildParkingGrid(),
+              child: Scrollbar(
+                controller: _scrollController,
+                thumbVisibility: true,
+                trackVisibility: true,
+                interactive: true,
+                thickness: 8.0,
+                radius: const Radius.circular(8),
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Column(
+                    children: [
+                      _buildLevelToggle(),
+                      const SizedBox(height: 24),
+                      _buildParkingGrid(),
+                      const SizedBox(height: 16),
+                      _buildLegend(),
+                    ],
+                  ),
+                ),
+              ),
             ),
-             _buildBottomPanel(),
+            _buildConfirmationPanel(),
           ],
         ),
       ),
+    );
+  }
 
+  // ... (AppBar, LevelToggle same)
+
+  Widget _buildParkingGrid() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFCFD8DC), // Greyish road/background
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: Stack(
+        children: [
+          // Road Markings (Dashed Line Center)
+          Positioned.fill(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(
+                  6,
+                  (index) => Container(
+                    width: 4,
+                    height: 20,
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+            ),
+          ),
+           // Arrows
+           Positioned(
+            left: 0, right: 0, top: 20,
+            child: Icon(Icons.arrow_upward, color: Colors.white.withValues(alpha: 0.5), size: 20),
+           ),
+            Positioned(
+            left: 0, right: 0, bottom: 20,
+            child: Icon(Icons.arrow_upward, color: Colors.white.withValues(alpha: 0.5), size: 20),
+           ),
+           Positioned(
+            left: 0, right: 0, top: 180,
+            child: Icon(Icons.arrow_upward, color: Colors.white.withValues(alpha: 0.5), size: 20),
+           ),
+
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildTappableSlot(type: SlotType.busy, label: ''),
+                    const SizedBox(height: 16),
+                    _buildTappableSlot(type: SlotType.yours, label: 'A-02'),
+                    const SizedBox(height: 16),
+                    _buildTappableSlot(type: SlotType.free, label: 'A-03'),
+                    const SizedBox(height: 16),
+                    _buildTappableSlot(type: SlotType.busy, label: ''),
+                    const SizedBox(height: 16),
+                    _buildTappableSlot(type: SlotType.free, label: 'A-05'),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 40), // Road width
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildTappableSlot(type: SlotType.free, label: 'B-01'),
+                    const SizedBox(height: 16),
+                    _buildTappableSlot(type: SlotType.busy, label: ''),
+                    const SizedBox(height: 16),
+                    _buildTappableSlot(type: SlotType.free, label: 'B-03'),
+                    const SizedBox(height: 16),
+                    _buildTappableSlot(type: SlotType.free, label: 'B-04'),
+                    const SizedBox(height: 16),
+                    _buildTappableSlot(type: SlotType.busy, label: ''),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -66,20 +172,25 @@ class _ParkingScreenState extends State<ParkingScreen> {
             ),
           ),
           const Spacer(),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Center(
-              child: Text(
-                'A',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A237E),
+          GestureDetector(
+            onTap: () {
+              Navigator.pop(context, 'profile');
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Text(
+                  'A',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A237E),
+                  ),
                 ),
               ),
             ),
@@ -178,77 +289,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
     );
   }
 
-  Widget _buildParkingGrid() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFFCFD8DC), // Greyish road/background
-        borderRadius: BorderRadius.circular(32),
-      ),
-      child: Stack(
-        children: [
-          // Road Markings (Dashed Line Center)
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(
-                6,
-                (index) => Container(
-                  width: 4,
-                  height: 20,
-                  color: Colors.white.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          ),
-           // Arrows
-           Positioned(
-            left: 0, right: 0, top: 20,
-            child: Icon(Icons.arrow_upward, color: Colors.white.withValues(alpha: 0.5), size: 20),
-           ),
-            Positioned(
-            left: 0, right: 0, bottom: 20,
-            child: Icon(Icons.arrow_upward, color: Colors.white.withValues(alpha: 0.5), size: 20),
-           ),
-           Positioned(
-            left: 0, right: 0, top: 180,
-            child: Icon(Icons.arrow_upward, color: Colors.white.withValues(alpha: 0.5), size: 20),
-           ),
 
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildTappableSlot(type: SlotType.busy, label: ''),
-                    _buildTappableSlot(type: SlotType.yours, label: 'A-02'),
-                    _buildTappableSlot(type: SlotType.free, label: 'A-03'),
-                    _buildTappableSlot(type: SlotType.busy, label: ''),
-                    _buildTappableSlot(type: SlotType.free, label: 'A-05'),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 40), // Road width
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildTappableSlot(type: SlotType.free, label: 'B-01'),
-                    _buildTappableSlot(type: SlotType.busy, label: ''),
-                    _buildTappableSlot(type: SlotType.free, label: 'B-03'),
-                    _buildTappableSlot(type: SlotType.free, label: 'B-04'),
-                    _buildTappableSlot(type: SlotType.busy, label: ''),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTappableSlot({required SlotType type, required String label}) {
     return GestureDetector(
@@ -300,8 +341,8 @@ class _ParkingScreenState extends State<ParkingScreen> {
     );
   }
 
-  Widget _buildBottomPanel() {
-    if (_selectedSlotStatus == null) return const SizedBox(height: 16);
+  Widget _buildConfirmationPanel() {
+    if (_selectedSlotStatus == null) return const SizedBox.shrink();
 
     String title = 'CONFIRM SLOT';
     String mainText = _selectedSlotId?.isEmpty == true ? 'Unknown' : _selectedSlotId!;
@@ -333,67 +374,60 @@ class _ParkingScreenState extends State<ParkingScreen> {
        }
     }
 
-    return Column(
-      children: [
-        const SizedBox(height: 16),
-        _buildLegend(),
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(top: 24),
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Color(0xFF1A237E),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(32),
-              topRight: Radius.circular(32),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A237E),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(32),
+          topRight: Radius.circular(32),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.orange,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.orange,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+               Expanded(
+                child: Text(
+                  mainText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                   Expanded(
-                    child: Text(
-                      mainText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              ElevatedButton(
+                onPressed: onPressed,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: btnColor,
+                  disabledBackgroundColor: btnColor, // Ensure visibility when disabled
+                  foregroundColor: Colors.black,
+                  disabledForegroundColor: Colors.black, // Ensure text visibility when disabled
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  ElevatedButton(
-                    onPressed: onPressed,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: btnColor,
-                      disabledBackgroundColor: btnColor, // Ensure visibility when disabled
-                      foregroundColor: Colors.black,
-                      disabledForegroundColor: Colors.black, // Ensure text visibility when disabled
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    ),
-                    child: Text(btnText, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ],
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: Text(btnText, style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
