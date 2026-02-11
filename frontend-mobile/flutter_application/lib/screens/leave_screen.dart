@@ -9,7 +9,7 @@ class LeaveScreen extends StatefulWidget {
 
 class _LeaveScreenState extends State<LeaveScreen> {
   DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
+  // DateTime? _selectedDay;
   final _reasonController = TextEditingController();
   final _dateController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -82,7 +82,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
             onDateChanged: (date) {
               setState(() {
                 _focusedDay = date;
-                _selectedDay = date;
+                // _selectedDay = date;
                 // Auto-fill the date field when a date is selected on calendar
                 _dateController.text = "${date.day} / ${date.month} / ${date.year}";
               });
@@ -196,12 +196,15 @@ class _LeaveScreenState extends State<LeaveScreen> {
             height: 48,
             child: ElevatedButton(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Leave Request Sent Successfully'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text('Leave Request Sent Successfully'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(milliseconds: 1500),
+                    ),
+                  );
                 setState(() {
                   _dateController.clear();
                   _reasonController.clear();

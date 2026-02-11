@@ -1,8 +1,203 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:async';
 
-class AttendanceCard extends StatelessWidget {
+class AttendanceCard extends StatefulWidget {
   const AttendanceCard({super.key});
+
+  @override
+  State<AttendanceCard> createState() => _AttendanceCardState();
+}
+
+class _AttendanceCardState extends State<AttendanceCard> {
+  // Attendance tracking state
+  bool _isCheckedIn = false;
+  bool _isSubmitted = false;
+  DateTime? _currentCheckInTime;
+  Duration _totalTrackedDuration = Duration.zero;
+  Timer? _timer;
+  DateTime? _lastResetDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkDayReset();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _checkDayReset() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    if (_lastResetDate == null || _lastResetDate!.isBefore(today)) {
+      // Reset for new day
+      setState(() {
+        _isCheckedIn = false;
+        _isSubmitted = false;
+        _currentCheckInTime = null;
+        _totalTrackedDuration = Duration.zero;
+        _lastResetDate = today;
+      });
+      _timer?.cancel();
+    }
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {}); // Refresh to update duration display
+    });
+  }
+
+  void _handleCheckIn() {
+    if (_isSubmitted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Attendance already submitted for today!'),
+            backgroundColor: Colors.orange,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      return;
+    }
+    
+    if (_isCheckedIn) return; // Already checked in
+    
+    setState(() {
+      _isCheckedIn = true;
+      _currentCheckInTime = DateTime.now();
+    });
+    _startTimer();
+    
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Checked in successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(milliseconds: 1500),
+        ),
+      );
+  }
+
+  void _handleCheckOut() {
+    if (_isSubmitted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Attendance already submitted for today!'),
+            backgroundColor: Colors.orange,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      return;
+    }
+    
+    if (!_isCheckedIn) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Please check in first!'),
+            backgroundColor: Colors.orange,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      return;
+    }
+    
+    // Calculate duration for this session and add to total
+    if (_currentCheckInTime != null) {
+      final sessionDuration = DateTime.now().difference(_currentCheckInTime!);
+      setState(() {
+        _totalTrackedDuration += sessionDuration;
+        _isCheckedIn = false;
+        _currentCheckInTime = null;
+      });
+    }
+    _timer?.cancel();
+    
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Checked out successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(milliseconds: 1500),
+        ),
+      );
+  }
+
+  void _handleSubmit() {
+    if (_isSubmitted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Attendance already submitted for today!'),
+            backgroundColor: Colors.orange,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      return;
+    }
+    
+    // If still checked in, add current session to total
+    if (_isCheckedIn && _currentCheckInTime != null) {
+      final sessionDuration = DateTime.now().difference(_currentCheckInTime!);
+      _totalTrackedDuration += sessionDuration;
+    }
+    
+    _timer?.cancel();
+    
+    setState(() {
+      _isSubmitted = true;
+      _isCheckedIn = false;
+      _currentCheckInTime = null;
+    });
+    
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Attendance submitted successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(milliseconds: 1500),
+        ),
+      );
+  }
+
+  String _formatDuration() {
+    Duration displayDuration = _totalTrackedDuration;
+    
+    // Add current session if checked in
+    if (_isCheckedIn && _currentCheckInTime != null) {
+      displayDuration += DateTime.now().difference(_currentCheckInTime!);
+    }
+    
+    if (!_isSubmitted && displayDuration == Duration.zero) {
+      return '--h --m';
+    }
+    
+    final hours = displayDuration.inHours;
+    final minutes = displayDuration.inMinutes % 60;
+    return '${hours.toString().padLeft(2, '0')}h ${minutes.toString().padLeft(2, '0')}m';
+  }
+
+  String _getStatusText() {
+    if (_isSubmitted) return 'Submitted';
+    if (_isCheckedIn) return 'Tracking...';
+    if (_totalTrackedDuration > Duration.zero) return 'Paused';
+    return 'Not marked yet';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,14 +227,14 @@ class AttendanceCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.grey.withOpacity(0.1)
-                      : const Color(0xFFEFF6FF), // Light blue background
+                      : const Color(0xFFEFF6FF),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.access_time,
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white
-                      : const Color(0xFF1A237E), // Navy Blue
+                      : const Color(0xFF1A237E),
                   size: 24,
                 ),
               ),
@@ -54,15 +249,17 @@ class AttendanceCard extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.white
-                          : const Color(0xFF111827), // rgb(17, 24, 39)
+                          : const Color(0xFF111827),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Not marked yet',
+                    _getStatusText(),
                     style: GoogleFonts.roboto(
                       fontSize: 14,
-                      color: const Color(0xFF8C8D90), // #8C8D90
+                      color: _isCheckedIn 
+                          ? const Color(0xFF4CAF50) 
+                          : const Color(0xFF8C8D90),
                     ),
                   ),
                 ],
@@ -75,91 +272,89 @@ class AttendanceCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement Check In logic
-                  },
-                  style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.resolveWith((states) {
-                      if (states.contains(MaterialState.hovered)) {
-                        return const Color(0xFF1A237E); // Navy Blue on hover
-                      }
-                      return const Color(0xFFE0E0E0); // Light Grey
-                    }),
-                    foregroundColor: MaterialStateProperty.resolveWith((states) {
-                      if (states.contains(MaterialState.hovered)) {
-                        return Colors.white;
-                      }
-                      return const Color(0xFF111827); // Dark Text
-                    }),
-                    padding: MaterialStateProperty.all(
-                      const EdgeInsets.symmetric(vertical: 16),
+                child: GestureDetector(
+                  onTap: _isSubmitted ? null : _handleCheckIn,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: _isCheckedIn
+                          ? const Color(0xFFE8F5E9)
+                          : (_isSubmitted 
+                              ? const Color(0xFFE0E0E0).withOpacity(0.5)
+                              : const Color(0xFFE0E0E0)),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    shape: MaterialStateProperty.all(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    elevation: MaterialStateProperty.all(0),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.login, size: 20),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Check In',
-                        style: GoogleFonts.roboto(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.login,
+                          size: 20,
+                          color: _isCheckedIn
+                              ? const Color(0xFF4CAF50)
+                              : (_isSubmitted 
+                                  ? Colors.grey[400]
+                                  : const Color(0xFF111827)),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'Check In',
+                          style: GoogleFonts.roboto(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: _isCheckedIn
+                                ? const Color(0xFF4CAF50)
+                                : (_isSubmitted 
+                                    ? Colors.grey[400]
+                                    : const Color(0xFF111827)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement Check Out logic
-                  },
-                  style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.resolveWith((states) {
-                      if (states.contains(MaterialState.hovered)) {
-                        return const Color(0xFF1A237E); // Navy Blue on hover
-                      }
-                      return const Color(0xFFE0E0E0); // Light Grey
-                    }),
-                    foregroundColor: MaterialStateProperty.resolveWith((states) {
-                      if (states.contains(MaterialState.hovered)) {
-                        return Colors.white;
-                      }
-                      return const Color(0xFF111827); // Dark Text
-                    }),
-                    padding: MaterialStateProperty.all(
-                      const EdgeInsets.symmetric(vertical: 16),
+                child: GestureDetector(
+                  onTap: _isSubmitted ? null : _handleCheckOut,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: (!_isCheckedIn && _totalTrackedDuration > Duration.zero)
+                          ? const Color(0xFFE8F5E9)
+                          : (_isSubmitted 
+                              ? const Color(0xFFE0E0E0).withOpacity(0.5)
+                              : const Color(0xFFE0E0E0)),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    shape: MaterialStateProperty.all(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    elevation: MaterialStateProperty.all(0),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.logout, size: 20),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Check Out',
-                        style: GoogleFonts.roboto(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.logout,
+                          size: 20,
+                          color: (!_isCheckedIn && _totalTrackedDuration > Duration.zero)
+                              ? const Color(0xFF4CAF50)
+                              : (_isSubmitted 
+                                  ? Colors.grey[400]
+                                  : const Color(0xFF111827)),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'Check Out',
+                          style: GoogleFonts.roboto(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: (!_isCheckedIn && _totalTrackedDuration > Duration.zero)
+                                ? const Color(0xFF4CAF50)
+                                : (_isSubmitted 
+                                    ? Colors.grey[400]
+                                    : const Color(0xFF111827)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -173,20 +368,22 @@ class AttendanceCard extends StatelessWidget {
               Expanded(
                 flex: 3,
                 child: ElevatedButton(
-                  onPressed: () {
-                     // TODO: Implement Submit logic
-                  },
+                  onPressed: _isSubmitted ? null : _handleSubmit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A237E), // Navy Blue
+                    backgroundColor: _isSubmitted 
+                        ? const Color(0xFF1A237E).withOpacity(0.5)
+                        : const Color(0xFF1A237E),
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor: const Color(0xFF1A237E).withOpacity(0.5),
+                    disabledForegroundColor: Colors.white70,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                     shape: RoundedRectangleBorder(
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                     elevation: 0,
+                    elevation: 0,
                   ),
                   child: Text(
-                    'Submit',
+                    _isSubmitted ? 'Submitted' : 'Submit',
                     style: GoogleFonts.roboto(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -213,22 +410,22 @@ class AttendanceCard extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                       Text(
+                      Text(
                         'DURATION',
                         style: GoogleFonts.roboto(
                           fontSize: 12,
-                          color: const Color(0xFF8C8D90), // #8C8D90
+                          color: const Color(0xFF8C8D90),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
-                        '--h --m',
+                        _formatDuration(),
                         style: GoogleFonts.roboto(
-                           fontSize: 14,
-                           color: Theme.of(context).brightness == Brightness.dark
-                               ? Colors.white
-                               : const Color(0xFF1A237E), // Navy Blue
-                           fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF1A237E),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -237,16 +434,16 @@ class AttendanceCard extends StatelessWidget {
               ),
             ],
           ),
-           // Decoration line
-           const SizedBox(height: 16),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFC107),
-                borderRadius: BorderRadius.circular(2),
-              ),
+          // Decoration line
+          const SizedBox(height: 16),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFC107),
+              borderRadius: BorderRadius.circular(2),
             ),
+          ),
         ],
       ),
     );

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../manager_profile_screen.dart';
 import '../cafeteria_screen.dart';
 import '../parking_screen.dart';
 import '../leave_screen.dart';
-import '../../widgets/attendance_card.dart';
 import '../../main.dart'; // Import main.dart for themeNotifier
 
 class ManagerDashboard extends StatefulWidget {
@@ -19,10 +19,194 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
   int _selectedIndex = 0;
   final ScrollController _scrollController = ScrollController();
 
+  // Attendance tracking state
+  bool _isCheckedIn = false;
+  bool _isSubmitted = false;
+  DateTime? _currentCheckInTime;
+  Duration _totalTrackedDuration = Duration.zero;
+  Timer? _timer;
+  DateTime? _lastResetDate;
+
+  // Design constants matching employee dashboard
+  static const Color navyColor = Color(0xFF1A367C);
+  static const Color yellowAccent = Color(0xFFFDBB2D);
+
+  @override
+  void initState() {
+    super.initState();
+    _checkDayReset();
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
+    _timer?.cancel();
     super.dispose();
+  }
+
+  void _checkDayReset() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    if (_lastResetDate == null || _lastResetDate!.isBefore(today)) {
+      setState(() {
+        _isCheckedIn = false;
+        _isSubmitted = false;
+        _currentCheckInTime = null;
+        _totalTrackedDuration = Duration.zero;
+        _lastResetDate = today;
+      });
+      _timer?.cancel();
+    }
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {});
+    });
+  }
+
+  void _handleCheckIn() {
+    if (_isSubmitted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Attendance already submitted for today!'),
+            backgroundColor: Colors.orange,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      return;
+    }
+    
+    if (_isCheckedIn) return;
+    
+    setState(() {
+      _isCheckedIn = true;
+      _currentCheckInTime = DateTime.now();
+    });
+    _startTimer();
+    
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Checked in successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(milliseconds: 1500),
+        ),
+      );
+  }
+
+  void _handleCheckOut() {
+    if (_isSubmitted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Attendance already submitted for today!'),
+            backgroundColor: Colors.orange,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      return;
+    }
+    
+    if (!_isCheckedIn) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Please check in first!'),
+            backgroundColor: Colors.orange,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      return;
+    }
+    
+    if (_currentCheckInTime != null) {
+      final sessionDuration = DateTime.now().difference(_currentCheckInTime!);
+      setState(() {
+        _totalTrackedDuration += sessionDuration;
+        _isCheckedIn = false;
+        _currentCheckInTime = null;
+      });
+    }
+    _timer?.cancel();
+    
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Checked out successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(milliseconds: 1500),
+        ),
+      );
+  }
+
+  void _handleSubmit() {
+    if (_isSubmitted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Attendance already submitted for today!'),
+            backgroundColor: Colors.orange,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      return;
+    }
+    
+    if (_isCheckedIn && _currentCheckInTime != null) {
+      final sessionDuration = DateTime.now().difference(_currentCheckInTime!);
+      _totalTrackedDuration += sessionDuration;
+    }
+    
+    _timer?.cancel();
+    
+    setState(() {
+      _isSubmitted = true;
+      _isCheckedIn = false;
+      _currentCheckInTime = null;
+    });
+    
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Attendance submitted successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(milliseconds: 1500),
+        ),
+      );
+  }
+
+  String _formatDuration() {
+    Duration displayDuration = _totalTrackedDuration;
+    
+    if (_isCheckedIn && _currentCheckInTime != null) {
+      displayDuration += DateTime.now().difference(_currentCheckInTime!);
+    }
+    
+    if (!_isSubmitted && displayDuration == Duration.zero) {
+      return '--h --m';
+    }
+    
+    final hours = displayDuration.inHours;
+    final minutes = displayDuration.inMinutes % 60;
+    return '${hours.toString().padLeft(2, '0')}h ${minutes.toString().padLeft(2, '0')}m';
+  }
+
+  String _getStatusText() {
+    if (_isSubmitted) return 'Submitted';
+    if (_isCheckedIn) return 'Tracking...';
+    if (_totalTrackedDuration > Duration.zero) return 'Paused';
+    return 'Not marked yet';
   }
 
   @override
@@ -49,28 +233,25 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
             Align(
               alignment: Alignment.bottomCenter,
               child: Container(
-                margin: const EdgeInsets.all(24),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                margin: const EdgeInsets.fromLTRB(24, 0, 24, 30),
+                height: 90,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(32),
+                  borderRadius: BorderRadius.circular(100),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 40,
+                      offset: const Offset(0, 15),
                     ),
                   ],
                 ),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildNavItem(0, Icons.show_chart, 'DASHBOARD'),
-                    const SizedBox(width: 16),
-                    _buildNavItem(1, Icons.people, 'LEAVE'),
-                    const SizedBox(width: 16),
-                    _buildNavItem(2, Icons.person, 'PROFILE'),
+                    _buildNavItem(0, Icons.show_chart, 'Dashboard'),
+                    _buildNavItem(1, Icons.calendar_today, 'Leave'),
+                    _buildNavItem(2, Icons.person, 'Profile'),
                   ],
                 ),
               ),
@@ -83,41 +264,15 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
 
   Widget _buildNavItem(int index, IconData icon, String label) {
     bool isSelected = _selectedIndex == index;
-    return GestureDetector(
+    return _HoverableNavItem(
+      icon: icon,
+      label: label,
+      isSelected: isSelected,
       onTap: () {
         setState(() {
           _selectedIndex = index;
         });
       },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: isSelected
-                ? BoxDecoration(
-                    color: const Color(0xFF1A237E),
-                    borderRadius: BorderRadius.circular(12),
-                  )
-                : null,
-            child: Icon(
-              icon,
-              color: isSelected ? Colors.white : const Color(0xFF8C8D90), // Grey
-              size: 24,
-            ),
-          ),
-          if (isSelected) const SizedBox(height: 4),
-          if (isSelected)
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A237E), // Navy Blue
-              ),
-            ),
-        ],
-      ),
     );
   }
 
@@ -190,86 +345,330 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Column(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 24, 8, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'MANAGER PORTAL',
                 style: TextStyle(
-                  fontSize: 12,
-                  color: const Color(0xFF8C8D90), // Grey
-                  letterSpacing: 1.2,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.grey[400],
+                  letterSpacing: 2.0,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Good Morning, ${widget.managerName}',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : const Color(0xFF1A237E), // Navy Blue
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  color: navyColor,
                 ),
               ),
             ],
           ),
-        ),
-        Row(
-          children: [
-            IconButton(
-              icon: Icon(
-                Theme.of(context).brightness == Brightness.dark
-                    ? Icons.light_mode
-                    : Icons.dark_mode,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.orange
-                    : const Color(0xFF1A237E),
-              ),
-              onPressed: () {
-                themeNotifier.value = Theme.of(context).brightness == Brightness.dark
-                    ? ThemeMode.light
-                    : ThemeMode.dark;
-              },
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedIndex = 2; // Navigate to Profile tab
-                });
-              },
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(12),
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  Theme.of(context).brightness == Brightness.dark
+                      ? Icons.light_mode
+                      : Icons.dark_mode,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.orange
+                      : navyColor,
                 ),
-                child: Center(
-                  child: Text(
-                    _getInitials(widget.managerName),
-                    style: const TextStyle(
-                      fontSize: 18, // Slightly smaller to fit 2 letters if needed
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A237E), // Navy Blue
+                onPressed: () {
+                  themeNotifier.value = Theme.of(context).brightness == Brightness.dark
+                      ? ThemeMode.light
+                      : ThemeMode.dark;
+                },
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedIndex = 2;
+                  });
+                },
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        border: Border.all(color: const Color(0xFFDBEAFE), width: 1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _getInitials(widget.managerName),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: navyColor,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: yellowAccent,
+                          border: Border.all(color: Colors.white, width: 3),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildAttendanceCard() {
-    return const AttendanceCard();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: const Icon(
+                  Icons.access_time_rounded,
+                  color: navyColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Today's Attendance",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _getStatusText(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _isCheckedIn ? const Color(0xFF4CAF50) : Colors.grey[400],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: _isSubmitted ? null : _handleCheckIn,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: _isCheckedIn
+                          ? const Color(0xFFE8F5E9)
+                          : (_isSubmitted 
+                              ? const Color(0xFFF5F5F5).withOpacity(0.5)
+                              : const Color(0xFFF5F5F5)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.login_rounded,
+                          color: _isCheckedIn
+                              ? const Color(0xFF4CAF50)
+                              : (_isSubmitted 
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600]),
+                          size: 24,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Check In',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _isCheckedIn
+                                ? const Color(0xFF4CAF50)
+                                : (_isSubmitted 
+                                    ? Colors.grey[400]
+                                    : Colors.grey[700]),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: _isSubmitted ? null : _handleCheckOut,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: (!_isCheckedIn && _totalTrackedDuration > Duration.zero)
+                          ? const Color(0xFFE8F5E9)
+                          : (_isSubmitted 
+                              ? const Color(0xFFF5F5F5).withOpacity(0.5)
+                              : const Color(0xFFF5F5F5)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.logout_rounded,
+                          color: (!_isCheckedIn && _totalTrackedDuration > Duration.zero)
+                              ? const Color(0xFF4CAF50)
+                              : (_isSubmitted 
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600]),
+                          size: 24,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Check Out',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: (!_isCheckedIn && _totalTrackedDuration > Duration.zero)
+                                ? const Color(0xFF4CAF50)
+                                : (_isSubmitted 
+                                    ? Colors.grey[400]
+                                    : Colors.grey[700]),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _isSubmitted ? null : _handleSubmit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isSubmitted 
+                        ? navyColor.withOpacity(0.5)
+                        : navyColor,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: navyColor.withOpacity(0.5),
+                    disabledForegroundColor: Colors.white70,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    _isSubmitted ? 'Submitted' : 'Submit',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'DURATION',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.grey[500],
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Text(
+                        _formatDuration(),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: navyColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              width: 50,
+              height: 5,
+              decoration: BoxDecoration(
+                color: yellowAccent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildQuickLinkCard({
@@ -567,6 +966,89 @@ class _HoverableCardState extends State<_HoverableCard> {
                   color: Colors.orange,
                   borderRadius: BorderRadius.circular(2),
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Hoverable navigation item with scale animation
+class _HoverableNavItem extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _HoverableNavItem({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_HoverableNavItem> createState() => _HoverableNavItemState();
+}
+
+class _HoverableNavItemState extends State<_HoverableNavItem> {
+  bool _isHovered = false;
+
+  static const Color navyColor = Color(0xFF1A367C);
+  static const Color textMuted = Color(0xFF8E99A7);
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          transform: _isHovered ? (Matrix4.identity()..scale(1.15)) : Matrix4.identity(),
+          transformAlignment: Alignment.center,
+          width: 70,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: widget.isSelected ? navyColor : Colors.transparent,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: widget.isSelected
+                      ? [
+                          BoxShadow(
+                            color: navyColor.withValues(alpha: _isHovered ? 0.35 : 0.2),
+                            blurRadius: _isHovered ? 20 : 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Icon(
+                  widget.icon,
+                  color: widget.isSelected ? Colors.white : textMuted,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                widget.label.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                  color: widget.isSelected ? navyColor : textMuted,
+                ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),

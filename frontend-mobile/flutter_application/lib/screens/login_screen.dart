@@ -290,17 +290,88 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // Email validation: must contain @ and a . after @
+  String? _validateEmail(String email) {
+    if (email.isEmpty) {
+      return 'Email is required';
+    }
+    
+    if (!email.contains('@')) {
+      return 'Email must contain @';
+    }
+    
+    // Check if there's a . after @
+    final atIndex = email.indexOf('@');
+    final afterAt = email.substring(atIndex + 1);
+    if (!afterAt.contains('.')) {
+      return 'Email must contain a "." after @';
+    }
+    
+    // Make sure there's something before the .
+    final dotIndex = afterAt.indexOf('.');
+    if (dotIndex == 0 || dotIndex == afterAt.length - 1) {
+      return 'Invalid email format';
+    }
+    
+    return null; // Valid
+  }
+
+  // Password validation: min 8 chars, special char (!@#$&), a number, uppercase
+  String? _validatePassword(String password) {
+    if (password.isEmpty) {
+      return 'Password is required';
+    }
+    
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    
+    if (!RegExp(r'[A-Z]').hasMatch(password)) {
+      return 'Password must contain an uppercase letter';
+    }
+    
+    if (!RegExp(r'[0-9]').hasMatch(password)) {
+      return 'Password must contain a number';
+    }
+    
+    if (!RegExp(r'[!@#$&]').hasMatch(password)) {
+      return 'Password must contain a special character (!@#\$&)';
+    }
+    
+    return null; // Valid
+  }
+
   void _handleLogin() {
-    final email = _emailController.text;
+    final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all fields'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    // Validate email
+    final emailError = _validateEmail(email);
+    if (emailError != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(emailError),
+            backgroundColor: Colors.red,
+            duration: const Duration(milliseconds: 1500),
+          ),
+        );
+      return;
+    }
+
+    // Validate password
+    final passwordError = _validatePassword(password);
+    if (passwordError != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(passwordError),
+            backgroundColor: Colors.red,
+            duration: const Duration(milliseconds: 1500),
+          ),
+        );
       return;
     }
 
@@ -314,15 +385,17 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
 
-    if (email.toLowerCase().contains('reporting') || 
-        email.toLowerCase().contains('manager') || 
-        email.toLowerCase().contains('attendance')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Login Successful'),
-          backgroundColor: Colors.green,
-        ),
-      );
+    // Check if email contains "manager" (case insensitive)
+    if (email.toLowerCase().contains('manager')) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Login Successful'),
+            backgroundColor: Colors.green,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -331,15 +404,18 @@ class _LoginPageState extends State<LoginPage> {
       );
     } else {
       // Employee login - route to employee dashboard
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Login Unsuccessful. Invalid Credentials.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Login Successful'),
+            backgroundColor: Colors.green,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const EmployeeDashboard()),
+        MaterialPageRoute(builder: (context) => EmployeeDashboard(userName: name)),
       );
     }
   }
