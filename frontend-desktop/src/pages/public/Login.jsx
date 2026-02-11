@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -47,6 +47,8 @@ function Login() {
         if (email.includes('super')) role = ROLES.SUPER_ADMIN;
         else if (email.includes('admin')) role = ROLES.ADMIN;
         else if (email.includes('team')) role = ROLES.TEAM_LEAD;
+        else if (email.includes('attendance')) role = ROLES.ATTENDANCE_MANAGER;
+        else if (email.includes('cafeteria')) role = ROLES.MANAGER;
 
         login({ email, role });
 
@@ -65,6 +67,9 @@ function Login() {
                 break;
             case ROLES.TEAM_LEAD:
                 navigate(ROUTES.TEAM_LEAD_DASHBOARD);
+                break;
+            case ROLES.ATTENDANCE_MANAGER:
+                navigate('/attendance-manager/dashboard');
                 break;
             default:
                 navigate(ROUTES.UNAUTHORIZED);

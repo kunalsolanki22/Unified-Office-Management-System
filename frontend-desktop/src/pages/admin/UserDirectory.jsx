@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, Mail, CheckCircle, ChevronDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, Mail, ChevronDown, Search } from 'lucide-react';
 
 const UserDirectory = () => {
     const [activeTab, setActiveTab] = useState('managers');
     const [showForm, setShowForm] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // ... (keep existing form state)
 
     // Form State
-    const [entityType, setEntityType] = useState('manager');
-    const [newUser, setNewUser] = useState({
-        name: '', employeeId: '', email: '', phone: '', domain: '', manager: ''
-    });
+    const [entityType, setEntityType] = useState('manager'); // newUser removed
 
-    const [managers, setManagers] = useState([
+    const [managers] = useState([
         { id: 1, name: 'Sarah Miller', joined: 'JAN 2026', role: 'CAFETERIA OPS', email: 's.miller@cygnet.one', phone: '+91 98765 43210', initial: 'S', color: 'bg-blue-800' },
         { id: 2, name: 'David Chen', joined: 'FEB 2026', role: 'INFRASTRUCTURE', email: 'd.chen@cygnet.one', phone: '+91 91234 56789', initial: 'D', color: 'bg-slate-700' },
     ]);
 
-    const [employees, setEmployees] = useState([
+    const [employees] = useState([
         { id: 1, name: 'Michael Ross', joined: 'FEB 2026', manager: 'Sarah Miller', email: 'm.ross@cygnet.one', phone: '+91 99887 76655', initial: 'M', color: 'bg-orange-600' },
     ]);
 
@@ -27,12 +27,25 @@ const UserDirectory = () => {
         setShowForm(false);
     };
 
+    const filteredData = activeTab === 'managers'
+        ? managers.filter(user =>
+            user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        : employees.filter(user =>
+            user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.manager.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
         >
+            {/* ... (Header section remains same) */}
             <div className="mb-2">
                 <h1 className="text-2xl font-bold text-[#1a367c] mb-1">
                     USER DIRECTORY <span className="text-[#f9b012]">LIFECYCLE MANAGEMENT</span>
@@ -58,15 +71,30 @@ const UserDirectory = () => {
                         </button>
                     ))}
                 </div>
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="bg-[#1a367c] text-white px-6 py-2.5 rounded-full text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2 mb-2"
-                >
-                    <Plus className="w-4 h-4" /> NEW PROVISION
-                </button>
+
+                <div className="flex items-center gap-3 mb-2">
+                    {/* Search Bar */}
+                    <div className="flex items-center bg-white border border-slate-200 rounded-full px-4 py-2 shadow-sm w-[250px]">
+                        <Search className="w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search directory..."
+                            className="ml-3 bg-transparent border-none outline-none text-xs font-medium text-[#1a367c] w-full placeholder:text-slate-400"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    <button
+                        onClick={() => setShowForm(!showForm)}
+                        className="bg-[#1a367c] text-white px-6 py-2.5 rounded-full text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" /> NEW PROVISION
+                    </button>
+                </div>
             </div>
 
-            {/* Onboarding Form */}
+            {/* Onboarding Form (remains same) */}
             <AnimatePresence>
                 {showForm && (
                     <motion.div
@@ -75,6 +103,7 @@ const UserDirectory = () => {
                         exit={{ height: 0, opacity: 0 }}
                         className="bg-white rounded-[20px] p-8 shadow-sm border border-[#f9b012] overflow-hidden"
                     >
+                        {/* ... (keep form content exactly as is) ... */}
                         <h3 className="text-sm font-bold text-[#1a367c] mb-6 tracking-wide border-b border-slate-100 pb-2">ONBOARDING WORKFLOW</h3>
 
                         {/* Entity Selector */}
@@ -177,8 +206,8 @@ const UserDirectory = () => {
                 </div>
 
                 <div className="space-y-1">
-                    {activeTab === 'managers' ? (
-                        managers.map((user) => (
+                    {filteredData.length > 0 ? (
+                        filteredData.map((user) => (
                             <motion.div
                                 key={user.id}
                                 initial={{ opacity: 0 }}
@@ -195,8 +224,8 @@ const UserDirectory = () => {
                                     <div className="text-[0.65rem] text-[#8892b0] font-medium mt-0.5 tracking-wide">JOINED: {user.joined}</div>
                                 </div>
                                 <div>
-                                    <span className="bg-orange-50 text-orange-700 px-3 py-1.5 rounded-full text-[0.65rem] font-bold tracking-wide uppercase">
-                                        {user.role}
+                                    <span className={`px-3 py-1.5 rounded-full text-[0.65rem] font-bold tracking-wide uppercase ${activeTab === 'managers' ? 'bg-orange-50 text-orange-700' : 'bg-green-50 text-green-700'}`}>
+                                        {activeTab === 'managers' ? user.role : `Mgr: ${user.manager}`}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-[#555] font-medium">
@@ -214,41 +243,9 @@ const UserDirectory = () => {
                             </motion.div>
                         ))
                     ) : (
-                        employees.map((user) => (
-                            <motion.div
-                                key={user.id}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="grid grid-cols-[0.5fr_2fr_2fr_2fr_0.5fr] items-center p-4 rounded-xl hover:bg-[#fafbfb] transition-colors group border-b border-slate-50 last:border-0"
-                            >
-                                <div>
-                                    <div className={`w-9 h-9 ${user.color} text-white rounded-lg flex items-center justify-center font-bold shadow-sm`}>
-                                        {user.initial}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-sm font-bold text-[#1a367c]">{user.name}</div>
-                                    <div className="text-[0.65rem] text-[#8892b0] font-medium mt-0.5 tracking-wide">JOINED: {user.joined}</div>
-                                </div>
-                                <div>
-                                    <span className="bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-[0.65rem] font-bold tracking-wide uppercase">
-                                        Mgr: {user.manager}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-[#555] font-medium">
-                                    <Mail className="w-3.5 h-3.5 text-[#b0b0b0]" />
-                                    {user.phone}
-                                </div>
-                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors">
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </motion.div>
-                        ))
+                        <div className="p-8 text-center text-slate-400 text-sm font-medium italic">
+                            No matching records found.
+                        </div>
                     )}
                 </div>
             </div>

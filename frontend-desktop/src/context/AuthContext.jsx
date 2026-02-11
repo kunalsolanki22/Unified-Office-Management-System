@@ -14,6 +14,8 @@ export const AuthProvider = ({ children }) => {
         if (userData.email.includes('admin')) role = ROLES.ADMIN;
         if (userData.email.includes('super')) role = ROLES.SUPER_ADMIN;
         if (userData.email.includes('team')) role = ROLES.TEAM_LEAD;
+        if (userData.email.includes('attendance')) role = ROLES.ATTENDANCE_MANAGER;
+        if (userData.email.includes('cafeteria')) role = ROLES.CAFETERIA_MANAGER;
 
         setUser({ ...userData, role });
     };
@@ -29,4 +31,6 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
+
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

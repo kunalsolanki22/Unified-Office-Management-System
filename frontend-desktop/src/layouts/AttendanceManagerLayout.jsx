@@ -1,8 +1,8 @@
 import { Outlet } from 'react-router-dom';
-import Sidebar from '../components/admin/Sidebar';
-import Header from '../components/admin/Header';
+import Sidebar from '../components/attendance-manager/Sidebar';
+import Header from '../components/attendance-manager/Header';
 
-const AdminLayout = () => {
+const AttendanceManagerLayout = () => {
     return (
         <div className="flex h-screen overflow-hidden bg-[#f4f7f6] text-[#333] font-sans">
             {/* Sidebar */}
@@ -19,4 +19,4 @@ const AdminLayout = () => {
     );
 };
 
-export default AdminLayout;
+export default AttendanceManagerLayout;

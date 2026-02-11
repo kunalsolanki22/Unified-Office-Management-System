@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, ChevronLeft, ChevronRight, Bookmark } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Bookmark, Search } from 'lucide-react';
 
 const Holidays = () => {
     const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -13,6 +13,13 @@ const Holidays = () => {
         { date: 'Mar 29, 2026', name: 'Ram Navami', day: 'Sunday', category: 'RELIGIOUS', status: 'SCHEDULED', color: 'text-slate-400' },
         { date: 'Apr 10, 2026', name: 'Good Friday', day: 'Friday', category: 'RELIGIOUS', status: 'SCHEDULED', color: 'text-slate-400' },
     ]);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredHolidays = holidays.filter(h =>
+        h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        h.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        h.date.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <motion.div
@@ -84,9 +91,22 @@ const Holidays = () => {
 
             {/* List Section */}
             <div className="mt-10">
-                <div className="flex items-center gap-3 mb-6 text-[#1a367c] font-bold text-lg">
-                    <Bookmark className="w-5 h-5" />
-                    ANNOUNCED HOLIDAYS
+                <div className="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
+                    <div className="flex items-center gap-3 text-[#1a367c] font-bold text-lg">
+                        <Bookmark className="w-5 h-5" />
+                        ANNOUNCED HOLIDAYS
+                    </div>
+                    {/* Search Bar */}
+                    <div className="flex items-center bg-white border border-slate-200 rounded-full px-4 py-2 shadow-sm w-[250px]">
+                        <Search className="w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search holidays..."
+                            className="ml-3 bg-transparent border-none outline-none text-xs font-medium text-[#1a367c] w-full placeholder:text-slate-400"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
                 </div>
 
                 <div className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-slate-100">
@@ -101,21 +121,29 @@ const Holidays = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {holidays.map((h, i) => (
-                                <tr key={i} className="border-b border-slate-50 hover:bg-[#fafbfb] transition-colors last:border-none">
-                                    <td className="p-6 text-sm font-bold text-[#1a367c]">{h.date}</td>
-                                    <td className="p-6 text-sm font-medium text-[#1a367c]">{h.name}</td>
-                                    <td className="p-6 text-sm text-[#8892b0]">{h.day}</td>
-                                    <td className="p-6">
-                                        <span className="inline-block px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide bg-[#f9b012]/10 text-[#f9b012] uppercase">
-                                            {h.category}
-                                        </span>
-                                    </td>
-                                    <td className={`p-6 text-xs font-bold tracking-wide uppercase ${h.color}`}>
-                                        {h.status}
+                            {filteredHolidays.length > 0 ? (
+                                filteredHolidays.map((h, i) => (
+                                    <tr key={i} className="border-b border-slate-50 hover:bg-[#fafbfb] transition-colors last:border-none">
+                                        <td className="p-6 text-sm font-bold text-[#1a367c]">{h.date}</td>
+                                        <td className="p-6 text-sm font-medium text-[#1a367c]">{h.name}</td>
+                                        <td className="p-6 text-sm text-[#8892b0]">{h.day}</td>
+                                        <td className="p-6">
+                                            <span className="inline-block px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide bg-[#f9b012]/10 text-[#f9b012] uppercase">
+                                                {h.category}
+                                            </span>
+                                        </td>
+                                        <td className={`p-6 text-xs font-bold tracking-wide uppercase ${h.color}`}>
+                                            {h.status}
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="5" className="p-8 text-center text-slate-400 text-sm font-medium italic">
+                                        No holidays match your search.
                                     </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </div>

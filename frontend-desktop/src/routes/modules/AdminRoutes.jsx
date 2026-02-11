@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminLayout from '../../layouts/AdminLayout';
-import { ROUTES } from '../../constants/routes';
+
 
 // Pages
 import Dashboard from '../../pages/admin/Dashboard';

@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import SuperAdminLayout from '../../layouts/SuperAdminLayout';
-import { ROUTES } from '../../constants/routes';
+
 
 // Pages
 import Dashboard from '../../pages/super-admin/Dashboard';

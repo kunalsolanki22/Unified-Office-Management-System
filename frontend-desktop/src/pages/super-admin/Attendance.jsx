@@ -1,8 +1,21 @@
-import React from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Clock, AlertCircle } from 'lucide-react';
+import { Check, X, AlertCircle, Search } from 'lucide-react';
 
 const Attendance = () => {
+    const [auditData] = useState([
+        { name: 'Karan Sharma', role: 'FOOD ADMIN', time: '09:24 AM', status: 'FLAGGED', note: 'LATE CLOCK-IN (24M)', color: 'bg-red-50 text-red-500', initial: 'K', initialBg: 'bg-[#1a4d8c]' },
+        { name: 'Priya Verma', role: 'DESK ADMIN', time: '08:58 AM', status: 'VERIFIED', note: 'ON-TIME ENTRY', color: 'bg-green-50 text-green-600', initial: 'P', initialBg: 'bg-slate-800' },
+        { name: 'Marcus Bell', role: 'INFRASTRUCTURE', time: 'PENDING', status: 'PENDING', note: 'SYSTEM CHECK REQUIRED', color: 'bg-amber-50 text-amber-600', initial: 'M', initialBg: 'bg-slate-800' },
+    ]);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredAudit = auditData.filter(item =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.status.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -23,33 +36,43 @@ const Attendance = () => {
                 <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100">
                     <div className="flex justify-between items-center mb-6">
                         <div className="text-lg font-bold text-[#1a367c]">Daily Audit</div>
-                        <div className="p-2 bg-orange-50 rounded-lg">
-                            <Clock className="w-5 h-5 text-[#f9b012]" />
+                        {/* Search Bar */}
+                        <div className="flex items-center bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm w-[200px]">
+                            <Search className="w-3.5 h-3.5 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Search audit..."
+                                className="ml-2 bg-transparent border-none outline-none text-[0.7rem] font-medium text-[#1a367c] w-full placeholder:text-slate-400"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        {[
-                            { name: 'Karan Sharma', role: 'FOOD ADMIN', time: '09:24 AM', status: 'FLAGGED', note: 'LATE CLOCK-IN (24M)', color: 'bg-red-50 text-red-500', initial: 'K', initialBg: 'bg-[#1a4d8c]' },
-                            { name: 'Priya Verma', role: 'DESK ADMIN', time: '08:58 AM', status: 'VERIFIED', note: 'ON-TIME ENTRY', color: 'bg-green-50 text-green-600', initial: 'P', initialBg: 'bg-slate-800' },
-                            { name: 'Marcus Bell', role: 'INFRASTRUCTURE', time: 'PENDING', status: 'PENDING', note: 'SYSTEM CHECK REQUIRED', color: 'bg-amber-50 text-amber-600', initial: 'M', initialBg: 'bg-slate-800' },
-                        ].map((item, idx) => (
-                            <div key={idx} className="flex items-center p-4 border border-slate-100 rounded-xl hover:shadow-sm transition-shadow">
-                                <div className={`w-10 h-10 ${item.initialBg} text-white rounded-lg flex items-center justify-center font-bold mr-4`}>
-                                    {item.initial}
-                                </div>
-                                <div className="flex-1">
-                                    <div className="text-sm font-bold text-[#1a367c]">{item.name}</div>
-                                    <div className="text-[0.65rem] font-bold text-[#8892b0] tracking-wide uppercase">{item.role} • {item.time}</div>
-                                </div>
-                                <div className="text-right">
-                                    <div className={`inline-block px-2 py-1 rounded text-[0.65rem] font-bold tracking-wide mb-1 ${item.color}`}>
-                                        {item.status}
+                        {filteredAudit.length > 0 ? (
+                            filteredAudit.map((item, idx) => (
+                                <div key={idx} className="flex items-center p-4 border border-slate-100 rounded-xl hover:shadow-sm transition-shadow">
+                                    <div className={`w-10 h-10 ${item.initialBg} text-white rounded-lg flex items-center justify-center font-bold mr-4`}>
+                                        {item.initial}
                                     </div>
-                                    <div className="text-[0.65rem] font-medium text-[#8892b0] tracking-wide">{item.note}</div>
+                                    <div className="flex-1">
+                                        <div className="text-sm font-bold text-[#1a367c]">{item.name}</div>
+                                        <div className="text-[0.65rem] font-bold text-[#8892b0] tracking-wide uppercase">{item.role} • {item.time}</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className={`inline-block px-2 py-1 rounded text-[0.65rem] font-bold tracking-wide mb-1 ${item.color}`}>
+                                            {item.status}
+                                        </div>
+                                        <div className="text-[0.65rem] font-medium text-[#8892b0] tracking-wide">{item.note}</div>
+                                    </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-8 text-slate-400 text-sm font-medium italic">
+                                No audit records found.
                             </div>
-                        ))}
+                        )}
                     </div>
 
                     <button className="w-full mt-6 bg-[#1a367c] text-white py-4 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/10">

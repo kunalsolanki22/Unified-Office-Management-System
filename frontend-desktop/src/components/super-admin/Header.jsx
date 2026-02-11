@@ -1,4 +1,4 @@
-import { Search, Bell } from 'lucide-react';
+import { Bell } from 'lucide-react';
 
 const Header = () => {
     return (
@@ -11,16 +11,6 @@ const Header = () => {
             </div>
 
             <div className="flex items-center gap-6">
-                {/* Search Bar */}
-                <div className="hidden md:flex items-center bg-[#f8f9fa] rounded-full px-5 py-2.5 w-[300px] lg:w-[350px] border border-[#e0e0e0]">
-                    <Search className="w-4 h-4 text-[#b0b0b0]" />
-                    <input
-                        type="text"
-                        placeholder="SEARCH COMMAND NODE..."
-                        className="border-none bg-transparent outline-none ml-2.5 w-full text-[0.8rem] tracking-wide text-[#1a367c] placeholder:text-[#b0b0b0] placeholder:text-[0.7rem] placeholder:tracking-[1.5px] font-medium"
-                    />
-                </div>
-
                 {/* User Actions */}
                 <div className="flex items-center gap-6 ml-2">
                     <div className="relative cursor-pointer group">
