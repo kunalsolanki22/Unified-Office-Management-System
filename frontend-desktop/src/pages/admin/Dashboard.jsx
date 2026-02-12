@@ -44,7 +44,7 @@ const Dashboard = () => {
                     variants={itemVariants}
                     className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col justify-between min-h-[320px] relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                 >
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-blue-50 rounded-bl-full -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-orange-50 rounded-bl-full -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
 
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-4">

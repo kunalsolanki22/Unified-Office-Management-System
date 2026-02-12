@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar as CalendarIcon, Clock, CheckCircle, AlertCircle, Plus, X } from 'lucide-react';
 import Calendar from '../../components/ui/Calendar'; // Assuming this exists from Holidays usage
+import { toast } from 'react-toastify';
 
 const MyAttendance = () => {
     // State for form
@@ -50,6 +51,11 @@ const MyAttendance = () => {
         setWorkDone('');
         setCheckInTime(null);
         setCheckOutTime(null);
+        toast.success("Attendance Log Submitted Successfully");
+    };
+
+    const handleApplyLeave = () => {
+        toast.info("Leave Application Modal Triggered");
     };
 
     return (
@@ -168,7 +174,9 @@ const MyAttendance = () => {
                         <div className="text-[#8892b0]">Pending Logs: <span className="text-[#1a367c]">0</span></div>
                     </div>
 
-                    <button className="w-full border border-red-100 bg-red-50 text-red-500 py-3 rounded-full text-xs font-bold tracking-widest hover:bg-red-100 transition-all uppercase">
+                    <button
+                        onClick={handleApplyLeave}
+                        className="w-full border border-red-100 bg-red-50 text-red-500 py-3 rounded-full text-xs font-bold tracking-widest hover:bg-red-100 transition-all uppercase">
                         + APPLY FOR LEAVE
                     </button>
                 </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar as CalendarIcon, Clock, CheckCircle, AlertCircle, Plus, X } from 'lucide-react';
+import { toast } from 'react-toastify';
 import Calendar from '../../components/ui/Calendar'; // Assuming this exists from Holidays usage
 
 const MyAttendance = () => {
@@ -168,7 +169,10 @@ const MyAttendance = () => {
                         <div className="text-[#8892b0]">Pending Logs: <span className="text-[#1a367c]">0</span></div>
                     </div>
 
-                    <button className="w-full border border-red-100 bg-red-50 text-red-500 py-3 rounded-full text-xs font-bold tracking-widest hover:bg-red-100 transition-all uppercase">
+                    <button
+                        onClick={() => toast.info('Leave application form opening...')}
+                        className="w-full border border-red-100 bg-red-50 text-red-500 py-3 rounded-full text-xs font-bold tracking-widest hover:bg-red-100 transition-all uppercase"
+                    >
                         + APPLY FOR LEAVE
                     </button>
                 </div>

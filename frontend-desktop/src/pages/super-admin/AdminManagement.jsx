@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Edit2, Mail, Search } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../constants/roles';
@@ -38,7 +39,12 @@ const AdminManagement = () => {
     const handleDelete = (id) => {
         if (confirm('Revoke admin privileges?')) {
             setAdmins(admins.filter(a => a.id !== id));
+            toast.info('Admin privileges revoked.');
         }
+    };
+
+    const handleEdit = (admin) => {
+        toast.info(`Editing ${admin.name} - Feature coming soon!`);
     };
 
     const filteredAdmins = admins.filter(admin =>
@@ -193,7 +199,10 @@ const AdminManagement = () => {
                                 </div>
                                 {canModify && (
                                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
+                                        <button
+                                            onClick={() => handleEdit(admin)}
+                                            className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors"
+                                        >
                                             <Edit2 className="w-3.5 h-3.5" />
                                         </button>
                                         <button

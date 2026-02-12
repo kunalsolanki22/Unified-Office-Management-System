@@ -1,7 +1,34 @@
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, Clock, AlertCircle } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const Attendance = () => {
+    const [managerLogs, setManagerLogs] = useState([
+        { id: 1, name: 'James Carter', role: 'PARKING LEAD', time: '09:24 AM', status: 'FLAGGED', note: 'LATE CLOCK-IN (24M)', color: 'bg-red-50 text-red-500', initial: 'J', initialBg: 'bg-[#1a4d8c]' },
+        { id: 2, name: 'Priya Verma', role: 'DESK ADMIN', time: '08:58 AM', status: 'VERIFIED', note: 'ON-TIME ENTRY', color: 'bg-green-50 text-green-600', initial: 'P', initialBg: 'bg-slate-800' },
+        { id: 3, name: 'Marcus Bell', role: 'INFRASTRUCTURE', time: 'PENDING', status: 'PENDING', note: 'SYSTEM CHECK REQUIRED', color: 'bg-amber-50 text-amber-600', initial: 'M', initialBg: 'bg-slate-800' },
+    ]);
+
+    const [leaveRequests, setLeaveRequests] = useState([
+        { id: 1, name: 'Elena Vance', type: 'SECURITY • EMERGENCY • 2 DAYS', reason: 'Critical Family Matter. Operational redundancy confirmed via Node Cluster B.', color: 'text-red-500' },
+        { id: 2, name: 'David Chen', type: 'INFRASTRUCTURE • ANNUAL LEAVE • 5 DAYS', reason: 'Project Transition Break. Operational redundancy confirmed via Node Cluster B.', color: 'text-amber-500' },
+    ]);
+
+    const handleAuthorizeDocs = () => {
+        toast.success("Manager Logs Authorized Successfully");
+        setManagerLogs(prev => prev.map(log => ({ ...log, status: 'VERIFIED', color: 'bg-green-50 text-green-600' })));
+    };
+
+    const handleLeaveAction = (id, action) => {
+        setLeaveRequests(prev => prev.filter(req => req.id !== id));
+        if (action === 'approve') {
+            toast.success("Leave Request Approved");
+        } else {
+            toast.info("Leave Request Rejected");
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -28,12 +55,8 @@ const Attendance = () => {
                     </div>
 
                     <div className="space-y-4">
-                        {[
-                            { name: 'James Carter', role: 'PARKING LEAD', time: '09:24 AM', status: 'FLAGGED', note: 'LATE CLOCK-IN (24M)', color: 'bg-red-50 text-red-500', initial: 'J', initialBg: 'bg-[#1a4d8c]' },
-                            { name: 'Priya Verma', role: 'DESK ADMIN', time: '08:58 AM', status: 'VERIFIED', note: 'ON-TIME ENTRY', color: 'bg-green-50 text-green-600', initial: 'P', initialBg: 'bg-slate-800' },
-                            { name: 'Marcus Bell', role: 'INFRASTRUCTURE', time: 'PENDING', status: 'PENDING', note: 'SYSTEM CHECK REQUIRED', color: 'bg-amber-50 text-amber-600', initial: 'M', initialBg: 'bg-slate-800' },
-                        ].map((item, idx) => (
-                            <div key={idx} className="flex items-center p-4 border border-slate-100 rounded-xl hover:shadow-sm transition-shadow">
+                        {managerLogs.map((item) => (
+                            <div key={item.id} className="flex items-center p-4 border border-slate-100 rounded-xl hover:shadow-sm transition-shadow">
                                 <div className={`w-10 h-10 ${item.initialBg} text-white rounded-lg flex items-center justify-center font-bold mr-4`}>
                                     {item.initial}
                                 </div>
@@ -51,7 +74,9 @@ const Attendance = () => {
                         ))}
                     </div>
 
-                    <button className="w-full mt-6 bg-[#1a367c] text-white py-4 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/10">
+                    <button
+                        onClick={handleAuthorizeDocs}
+                        className="w-full mt-6 bg-[#1a367c] text-white py-4 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/10">
                         AUTHORIZE MANAGER LOGS
                     </button>
                 </div>
@@ -66,33 +91,40 @@ const Attendance = () => {
                     </div>
 
                     <div className="space-y-6">
-                        {[
-                            { name: 'Elena Vance', type: 'SECURITY • EMERGENCY • 2 DAYS', reason: 'Critical Family Matter. Operational redundancy confirmed via Node Cluster B.', color: 'text-red-500' },
-                            { name: 'David Chen', type: 'INFRASTRUCTURE • ANNUAL LEAVE • 5 DAYS', reason: 'Project Transition Break. Operational redundancy confirmed via Node Cluster B.', color: 'text-amber-500' },
-                        ].map((leave, idx) => (
-                            <div key={idx} className="bg-[#f8f9fa] p-6 rounded-2xl">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <div className="text-sm font-bold text-[#1a367c] mb-1">{leave.name}</div>
-                                        <div className={`text-[0.65rem] font-bold tracking-widest uppercase ${leave.color}`}>{leave.type}</div>
+                        {leaveRequests.length > 0 ? (
+                            leaveRequests.map((leave) => (
+                                <div key={leave.id} className="bg-[#f8f9fa] p-6 rounded-2xl">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <div className="text-sm font-bold text-[#1a367c] mb-1">{leave.name}</div>
+                                            <div className={`text-[0.65rem] font-bold tracking-widest uppercase ${leave.color}`}>{leave.type}</div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleLeaveAction(leave.id, 'reject')}
+                                                className="w-8 h-8 rounded-full border border-red-200 text-red-500 flex items-center justify-center hover:bg-red-50 transition-colors bg-white">
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleLeaveAction(leave.id, 'approve')}
+                                                className="w-8 h-8 rounded-full bg-[#1a367c] text-white flex items-center justify-center hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/20">
+                                                <Check className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <button className="w-8 h-8 rounded-full border border-red-200 text-red-500 flex items-center justify-center hover:bg-red-50 transition-colors bg-white">
-                                            <X className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button className="w-8 h-8 rounded-full bg-[#1a367c] text-white flex items-center justify-center hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/20">
-                                            <Check className="w-3.5 h-3.5" />
-                                        </button>
+                                    <div className="pt-3 border-t border-slate-200">
+                                        <p className="text-[0.75rem] text-[#666] leading-relaxed">
+                                            <span className="font-bold text-[#8892b0] text-[0.65rem] tracking-wide uppercase mr-1">STATEMENT:</span>
+                                            {leave.reason}
+                                        </p>
                                     </div>
                                 </div>
-                                <div className="pt-3 border-t border-slate-200">
-                                    <p className="text-[0.75rem] text-[#666] leading-relaxed">
-                                        <span className="font-bold text-[#8892b0] text-[0.65rem] tracking-wide uppercase mr-1">STATEMENT:</span>
-                                        {leave.reason}
-                                    </p>
-                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-8 text-slate-400 text-xs font-medium italic">
+                                No pending leave requests.
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </div>

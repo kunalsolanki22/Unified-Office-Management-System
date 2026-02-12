@@ -1,11 +1,26 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, User, Briefcase, Mail, Phone, Trash2, Edit } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { useAuth } from '../../context/AuthContext';
+import { ROLES } from '../../constants/roles';
 
 const UserDirectory = () => {
     const [activeTab, setActiveTab] = useState('all-employees');
     const [showForm, setShowForm] = useState(false);
     const [entityType, setEntityType] = useState('manager');
+    const { user } = useAuth();
+    const isReadOnly = user?.role === ROLES.ATTENDANCE_MANAGER;
+
+    const handleOnboard = () => {
+        toast.success(`Onboarding initiated for ${entityType} account.`);
+        setShowForm(false);
+    };
+
+    const handleEdit = (name) => toast.info(`Editing ${name}...`);
+    const handleDelete = (name) => {
+        if (confirm(`Remove ${name}?`)) toast.error(`${name} removed.`);
+    };
 
     return (
         <div className="space-y-6">
@@ -35,13 +50,15 @@ const UserDirectory = () => {
             </div>
 
             <div className="flex justify-end mb-5">
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="bg-[#1a367c] hover:bg-[#2c4a96] text-white px-6 py-3 rounded-full text-xs font-bold tracking-widest shadow-lg shadow-[#1a367c]/30 transition-all flex items-center gap-2"
-                >
-                    <UserPlus className="w-4 h-4" />
-                    NEW PROVISION
-                </button>
+                {!isReadOnly && (
+                    <button
+                        onClick={() => setShowForm(!showForm)}
+                        className="bg-[#1a367c] hover:bg-[#2c4a96] text-white px-6 py-3 rounded-full text-xs font-bold tracking-widest shadow-lg shadow-[#1a367c]/30 transition-all flex items-center gap-2"
+                    >
+                        <UserPlus className="w-4 h-4" />
+                        NEW PROVISION
+                    </button>
+                )}
             </div>
 
             <AnimatePresence>
@@ -145,7 +162,10 @@ const UserDirectory = () => {
                             >
                                 CANCEL
                             </button>
-                            <button className="bg-[#1a367c] text-white px-5 py-2.5 rounded-xl text-xs font-bold tracking-wide hover:bg-[#2c4a96] transition-colors shadow-lg shadow-[#1a367c]/20">
+                            <button
+                                onClick={handleOnboard}
+                                className="bg-[#1a367c] text-white px-5 py-2.5 rounded-xl text-xs font-bold tracking-wide hover:bg-[#2c4a96] transition-colors shadow-lg shadow-[#1a367c]/20"
+                            >
                                 INITIATE ONBOARDING
                             </button>
                         </div>
@@ -177,12 +197,22 @@ const UserDirectory = () => {
                                 +91 98765 43210
                             </div>
                             <div className="flex items-center">
-                                <button className="w-8 h-8 rounded-lg flex items-center justify-center mr-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
-                                    <Edit className="w-4 h-4" />
-                                </button>
-                                <button className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                                {!isReadOnly && (
+                                    <>
+                                        <button
+                                            onClick={() => handleEdit('Sarah Miller')}
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center mr-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete('Sarah Miller')}
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                         {/* More rows... */}
@@ -204,12 +234,22 @@ const UserDirectory = () => {
                                 +91 91234 56789
                             </div>
                             <div className="flex items-center">
-                                <button className="w-8 h-8 rounded-lg flex items-center justify-center mr-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
-                                    <Edit className="w-4 h-4" />
-                                </button>
-                                <button className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                                {!isReadOnly && (
+                                    <>
+                                        <button
+                                            onClick={() => handleEdit('David Chen')}
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center mr-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete('David Chen')}
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

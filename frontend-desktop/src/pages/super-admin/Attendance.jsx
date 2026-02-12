@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, AlertCircle, Search } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const Attendance = () => {
     const [auditData] = useState([
@@ -15,6 +16,24 @@ const Attendance = () => {
         item.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.status.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const [petitions, setPetitions] = useState([
+        { id: 1, name: 'Elena Vance', type: 'EMERGENCY • 2 DAYS', reason: 'Critical Family Matter. Operational redundancy confirmed via Node Cluster B.', color: 'text-red-500' },
+        { id: 2, name: 'David Chen', type: 'ANNUAL LEAVE • 5 DAYS', reason: 'Project Transition Break. Operational redundancy confirmed via Node Cluster B.', color: 'text-amber-500' },
+    ]);
+
+    const handleAuthorizeBatch = () => {
+        toast.success("Daily batch authorized successfully!");
+    };
+
+    const handlePetitionAction = (id, action) => {
+        setPetitions(prev => prev.filter(p => p.id !== id));
+        if (action === 'approve') {
+            toast.success("Leave petition approved.");
+        } else {
+            toast.info("Leave petition rejected.");
+        }
+    };
 
     return (
         <motion.div
@@ -75,7 +94,10 @@ const Attendance = () => {
                         )}
                     </div>
 
-                    <button className="w-full mt-6 bg-[#1a367c] text-white py-4 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/10">
+                    <button
+                        onClick={handleAuthorizeBatch}
+                        className="w-full mt-6 bg-[#1a367c] text-white py-4 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/10"
+                    >
                         AUTHORIZE DAILY BATCH
                     </button>
                 </div>
@@ -90,33 +112,38 @@ const Attendance = () => {
                     </div>
 
                     <div className="space-y-6">
-                        {[
-                            { name: 'Elena Vance', type: 'EMERGENCY • 2 DAYS', reason: 'Critical Family Matter. Operational redundancy confirmed via Node Cluster B.', color: 'text-red-500' },
-                            { name: 'David Chen', type: 'ANNUAL LEAVE • 5 DAYS', reason: 'Project Transition Break. Operational redundancy confirmed via Node Cluster B.', color: 'text-amber-500' },
-                        ].map((leave, idx) => (
-                            <div key={idx} className="bg-[#f8f9fa] p-6 rounded-2xl">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <div className="text-sm font-bold text-[#1a367c] mb-1">{leave.name}</div>
-                                        <div className={`text-[0.65rem] font-bold tracking-widest uppercase ${leave.color}`}>{leave.type}</div>
+                        <div className="space-y-6">
+                            {petitions.map((leave) => (
+                                <div key={leave.id} className="bg-[#f8f9fa] p-6 rounded-2xl">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <div className="text-sm font-bold text-[#1a367c] mb-1">{leave.name}</div>
+                                            <div className={`text-[0.65rem] font-bold tracking-widest uppercase ${leave.color}`}>{leave.type}</div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handlePetitionAction(leave.id, 'reject')}
+                                                className="w-8 h-8 rounded-full border border-red-200 text-red-500 flex items-center justify-center hover:bg-red-50 transition-colors bg-white"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={() => handlePetitionAction(leave.id, 'approve')}
+                                                className="w-8 h-8 rounded-full bg-[#1a367c] text-white flex items-center justify-center hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/20"
+                                            >
+                                                <Check className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <button className="w-8 h-8 rounded-full border border-red-200 text-red-500 flex items-center justify-center hover:bg-red-50 transition-colors bg-white">
-                                            <X className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button className="w-8 h-8 rounded-full bg-[#1a367c] text-white flex items-center justify-center hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/20">
-                                            <Check className="w-3.5 h-3.5" />
-                                        </button>
+                                    <div className="pt-3 border-t border-slate-200">
+                                        <p className="text-[0.75rem] text-[#666] leading-relaxed">
+                                            <span className="font-bold text-[#8892b0] text-[0.65rem] tracking-wide uppercase mr-1">STATEMENT:</span>
+                                            {leave.reason}
+                                        </p>
                                     </div>
                                 </div>
-                                <div className="pt-3 border-t border-slate-200">
-                                    <p className="text-[0.75rem] text-[#666] leading-relaxed">
-                                        <span className="font-bold text-[#8892b0] text-[0.65rem] tracking-wide uppercase mr-1">STATEMENT:</span>
-                                        {leave.reason}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

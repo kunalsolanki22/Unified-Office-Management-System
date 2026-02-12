@@ -1,6 +1,8 @@
+import { useNavigate } from 'react-router-dom';
 import { Car, Coffee, Monitor, Users, HardDrive, ArrowRight } from 'lucide-react';
 
 const ActionHub = () => {
+    const navigate = useNavigate();
     const actions = [
         { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
         { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
@@ -24,6 +26,7 @@ const ActionHub = () => {
                 {actions.map((action, idx) => (
                     <div
                         key={idx}
+                        onClick={() => navigate('/attendance-manager/dashboard')} // Placeholder - verify actual routes or keep partial
                         className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group hover:-translate-y-2 hover:shadow-xl transition-all duration-300"
                     >
                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:bg-[#1a367c] group-hover:text-white transition-colors duration-300">

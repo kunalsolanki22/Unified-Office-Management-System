@@ -1,30 +1,44 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit2, Trash2, Mail, ChevronDown, Search } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const UserDirectory = () => {
     const [activeTab, setActiveTab] = useState('managers');
     const [showForm, setShowForm] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // ... (keep existing form state)
-
     // Form State
     const [entityType, setEntityType] = useState('manager'); // newUser removed
 
-    const [managers] = useState([
+    const [managers, setManagers] = useState([
         { id: 1, name: 'Sarah Miller', joined: 'JAN 2026', role: 'CAFETERIA OPS', email: 's.miller@cygnet.one', phone: '+91 98765 43210', initial: 'S', color: 'bg-blue-800' },
         { id: 2, name: 'David Chen', joined: 'FEB 2026', role: 'INFRASTRUCTURE', email: 'd.chen@cygnet.one', phone: '+91 91234 56789', initial: 'D', color: 'bg-slate-700' },
     ]);
 
-    const [employees] = useState([
+    const [employees, setEmployees] = useState([
         { id: 1, name: 'Michael Ross', joined: 'FEB 2026', manager: 'Sarah Miller', email: 'm.ross@cygnet.one', phone: '+91 99887 76655', initial: 'M', color: 'bg-orange-600' },
     ]);
 
     const handleAddUser = () => {
         // Logic to add user woud/could go here
-        alert('Onboarding Initiated');
+        toast.success('Onboarding Initiated Successfully');
         setShowForm(false);
+    };
+
+    const handleEdit = (user) => {
+        toast.info(`Editing User: ${user.name}`);
+    };
+
+    const handleDelete = (id, type) => {
+        if (window.confirm("Are you sure you want to delete this user?")) {
+            if (type === 'manager') {
+                setManagers(prev => prev.filter(m => m.id !== id));
+            } else {
+                setEmployees(prev => prev.filter(e => e.id !== id));
+            }
+            toast.error("User Removed from Directory");
+        }
     };
 
     const filteredData = activeTab === 'managers'
@@ -233,10 +247,14 @@ const UserDirectory = () => {
                                     {user.phone}
                                 </div>
                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
+                                    <button
+                                        onClick={() => handleEdit(user)}
+                                        className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
                                         <Edit2 className="w-3.5 h-3.5" />
                                     </button>
-                                    <button className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors">
+                                    <button
+                                        onClick={() => handleDelete(user.id, activeTab === 'managers' ? 'manager' : 'employee')}
+                                        className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors">
                                         <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                 </div>

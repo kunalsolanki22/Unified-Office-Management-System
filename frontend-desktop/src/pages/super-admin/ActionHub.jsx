@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Car, Coffee, Monitor, Users, HardDrive } from 'lucide-react';
 
 const ActionHub = () => {
+    const navigate = useNavigate();
     const actions = [
         { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
         { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
@@ -30,6 +32,7 @@ const ActionHub = () => {
                     <motion.div
                         key={idx}
                         whileHover={{ y: -5, boxShadow: '0 10px 30px rgba(0, 0, 0, 0.06)' }}
+                        onClick={() => navigate('/super-admin/dashboard')} // Placeholder navigation as specific routes might not exist yet
                         className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group min-h-[250px] justify-center transition-all duration-300"
                     >
                         <div className="absolute inset-0 bg-radial-gradient from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
