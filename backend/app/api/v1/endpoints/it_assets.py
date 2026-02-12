@@ -103,8 +103,31 @@ async def assign_asset(
             detail=error
         )
     
+    # Build response with all required fields from relationships
+    response_data = {
+        "id": assignment.id,
+        "asset_id": assignment.asset_id,
+        "asset_code": assignment.asset.asset_code,
+        "asset_name": assignment.asset.name,
+        "asset_type": assignment.asset.asset_type,
+        "user_code": assignment.user_code,
+        "user_name": f"{assignment.user.first_name} {assignment.user.last_name}",
+        "assigned_by_code": assignment.assigned_by_code,
+        "assigned_by_name": f"{assignment.assigned_by.first_name} {assignment.assigned_by.last_name}",
+        "assigned_at": assignment.assigned_at,
+        "returned_at": assignment.returned_at,
+        "returned_to_code": assignment.returned_to_code,
+        "returned_to_name": None,
+        "return_condition": assignment.return_condition,
+        "return_acknowledged": False,
+        "acknowledgement_date": assignment.acknowledged_at,
+        "is_active": assignment.is_active,
+        "notes": assignment.notes,
+        "created_at": assignment.created_at
+    }
+    
     return create_response(
-        data=ITAssetAssignmentResponse.model_validate(assignment),
+        data=response_data,
         message="Asset assigned successfully"
     )
 
@@ -130,8 +153,35 @@ async def return_asset(
             detail=error
         )
     
+    # Build response with all required fields from relationships
+    returned_to_name = None
+    if assignment.returned_to:
+        returned_to_name = f"{assignment.returned_to.first_name} {assignment.returned_to.last_name}"
+    
+    response_data = {
+        "id": assignment.id,
+        "asset_id": assignment.asset_id,
+        "asset_code": assignment.asset.asset_code,
+        "asset_name": assignment.asset.name,
+        "asset_type": assignment.asset.asset_type,
+        "user_code": assignment.user_code,
+        "user_name": f"{assignment.user.first_name} {assignment.user.last_name}",
+        "assigned_by_code": assignment.assigned_by_code,
+        "assigned_by_name": f"{assignment.assigned_by.first_name} {assignment.assigned_by.last_name}",
+        "assigned_at": assignment.assigned_at,
+        "returned_at": assignment.returned_at,
+        "returned_to_code": assignment.returned_to_code,
+        "returned_to_name": returned_to_name,
+        "return_condition": assignment.return_condition,
+        "return_acknowledged": assignment.acknowledged_at is not None,
+        "acknowledgement_date": assignment.acknowledged_at,
+        "is_active": assignment.is_active,
+        "notes": assignment.notes,
+        "created_at": assignment.created_at
+    }
+    
     return create_response(
-        data=ITAssetAssignmentResponse.model_validate(assignment),
+        data=response_data,
         message="Asset returned successfully"
     )
 

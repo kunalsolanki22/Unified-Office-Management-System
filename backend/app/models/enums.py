@@ -191,12 +191,12 @@ class ITRequestType(str, enum.Enum):
     """Types of IT requests.
     
     Note: Values must match the database enum exactly (case-sensitive).
-    The database enum 'itrequesttype' contains lowercase values.
+    The database enum 'itrequesttype' contains these lowercase values.
     """
-    NEW = "NEW"  # Original DB value from initial migration
+    NEW = "new"
     NEW_ASSET = "new_asset"
     REPAIR = "repair"
-    REPLACEMENT = "REPLACEMENT"  # Original DB value from initial migration
+    REPLACEMENT = "replacement"
     SOFTWARE_INSTALL = "software_install"
     ACCESS_REQUEST = "access_request"
     NETWORK_ISSUE = "network_issue"
@@ -224,15 +224,13 @@ class ITRequestPriority(str, enum.Enum):
 class ProjectStatus(str, enum.Enum):
     """Status of projects.
     
-    Note: Original DB values are uppercase (DRAFT, PENDING, APPROVED, etc.)
-    from initial migration. Later migration added pending_approval and on_hold
-    as lowercase. Using the values that actually exist in the database.
+    Note: All values are lowercase to match the database enum.
     """
-    DRAFT = "DRAFT"
-    PENDING_APPROVAL = "pending_approval"  # Added in later migration
-    APPROVED = "APPROVED"
-    IN_PROGRESS = "IN_PROGRESS"
-    COMPLETED = "COMPLETED"
-    ON_HOLD = "on_hold"  # Added in later migration
-    CANCELLED = "CANCELLED"
-    REJECTED = "REJECTED"  # Original uppercase value
+    DRAFT = "draft"
+    PENDING_APPROVAL = "pending_approval"
+    APPROVED = "approved"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    ON_HOLD = "on_hold"
+    CANCELLED = "cancelled"
+    REJECTED = "rejected"

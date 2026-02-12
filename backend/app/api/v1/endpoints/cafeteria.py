@@ -109,7 +109,7 @@ async def get_cafeteria_table(
             detail="Cafeteria table not found"
         )
     return create_response(
-        data=CafeteriaTableResponse.model_validate(table),
+        data=CafeteriaTableResponse.model_validate(table).model_dump(mode='json'),
         message="Cafeteria table retrieved successfully"
     )
 
@@ -127,7 +127,7 @@ async def update_cafeteria_table(
     if error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
     return create_response(
-        data=CafeteriaTableResponse.model_validate(table),
+        data=CafeteriaTableResponse.model_validate(table).model_dump(mode='json'),
         message="Cafeteria table updated successfully"
     )
 

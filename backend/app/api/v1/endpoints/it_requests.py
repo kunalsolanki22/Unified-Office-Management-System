@@ -203,7 +203,7 @@ async def get_it_request(
         )
     
     return create_response(
-        data=ITRequestResponse.model_validate(it_request),
+        data=build_it_request_response(it_request),
         message="IT request retrieved successfully"
     )
 
@@ -233,6 +233,6 @@ async def update_it_request(
         )
     
     return create_response(
-        data=ITRequestResponse.model_validate(it_request),
+        data=build_it_request_response(it_request),
         message="IT request updated successfully"
     )

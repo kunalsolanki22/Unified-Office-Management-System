@@ -182,7 +182,18 @@ class ITAssetService:
         asset.status = AssetStatus.ASSIGNED
         
         await self.db.commit()
-        await self.db.refresh(assignment)
+        
+        # Re-query with relationships loaded for response
+        result = await self.db.execute(
+            select(ITAssetAssignment)
+            .options(
+                selectinload(ITAssetAssignment.asset),
+                selectinload(ITAssetAssignment.user),
+                selectinload(ITAssetAssignment.assigned_by)
+            )
+            .where(ITAssetAssignment.id == assignment.id)
+        )
+        assignment = result.scalar_one()
         
         return assignment, None
     
@@ -214,7 +225,19 @@ class ITAssetService:
             asset.status = AssetStatus.AVAILABLE
         
         await self.db.commit()
-        await self.db.refresh(assignment)
+        
+        # Re-query with relationships loaded for response
+        result = await self.db.execute(
+            select(ITAssetAssignment)
+            .options(
+                selectinload(ITAssetAssignment.asset),
+                selectinload(ITAssetAssignment.user),
+                selectinload(ITAssetAssignment.assigned_by),
+                selectinload(ITAssetAssignment.returned_to)
+            )
+            .where(ITAssetAssignment.id == assignment.id)
+        )
+        assignment = result.scalar_one()
         
         return assignment, None
     

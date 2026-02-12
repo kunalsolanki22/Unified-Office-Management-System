@@ -37,9 +37,16 @@ class ITRequestService:
         self,
         request_id: UUID
     ) -> Optional[ITRequest]:
-        """Get IT request by ID."""
+        """Get IT request by ID with all relationships loaded."""
         result = await self.db.execute(
-            select(ITRequest).where(ITRequest.id == request_id)
+            select(ITRequest)
+            .where(ITRequest.id == request_id)
+            .options(
+                selectinload(ITRequest.user),
+                selectinload(ITRequest.asset),
+                selectinload(ITRequest.approved_by),
+                selectinload(ITRequest.assigned_to)
+            )
         )
         return result.scalar_one_or_none()
     
@@ -120,7 +127,9 @@ class ITRequestService:
             setattr(it_request, field, value)
         
         await self.db.commit()
-        await self.db.refresh(it_request)
+        
+        # Reload with relationships for response
+        it_request = await self._reload_with_relationships(request_id)
         
         return it_request, None
     
