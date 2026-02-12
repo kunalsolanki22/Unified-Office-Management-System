@@ -76,8 +76,8 @@ class _LeaveScreenState extends State<LeaveScreen> {
         children: [
           // Calendar
           CalendarDatePicker(
-            initialDate: _focusedDay,
-            firstDate: DateTime(2020),
+            initialDate: _focusedDay.isBefore(DateTime.now()) ? DateTime.now() : _focusedDay,
+            firstDate: DateTime.now(),
             lastDate: DateTime(2030),
             onDateChanged: (date) {
               setState(() {

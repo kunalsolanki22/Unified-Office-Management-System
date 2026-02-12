@@ -9,10 +9,124 @@ class ParkingScreen extends StatefulWidget {
 
 class _ParkingScreenState extends State<ParkingScreen> {
   bool _isLevel1 = true;
-
-  String? _selectedSlotId;
-  SlotType? _selectedSlotStatus;
   final ScrollController _scrollController = ScrollController();
+
+  // Parking state - map of slot ID to SlotType
+  late Map<String, SlotType> _level1Slots;
+  late Map<String, SlotType> _level2Slots;
+  
+  // User's currently assigned slot
+  String? _userParkedSlotId;
+  bool _userIsOnLevel1 = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeSlots();
+  }
+
+  void _initializeSlots() {
+    // Level 1 slots
+    _level1Slots = {
+      'A-01': SlotType.busy,
+      'A-02': SlotType.free,
+      'A-03': SlotType.free,
+      'A-04': SlotType.busy,
+      'A-05': SlotType.free,
+      'B-01': SlotType.free,
+      'B-02': SlotType.busy,
+      'B-03': SlotType.free,
+      'B-04': SlotType.free,
+      'B-05': SlotType.busy,
+    };
+    
+    // Level 2 slots
+    _level2Slots = {
+      'C-01': SlotType.free,
+      'C-02': SlotType.busy,
+      'C-03': SlotType.free,
+      'C-04': SlotType.free,
+      'C-05': SlotType.busy,
+      'D-01': SlotType.busy,
+      'D-02': SlotType.free,
+      'D-03': SlotType.free,
+      'D-04': SlotType.busy,
+      'D-05': SlotType.free,
+    };
+  }
+
+  // Get current level slots
+  Map<String, SlotType> get _currentSlots => _isLevel1 ? _level1Slots : _level2Slots;
+
+  // Get available slots sorted alphabetically
+  List<String> _getAvailableSlots() {
+    final slots = _currentSlots.entries
+        .where((e) => e.value == SlotType.free)
+        .map((e) => e.key)
+        .toList();
+    slots.sort();
+    return slots;
+  }
+
+  // Auto-assign parking slot
+  void _tapToPark() {
+    final availableSlots = _getAvailableSlots();
+    if (availableSlots.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('No available parking slots on this level'),
+            backgroundColor: Colors.orange,
+            duration: Duration(milliseconds: 1500),
+          ),
+        );
+      return;
+    }
+
+    // Assign first available slot alphabetically
+    final assignedSlot = availableSlots.first;
+    setState(() {
+      _currentSlots[assignedSlot] = SlotType.yours;
+      _userParkedSlotId = assignedSlot;
+      _userIsOnLevel1 = _isLevel1;
+    });
+
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Parking slot $assignedSlot assigned to you!'),
+          backgroundColor: const Color(0xFF1A237E),
+          duration: const Duration(milliseconds: 1500),
+        ),
+      );
+  }
+
+  // Exit parking
+  void _exitParking() {
+    if (_userParkedSlotId == null) return;
+
+    setState(() {
+      // Free up the slot
+      if (_userIsOnLevel1) {
+        _level1Slots[_userParkedSlotId!] = SlotType.free;
+      } else {
+        _level2Slots[_userParkedSlotId!] = SlotType.free;
+      }
+      _userParkedSlotId = null;
+    });
+
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('You have exited the parking'),
+          backgroundColor: Colors.green,
+          duration: Duration(milliseconds: 1500),
+        ),
+      );
+  }
 
   @override
   void dispose() {
@@ -46,14 +160,132 @@ class _ParkingScreenState extends State<ParkingScreen> {
                       _buildParkingGrid(),
                       const SizedBox(height: 16),
                       _buildLegend(),
+                      const SizedBox(height: 24),
+                      _buildParkButton(),
+                      // Show assigned slot info if parked
+                      if (_userParkedSlotId != null)
+                        _buildAssignedSlotInfo(),
                     ],
                   ),
                 ),
               ),
             ),
-            _buildConfirmationPanel(),
           ],
         ),
+      ),
+    );
+  }
+
+  // Build Tap to Park / EXIT button
+  Widget _buildParkButton() {
+    final bool isParked = _userParkedSlotId != null;
+    final bool isOnCurrentLevel = _userIsOnLevel1 == _isLevel1;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: isParked
+              ? (isOnCurrentLevel ? _exitParking : null)
+              : _tapToPark,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isParked ? Colors.red : const Color(0xFF1A237E),
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: Colors.grey[400],
+            disabledForegroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 0,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isParked ? Icons.exit_to_app : Icons.local_parking,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isParked 
+                    ? (isOnCurrentLevel ? 'EXIT PARKING' : 'PARKED ON ${_userIsOnLevel1 ? "LEVEL 01" : "LEVEL 02"}')
+                    : 'TAP TO PARK',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Show assigned slot info
+  Widget _buildAssignedSlotInfo() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A237E),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.amber,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                _userParkedSlotId!,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'YOUR ASSIGNED SLOT',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Slot $_userParkedSlotId on ${_userIsOnLevel1 ? "Level 01" : "Level 02"}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.directions,
+            color: Colors.white,
+            size: 32,
+          ),
+        ],
       ),
     );
   }
@@ -61,6 +293,18 @@ class _ParkingScreenState extends State<ParkingScreen> {
   // ... (AppBar, LevelToggle same)
 
   Widget _buildParkingGrid() {
+    // Get slot IDs for left and right columns based on level
+    List<String> leftSlots;
+    List<String> rightSlots;
+    
+    if (_isLevel1) {
+      leftSlots = ['A-01', 'A-02', 'A-03', 'A-04', 'A-05'];
+      rightSlots = ['B-01', 'B-02', 'B-03', 'B-04', 'B-05'];
+    } else {
+      leftSlots = ['C-01', 'C-02', 'C-03', 'C-04', 'C-05'];
+      rightSlots = ['D-01', 'D-02', 'D-03', 'D-04', 'D-05'];
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(24),
@@ -104,33 +348,25 @@ class _ParkingScreenState extends State<ParkingScreen> {
             children: [
               Expanded(
                 child: Column(
-                  children: [
-                    _buildTappableSlot(type: SlotType.busy, label: ''),
-                    const SizedBox(height: 16),
-                    _buildTappableSlot(type: SlotType.yours, label: 'A-02'),
-                    const SizedBox(height: 16),
-                    _buildTappableSlot(type: SlotType.free, label: 'A-03'),
-                    const SizedBox(height: 16),
-                    _buildTappableSlot(type: SlotType.busy, label: ''),
-                    const SizedBox(height: 16),
-                    _buildTappableSlot(type: SlotType.free, label: 'A-05'),
-                  ],
+                  children: leftSlots.map((slotId) {
+                    final type = _currentSlots[slotId] ?? SlotType.free;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildSlot(type: type, label: slotId),
+                    );
+                  }).toList(),
                 ),
               ),
               const SizedBox(width: 40), // Road width
               Expanded(
                 child: Column(
-                  children: [
-                    _buildTappableSlot(type: SlotType.free, label: 'B-01'),
-                    const SizedBox(height: 16),
-                    _buildTappableSlot(type: SlotType.busy, label: ''),
-                    const SizedBox(height: 16),
-                    _buildTappableSlot(type: SlotType.free, label: 'B-03'),
-                    const SizedBox(height: 16),
-                    _buildTappableSlot(type: SlotType.free, label: 'B-04'),
-                    const SizedBox(height: 16),
-                    _buildTappableSlot(type: SlotType.busy, label: ''),
-                  ],
+                  children: rightSlots.map((slotId) {
+                    final type = _currentSlots[slotId] ?? SlotType.free;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildSlot(type: type, label: slotId),
+                    );
+                  }).toList(),
                 ),
               ),
             ],
@@ -220,8 +456,6 @@ class _ParkingScreenState extends State<ParkingScreen> {
             child: GestureDetector(
               onTap: () => setState(() {
                 _isLevel1 = true;
-                _selectedSlotId = null; // Reset selection
-                _selectedSlotStatus = null;
               }),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -254,8 +488,6 @@ class _ParkingScreenState extends State<ParkingScreen> {
             child: GestureDetector(
               onTap: () => setState(() {
                 _isLevel1 = false;
-                _selectedSlotId = null; // Reset selection
-                _selectedSlotStatus = null;
               }),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -289,43 +521,40 @@ class _ParkingScreenState extends State<ParkingScreen> {
     );
   }
 
-
-
-  Widget _buildTappableSlot({required SlotType type, required String label}) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedSlotId = label;
-          _selectedSlotStatus = type;
-        });
-      },
-      child: _buildSlot(type: type, label: label),
-    );
-  }
-
   Widget _buildSlot({required SlotType type, required String label}) {
     Color bgColor;
-    Color textColor;
     Widget? content;
-    
-    // Highlight if selected
-    bool isSelected = _selectedSlotId == label && label.isNotEmpty;
 
     switch (type) {
       case SlotType.free:
         bgColor = Colors.white;
-        textColor = const Color(0xFF1A237E);
-        content = Center(child: Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.bold)));
+        content = Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF1A237E),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
         break;
       case SlotType.yours:
         bgColor = Colors.amber;
-        textColor = Colors.black;
-        content = Center(child: Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.bold)));
+        content = Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
         break;
       case SlotType.busy:
-        bgColor = const Color(0xFF90A4AE); // Steel Blue/Grey
-        textColor = Colors.transparent;
-        content = const Center(child: Icon(Icons.directions_car, color: Colors.white54));
+        bgColor = const Color(0xFF90A4AE);
+        content = const Center(
+          child: Icon(Icons.directions_car, color: Colors.white54),
+        );
         break;
     }
 
@@ -335,99 +564,8 @@ class _ParkingScreenState extends State<ParkingScreen> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(8),
-        border: isSelected ? Border.all(color: Colors.blue, width: 2) : null, // Add blue border if selected
       ),
       child: content,
-    );
-  }
-
-  Widget _buildConfirmationPanel() {
-    if (_selectedSlotStatus == null) return const SizedBox.shrink();
-
-    String title = 'CONFIRM SLOT';
-    String mainText = _selectedSlotId?.isEmpty == true ? 'Unknown' : _selectedSlotId!;
-    Color btnColor = Colors.amber;
-    String btnText = 'BOOK SPACE';
-    VoidCallback? onPressed = () {};
-
-    if (_selectedSlotStatus == SlotType.busy) {
-      title = 'STATUS';
-      mainText = 'Already Booked';
-      btnColor = Colors.grey;
-      btnText = 'UNAVAILABLE';
-      onPressed = null;
-    } else if (_selectedSlotStatus == SlotType.yours) {
-      title = 'STATUS';
-      mainText = 'Your Slot';
-      btnColor = Colors.green;
-      btnText = 'NAVIGATE';
-    } else if (_selectedSlotStatus == SlotType.free) {
-       // Check if user already has a slot "Yours"
-       // in a real app this would be a proper state check. 
-       // For this mock, we know A-02 is yours.
-       bool hasBookedSlot = true; // Hardcoded for this scenario based on UI
-       if (hasBookedSlot) {
-         btnColor = Colors.grey;
-         btnText = 'LIMIT REACHED';
-         onPressed = null;
-         // Maybe show toast or just disable
-       }
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A237E),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.orange,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-               Expanded(
-                child: Text(
-                  mainText,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              ElevatedButton(
-                onPressed: onPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: btnColor,
-                  disabledBackgroundColor: btnColor, // Ensure visibility when disabled
-                  foregroundColor: Colors.black,
-                  disabledForegroundColor: Colors.black, // Ensure text visibility when disabled
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-                child: Text(btnText, style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
