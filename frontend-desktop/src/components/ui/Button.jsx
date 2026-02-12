@@ -40,4 +40,4 @@ const Button = forwardRef(({ className, variant = 'primary', size = 'md', isLoad
 
 Button.displayName = 'Button';
 
-export { Button };
+export default Button;

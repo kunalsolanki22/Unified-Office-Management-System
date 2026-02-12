@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Utensils, ShoppingBag, LogOut } from 'lucide-react';
+import { LayoutDashboard, Utensils, Monitor, LogOut, Users, CalendarCheck, CalendarDays, ClipboardList, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
@@ -10,8 +10,16 @@ const Sidebar = () => {
 
     const navItems = [
         { name: 'Dashboard', path: '/cafeteria-manager/dashboard', icon: LayoutDashboard },
-        { name: 'Menu Management', path: '/cafeteria-manager/menu', icon: Utensils },
-        { name: 'Order History', path: '/cafeteria-manager/orders', icon: ShoppingBag },
+        { name: 'User Directory', path: '/cafeteria-manager/user-directory', icon: Users },
+
+        { name: 'Holidays', path: '/cafeteria-manager/holidays', icon: CalendarDays },
+        { name: 'Food Management', path: '/cafeteria-manager/food-management', icon: Utensils },
+        { name: 'Desk Management', path: '/cafeteria-manager/desk-management', icon: Monitor },
+    ];
+
+    const accessTools = [
+        { name: 'My Attendance', path: '/cafeteria-manager/my-attendance', icon: ClipboardList },
+        { name: 'Services', path: '/cafeteria-manager/services', icon: Zap },
     ];
 
     return (
@@ -31,7 +39,7 @@ const Sidebar = () => {
             {/* Core Pillars Navigation */}
             <div className="mb-8">
                 <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-bold pl-1">
-                    Cafeteria Ops
+                    Core Pillars
                 </div>
                 {navItems.map((item) => (
                     <Link
@@ -49,9 +57,33 @@ const Sidebar = () => {
                 ))}
             </div>
 
+            {/* Access Tools Navigation */}
+            <div className="mb-8">
+                <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-bold pl-1">
+                    Access Tools
+                </div>
+                {accessTools.map((item) => (
+                    <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 mb-2
+                             ${isActive(item.path)
+                                ? 'bg-[#1a367c] text-white shadow-lg shadow-[#1a367c26]'
+                                : 'text-[#8892b0] hover:bg-[#1a367c] hover:text-white hover:shadow-lg hover:shadow-[#1a367c26]'
+                            }`}
+                    >
+                        <item.icon className="w-5 h-5" />
+                        {item.name}
+                    </Link>
+                ))}
+            </div>
+
             {/* Footer / Exit Portal */}
             <div className="mt-auto">
-                <button onClick={logout} className="flex items-center gap-2.5 text-[#8892b0] text-[0.8rem] font-medium cursor-pointer hover:text-[#1a367c] transition-colors pl-2 w-full text-left">
+                <button
+                    onClick={logout}
+                    className="flex items-center gap-2.5 text-[#8892b0] text-[0.8rem] font-medium cursor-pointer hover:text-[#1a367c] transition-colors pl-2 w-full text-left"
+                >
                     <LogOut className="w-4 h-4" />
                     EXIT PORTAL
                 </button>

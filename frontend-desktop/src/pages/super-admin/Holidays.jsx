@@ -3,8 +3,13 @@ import { motion } from 'framer-motion';
 import { CalendarDays, ChevronLeft, ChevronRight, Bookmark, Search } from 'lucide-react';
 
 import Calendar from '../../components/ui/Calendar';
+import { useAuth } from '../../context/AuthContext';
+import { ROLES } from '../../constants/roles';
 
 const Holidays = () => {
+    const { user } = useAuth();
+    const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
+
     // const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
     // const dates = Array.from({ length: 28 }, (_, i) => i + 1); // Feb 2026 has 28 days
 
@@ -38,37 +43,39 @@ const Holidays = () => {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
+            <div className={`grid grid-cols-1 gap-8 ${isSuperAdmin ? 'lg:grid-cols-[2fr_1fr]' : ''}`}>
                 {/* Calendar Card */}
                 <Calendar events={holidays} />
 
-                {/* Proclaim Form */}
-                <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col h-full">
-                    <h3 className="text-lg font-bold text-[#1a367c] mb-8">PROCLAIM HOLIDAY</h3>
+                {/* Proclaim Form - Only for Super Admin */}
+                {isSuperAdmin && (
+                    <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col h-full">
+                        <h3 className="text-lg font-bold text-[#1a367c] mb-8">PROCLAIM HOLIDAY</h3>
 
-                    <div className="space-y-6 flex-1">
-                        <div className="space-y-2">
-                            <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider block">EVENT NAME</label>
-                            <input
-                                type="text"
-                                placeholder="e.g. Maha Shivratri"
-                                className="w-full bg-[#f8f9fa] p-4 rounded-xl text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium placeholder:text-[#999]"
-                            />
+                        <div className="space-y-6 flex-1">
+                            <div className="space-y-2">
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider block">EVENT NAME</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Maha Shivratri"
+                                    className="w-full bg-[#f8f9fa] p-4 rounded-xl text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium placeholder:text-[#999]"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider block">EXECUTION DATE</label>
+                                <input
+                                    type="text"
+                                    placeholder="dd / mm / yyyy"
+                                    className="w-full bg-[#f8f9fa] p-4 rounded-xl text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium placeholder:text-[#999]"
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider block">EXECUTION DATE</label>
-                            <input
-                                type="text"
-                                placeholder="dd / mm / yyyy"
-                                className="w-full bg-[#f8f9fa] p-4 rounded-xl text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium placeholder:text-[#999]"
-                            />
-                        </div>
+
+                        <button className="w-full mt-auto bg-[#1a367c] text-white py-4 rounded-full text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all shadow-lg shadow-blue-900/10 flex items-center justify-center gap-2">
+                            + COMMIT TO REGISTRY
+                        </button>
                     </div>
-
-                    <button className="w-full mt-auto bg-[#1a367c] text-white py-4 rounded-full text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all shadow-lg shadow-blue-900/10 flex items-center justify-center gap-2">
-                        + COMMIT TO REGISTRY
-                    </button>
-                </div>
+                )}
             </div>
 
             {/* List Section */}

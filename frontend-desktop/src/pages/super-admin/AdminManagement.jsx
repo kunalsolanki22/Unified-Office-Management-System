@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Edit2, Mail, Search } from 'lucide-react';
 
+import { useAuth } from '../../context/AuthContext';
+import { ROLES } from '../../constants/roles';
+
 const AdminManagement = () => {
+    const { user } = useAuth();
+    // Allow modification only for Super Admin and Admin roles
+    const canModify = [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role);
+
     const [showForm, setShowForm] = useState(false);
     const [admins, setAdmins] = useState([
         { id: 1, name: 'Sarah Miller', date: 'JAN 12, 2026', role: 'REGIONAL ADMIN', email: 's.miller@cygnet.one', avatarColor: 'bg-blue-800', initial: 'S' },
@@ -69,17 +76,19 @@ const AdminManagement = () => {
                         />
                     </div>
 
-                    <button
-                        onClick={() => setShowForm(!showForm)}
-                        className="bg-[#1a367c] text-white px-6 py-2.5 rounded-full text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2 h-full"
-                    >
-                        <Plus className="w-4 h-4" /> ADD ADMIN
-                    </button>
+                    {canModify && (
+                        <button
+                            onClick={() => setShowForm(!showForm)}
+                            className="bg-[#1a367c] text-white px-6 py-2.5 rounded-full text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2 h-full"
+                        >
+                            <Plus className="w-4 h-4" /> ADD ADMIN
+                        </button>
+                    )}
                 </div>
             </div>
 
             <AnimatePresence>
-                {showForm && (
+                {showForm && canModify && (
                     <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
@@ -147,12 +156,12 @@ const AdminManagement = () => {
             </AnimatePresence>
 
             <div className="bg-white rounded-[20px] p-6 shadow-sm border border-slate-100">
-                <div className="grid grid-cols-[0.5fr_2fr_2fr_2fr_0.5fr] pb-4 border-b border-slate-100 mb-4 px-4 text-[0.7rem] font-bold text-[#8892b0] tracking-widest">
+                <div className={`grid ${canModify ? 'grid-cols-[0.5fr_2fr_2fr_2fr_0.5fr]' : 'grid-cols-[0.5fr_2fr_2fr_2fr]'} pb-4 border-b border-slate-100 mb-4 px-4 text-[0.7rem] font-bold text-[#8892b0] tracking-widest`}>
                     <div></div>
                     <div>COMMAND NODE</div>
                     <div>AUTH PROTOCOL</div>
                     <div>ACCESS LINK</div>
-                    <div></div>
+                    {canModify && <div></div>}
                 </div>
 
                 <div className="space-y-1">
@@ -162,7 +171,7 @@ const AdminManagement = () => {
                                 key={admin.id}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                className="grid grid-cols-[0.5fr_2fr_2fr_2fr_0.5fr] items-center p-4 rounded-xl hover:bg-[#fafbfb] transition-colors group"
+                                className={`grid ${canModify ? 'grid-cols-[0.5fr_2fr_2fr_2fr_0.5fr]' : 'grid-cols-[0.5fr_2fr_2fr_2fr]'} items-center p-4 rounded-xl hover:bg-[#fafbfb] transition-colors group`}
                             >
                                 <div>
                                     <div className={`w-9 h-9 ${admin.avatarColor} text-white rounded-lg flex items-center justify-center font-bold shadow-sm`}>
@@ -182,17 +191,19 @@ const AdminManagement = () => {
                                     <Mail className="w-3.5 h-3.5 text-[#b0b0b0]" />
                                     {admin.email}
                                 </div>
-                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(admin.id)}
-                                        className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors"
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
+                                {canModify && (
+                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
+                                            <Edit2 className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(admin.id)}
+                                            className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                )}
                             </motion.div>
                         ))
                     ) : (

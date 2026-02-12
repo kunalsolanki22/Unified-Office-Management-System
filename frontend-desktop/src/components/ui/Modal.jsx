@@ -40,4 +40,4 @@ const Modal = ({ isOpen, onClose, title, children, className }) => {
     );
 };
 
-export { Modal };
+export default Modal;
