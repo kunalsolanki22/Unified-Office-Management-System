@@ -10,11 +10,14 @@ import Holidays from '../../pages/admin/Holidays';
 import ActionHub from '../../pages/admin/ActionHub';
 import MyAttendance from '../../pages/admin/MyAttendance';
 
+import ProjectApprovals from '../../pages/admin/ProjectApprovals';
+
 const AdminRoutes = () => {
     return (
         <Routes>
             <Route element={<AdminLayout />}>
                 <Route path="dashboard" element={<Dashboard />} />
+                <Route path="project-approvals" element={<ProjectApprovals />} />
                 <Route path="user-directory" element={<UserDirectory />} />
                 <Route path="attendance" element={<Attendance />} />
                 <Route path="holidays" element={<Holidays />} />

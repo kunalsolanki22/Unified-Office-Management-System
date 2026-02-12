@@ -10,6 +10,7 @@ const Sidebar = () => {
 
     const corePillars = [
         { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { name: 'Project Approvals', path: '/admin/project-approvals', icon: CheckSquare },
         { name: 'User Directory', path: '/admin/user-directory', icon: Users },
         { name: 'Attendance', path: '/admin/attendance', icon: CalendarCheck },
         { name: 'Holidays', path: '/admin/holidays', icon: CalendarDays },
