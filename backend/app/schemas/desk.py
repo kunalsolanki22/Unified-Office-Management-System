@@ -1,0 +1,307 @@
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List
+from datetime import datetime, date, time
+from uuid import UUID
+
+from ..models.enums import BookingStatus, DeskStatus
+
+
+# ==================== Desk Schemas ====================
+
+class DeskBase(BaseModel):
+    """Base desk schema - simplified without location fields."""
+    desk_label: str = Field(..., min_length=1, max_length=50)
+    has_monitor: bool = True
+    has_docking_station: bool = False
+    notes: Optional[str] = Field(None, max_length=500)
+
+
+class DeskCreate(DeskBase):
+    """
+    Desk creation schema - used by DESK_CONFERENCE Manager.
+    desk_code is auto-generated in the database.
+    """
+    pass
+
+
+class DeskUpdate(BaseModel):
+    """Desk update schema."""
+    desk_label: Optional[str] = Field(None, min_length=1, max_length=50)
+    has_monitor: Optional[bool] = None
+    has_docking_station: Optional[bool] = None
+    status: Optional[DeskStatus] = None
+    is_active: Optional[bool] = None
+    notes: Optional[str] = Field(None, max_length=500)
+
+
+class DeskResponse(BaseModel):
+    """Desk response schema with auto-generated desk_code."""
+    id: UUID
+    desk_code: str  # Auto-generated: DSK-XXXX
+    desk_label: str
+    status: DeskStatus
+    has_monitor: bool
+    has_docking_station: bool
+    is_active: bool
+    notes: Optional[str] = None
+    created_by_code: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class DeskListResponse(BaseModel):
+    """Desk list response schema."""
+    desks: List[DeskResponse]
+    total: int
+    available: int
+    booked: int
+
+
+# ==================== Desk Booking Schemas ====================
+
+class DeskBookingBase(BaseModel):
+    """
+    Base desk booking schema.
+    Available to: EMPLOYEE, TEAM_LEAD, MANAGER roles
+    """
+    start_date: date
+    end_date: date
+    notes: Optional[str] = Field(None, max_length=500)
+    
+    @field_validator('end_date')
+    @classmethod
+    def validate_date_range(cls, v, info):
+        start = info.data.get('start_date')
+        if start and v < start:
+            raise ValueError('End date must be on or after start date')
+        return v
+
+
+class DeskBookingCreate(DeskBookingBase):
+    """
+    Desk booking creation schema.
+    Employees can book any active desk.
+    """
+    desk_id: UUID
+    
+    @field_validator('start_date')
+    @classmethod
+    def validate_start_date(cls, v):
+        if v < date.today():
+            raise ValueError('Cannot book for past dates')
+        return v
+
+
+class DeskBookingUpdate(BaseModel):
+    """Desk booking update schema."""
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    notes: Optional[str] = None
+    
+    @field_validator('end_date')
+    @classmethod
+    def validate_date_range(cls, v, info):
+        start = info.data.get('start_date')
+        if start and v and v < start:
+            raise ValueError('End date must be on or after start date')
+        return v
+
+
+class DeskCheckInOut(BaseModel):
+    """Desk check-in/check-out schema."""
+    booking_id: UUID
+    action: str = Field(..., pattern="^(check_in|check_out)$")
+
+
+class DeskBookingResponse(BaseModel):
+    """Desk booking response schema."""
+    id: UUID
+    desk_id: UUID
+    desk_code: str
+    desk_label: str
+    user_code: str
+    user_name: Optional[str] = None
+    start_date: date
+    end_date: date
+    status: BookingStatus
+    checked_in_at: Optional[datetime] = None
+    checked_out_at: Optional[datetime] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class DeskBookingListResponse(BaseModel):
+    """Desk booking list response schema."""
+    bookings: List[DeskBookingResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class MyDeskBookingResponse(BaseModel):
+    """User's desk bookings response."""
+    today_booking: Optional[DeskBookingResponse] = None
+    upcoming_bookings: List[DeskBookingResponse] = []
+
+
+# ==================== Conference Room Schemas ====================
+
+class ConferenceRoomBase(BaseModel):
+    """Base conference room schema - simplified with only essential fields."""
+    room_label: str = Field(..., min_length=1, max_length=100)
+    capacity: int = Field(..., ge=1, le=100)
+    has_projector: bool = False
+    has_whiteboard: bool = True
+    has_video_conferencing: bool = False
+    notes: Optional[str] = Field(None, max_length=500)
+
+
+class ConferenceRoomCreate(ConferenceRoomBase):
+    """
+    Conference room creation schema - used by DESK_CONFERENCE Manager.
+    room_code is auto-generated in the database.
+    """
+    pass
+
+
+class ConferenceRoomUpdate(BaseModel):
+    """Conference room update schema."""
+    room_label: Optional[str] = Field(None, min_length=1, max_length=100)
+    capacity: Optional[int] = Field(None, ge=1, le=100)
+    has_projector: Optional[bool] = None
+    has_whiteboard: Optional[bool] = None
+    has_video_conferencing: Optional[bool] = None
+    status: Optional[DeskStatus] = None
+    is_active: Optional[bool] = None
+    notes: Optional[str] = Field(None, max_length=500)
+
+
+class ConferenceRoomResponse(BaseModel):
+    """Conference room response schema with auto-generated room_code."""
+    id: UUID
+    room_code: str  # Auto-generated: CNF-XXXX
+    room_label: str
+    capacity: int
+    has_projector: bool
+    has_whiteboard: bool
+    has_video_conferencing: bool
+    status: DeskStatus
+    is_active: bool
+    notes: Optional[str] = None
+    created_by_code: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class ConferenceRoomListResponse(BaseModel):
+    """Conference room list response schema."""
+    rooms: List[ConferenceRoomResponse]
+    total: int
+
+
+# ==================== Conference Room Booking Schemas ====================
+
+class ConferenceRoomBookingBase(BaseModel):
+    """Base conference room booking schema."""
+    booking_date: date
+    start_time: time
+    end_time: time
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=1000)
+    attendees_count: int = Field(..., ge=1)
+    notes: Optional[str] = Field(None, max_length=500)
+    
+    @field_validator('end_time')
+    @classmethod
+    def validate_time_range(cls, v, info):
+        start = info.data.get('start_time')
+        if start and v <= start:
+            raise ValueError('End time must be after start time')
+        return v
+
+
+class ConferenceRoomBookingCreate(ConferenceRoomBookingBase):
+    """Conference room booking creation schema."""
+    room_id: UUID
+    
+    @field_validator('booking_date')
+    @classmethod
+    def validate_booking_date(cls, v):
+        if v < date.today():
+            raise ValueError('Cannot book for past dates')
+        return v
+
+
+class ConferenceRoomBookingUpdate(BaseModel):
+    """Conference room booking update schema."""
+    start_time: Optional[time] = None
+    end_time: Optional[time] = None
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=1000)
+    attendees_count: Optional[int] = Field(None, ge=1)
+    notes: Optional[str] = None
+
+
+class ConferenceRoomBookingApproval(BaseModel):
+    """Conference room booking approval schema. Manager only."""
+    notes: Optional[str] = Field(None, max_length=500, description="Optional approval notes")
+
+
+class ConferenceRoomBookingRejection(BaseModel):
+    """Conference room booking rejection schema. Manager only."""
+    reason: str = Field(..., min_length=1, max_length=500, description="Reason for rejection")
+
+
+class ConferenceRoomBookingResponse(BaseModel):
+    """Conference room booking response schema."""
+    id: UUID
+    room_id: UUID
+    room_code: str
+    room_label: str
+    capacity: int
+    user_code: str
+    user_name: Optional[str] = None
+    booking_date: date
+    start_time: time
+    end_time: time
+    title: str
+    description: Optional[str] = None
+    attendees_count: int
+    status: BookingStatus
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class ConferenceRoomBookingListResponse(BaseModel):
+    """Conference room booking list response schema."""
+    bookings: List[ConferenceRoomBookingResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+# ==================== Desk Statistics ====================
+
+class DeskStatistics(BaseModel):
+    """Desk area statistics for dashboard."""
+    total_desks: int
+    available_desks: int
+    booked_desks: int
+    maintenance_desks: int
+    occupancy_percentage: float
+    total_conference_rooms: int
+    conference_rooms_in_use: int
