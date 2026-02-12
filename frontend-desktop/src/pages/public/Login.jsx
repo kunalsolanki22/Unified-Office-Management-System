@@ -43,12 +43,12 @@ function Login() {
         }
 
         // AUTH LOGIC Integration
-        let role = ROLES.MANAGER; // Default
+        let role = ROLES.CAFETERIA_MANAGER; // Default
         if (email.includes('super')) role = ROLES.SUPER_ADMIN;
         else if (email.includes('admin')) role = ROLES.ADMIN;
         else if (email.includes('team')) role = ROLES.TEAM_LEAD;
         else if (email.includes('attendance')) role = ROLES.ATTENDANCE_MANAGER;
-        else if (email.includes('cafeteria')) role = ROLES.CAFETERIA_MANAGER;
+        else if (email.includes('manager') || email.includes('cafeteria')) role = ROLES.CAFETERIA_MANAGER;
 
         login({ email, role });
 
@@ -72,6 +72,7 @@ function Login() {
                 navigate('/attendance-manager/dashboard');
                 break;
             case ROLES.CAFETERIA_MANAGER:
+            case ROLES.MANAGER: // Fallback for legacy
                 navigate('/cafeteria-manager/dashboard');
                 break;
             default:

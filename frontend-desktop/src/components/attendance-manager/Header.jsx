@@ -1,4 +1,3 @@
-import { Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
@@ -16,10 +15,7 @@ const Header = () => {
             <div className="flex items-center gap-6">
                 {/* User Actions */}
                 <div className="flex items-center gap-6 ml-2">
-                    <div className="relative cursor-pointer group">
-                        <Bell className="w-5 h-5 text-[#0a192f] transition-transform group-hover:scale-110" />
-                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#f9b012] rounded-full border-2 border-white"></div>
-                    </div>
+
 
                     <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
                         <div className="text-right hidden sm:block">

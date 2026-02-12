@@ -9,7 +9,7 @@ import AuthLayout from '../layouts/AuthLayout';
 // Module Routes
 import SuperAdminRoutes from './modules/SuperAdminRoutes';
 import AdminRoutes from './modules/AdminRoutes';
-import ManagerRoutes from './modules/ManagerRoutes';
+
 import TeamLeadRoutes from './modules/TeamLeadRoutes';
 import AttendanceManagerRoutes from './modules/AttendanceManagerRoutes'; // Attendance Manager Routes
 import CafeteriaManagerRoutes from './modules/CafeteriaManagerRoutes';
@@ -40,10 +40,7 @@ const AppRoutes = () => {
                     <Route path="/admin/*" element={<AdminRoutes />} />
                 </Route>
 
-                {/* Manager Module */}
-                <Route element={<ProtectedRoutes allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
-                    <Route path="/manager/*" element={<ManagerRoutes />} />
-                </Route>
+
 
                 {/* Team Lead Module */}
                 <Route element={<ProtectedRoutes allowedRoles={[ROLES.TEAM_LEAD, ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
@@ -56,7 +53,7 @@ const AppRoutes = () => {
                 </Route>
 
                 {/* Cafeteria Manager Module */}
-                <Route element={<ProtectedRoutes allowedRoles={[ROLES.CAFETERIA_MANAGER, ROLES.SUPER_ADMIN]} />}>
+                <Route element={<ProtectedRoutes allowedRoles={[ROLES.CAFETERIA_MANAGER, ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
                     <Route path="/cafeteria-manager/*" element={<CafeteriaManagerRoutes />} />
                 </Route>
 

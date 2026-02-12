@@ -1,5 +1,3 @@
-import { Bell } from 'lucide-react';
-
 const Header = () => {
     return (
         <header className="h-[90px] flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-40 border-b border-transparent pt-2.5 mb-8">
@@ -13,10 +11,7 @@ const Header = () => {
             <div className="flex items-center gap-6">
                 {/* User Actions */}
                 <div className="flex items-center gap-6 ml-2">
-                    <div className="relative cursor-pointer group">
-                        <Bell className="w-5 h-5 text-[#0a192f] transition-transform group-hover:scale-110" />
-                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#f9b012] rounded-full border-2 border-white"></div>
-                    </div>
+
 
                     <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
                         <div className="text-right hidden sm:block">

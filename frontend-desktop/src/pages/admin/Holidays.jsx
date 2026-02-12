@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarDays, ChevronLeft, ChevronRight, Bookmark, Search } from 'lucide-react';
 
+import Calendar from '../../components/ui/Calendar';
+
 const Holidays = () => {
-    const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-    const dates = Array.from({ length: 28 }, (_, i) => i + 1);
+    // const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    // const dates = Array.from({ length: 28 }, (_, i) => i + 1);
 
     const [holidays] = useState([
         { date: 'Jan 26, 2026', name: 'Republic Day', day: 'Monday', category: 'NATIONAL', status: 'COMPLETED', color: 'text-green-500' },
@@ -38,45 +40,7 @@ const Holidays = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
                 {/* Calendar Card */}
-                <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100">
-                    <div className="flex justify-between items-center mb-8">
-                        <div className="flex items-center gap-3 text-lg font-bold text-[#1a367c]">
-                            <CalendarDays className="w-5 h-5 text-[#f9b012]" />
-                            February 2026
-                        </div>
-                        <div className="flex gap-2">
-                            <button className="w-8 h-8 rounded-lg bg-[#f8f9fa] flex items-center justify-center hover:bg-slate-100 transition-colors text-[#333]">
-                                <ChevronLeft className="w-4 h-4" />
-                            </button>
-                            <button className="w-8 h-8 rounded-lg bg-[#f8f9fa] flex items-center justify-center hover:bg-slate-100 transition-colors text-[#333]">
-                                <ChevronRight className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-4 mb-4">
-                        {days.map(day => (
-                            <div key={day} className="text-center text-[0.7rem] font-bold text-[#8892b0] tracking-wider">{day}</div>
-                        ))}
-                    </div>
-                    <div className="grid grid-cols-7 gap-4">
-                        {dates.map(date => {
-                            const isSelected = date === 26;
-                            return (
-                                <div
-                                    key={date}
-                                    className={`h-12 rounded-xl flex items-center justify-center text-sm font-bold cursor-pointer transition-all duration-300
-                                        ${isSelected
-                                            ? 'bg-[#f9b012] text-white shadow-lg shadow-orange-500/30 scale-110'
-                                            : 'text-[#1a367c] hover:bg-[#f8f9fa]'
-                                        }`}
-                                >
-                                    {date}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+                <Calendar events={holidays} />
 
                 {/* Info Card or Empty space filler based on needs - keeping it to match layout structure */}
                 <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col justify-center items-center text-center">

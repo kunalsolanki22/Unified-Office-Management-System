@@ -9,13 +9,13 @@ export const AuthProvider = ({ children }) => {
     const login = (userData) => {
         // Simulate role assignment based on email for testing
         // In a real app, this would come from the backend API response
-        let role = ROLES.MANAGER;
+        let role = ROLES.CAFETERIA_MANAGER;
 
         if (userData.email.includes('admin')) role = ROLES.ADMIN;
         if (userData.email.includes('super')) role = ROLES.SUPER_ADMIN;
         if (userData.email.includes('team')) role = ROLES.TEAM_LEAD;
         if (userData.email.includes('attendance')) role = ROLES.ATTENDANCE_MANAGER;
-        if (userData.email.includes('cafeteria')) role = ROLES.CAFETERIA_MANAGER;
+        else if (userData.email.includes('manager') || userData.email.includes('cafeteria')) role = ROLES.CAFETERIA_MANAGER;
 
         setUser({ ...userData, role });
     };
