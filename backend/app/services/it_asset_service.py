@@ -296,7 +296,8 @@ class ITAssetService:
         ).options(
             selectinload(ITAssetAssignment.asset),
             selectinload(ITAssetAssignment.user),
-            selectinload(ITAssetAssignment.assigned_by)
+            selectinload(ITAssetAssignment.assigned_by),
+            selectinload(ITAssetAssignment.returned_to)
         )
         
         if active_only:

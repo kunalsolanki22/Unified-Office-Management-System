@@ -870,4 +870,56 @@ POST /leave/requests
 
 ---
 
-*Last Updated: February 11, 2026*
+## 📝 Changelog
+
+### February 12, 2026 - Bug Fixes
+
+#### Fixed: GET/PUT `/cafeteria/tables/{table_id}` → 500 Error
+- **Issue**: Response validation error - `data` expected `dict` but received `CafeteriaTableResponse` object
+- **Fix**: Changed to use `.model_dump(mode='json')` to convert Pydantic model to dictionary
+
+#### Fixed: POST `/it-assets/{id}/assign` → 500 Error
+- **Issue**: Missing fields in `ITAssetAssignmentResponse` (asset_code, asset_name, user_name, assigned_by_name)
+- **Fix**: Added `selectinload` for relationships and built manual response dict with all required fields
+
+#### Fixed: POST `/it-requests` → 500 for types: software_install, network_issue, access_request
+- **Issue**: Python enum values (UPPERCASE) didn't match PostgreSQL enum values (lowercase)
+- **Fix**: Changed `ITRequestType` enum values to lowercase to match DB
+
+#### Fixed: GET/PUT `/it-requests/{id}` → 500 Error
+- **Issue**: `get_request_by_id()` didn't load relationships, causing async lazy-load failure (MissingGreenlet error)
+- **Fix**: Added `selectinload` for user, asset, approved_by, assigned_to relationships in `get_request_by_id()` and `update_request()`
+
+#### Fixed: POST `/projects/{id}/submit` → 500 Error
+- **Issue**: `ProjectStatus` enum values were UPPERCASE but DB expects lowercase
+- **Fix**: Changed all `ProjectStatus` enum values to lowercase (draft, approved, in_progress, etc.)
+
+### Enum Values Reference (Must Match Database)
+
+#### ITRequestType
+```python
+NEW = "new"
+NEW_ASSET = "new_asset"
+REPAIR = "repair"
+REPLACEMENT = "replacement"
+SOFTWARE_INSTALL = "software_install"
+ACCESS_REQUEST = "access_request"
+NETWORK_ISSUE = "network_issue"
+OTHER = "other"
+```
+
+#### ProjectStatus
+```python
+DRAFT = "draft"
+PENDING_APPROVAL = "pending_approval"
+APPROVED = "approved"
+IN_PROGRESS = "in_progress"
+COMPLETED = "completed"
+ON_HOLD = "on_hold"
+CANCELLED = "cancelled"
+REJECTED = "rejected"
+```
+
+---
+
+*Last Updated: February 12, 2026*
