@@ -1,34 +1,34 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Utensils, Monitor, LogOut, Users, CalendarCheck, CalendarDays, ClipboardList, Zap } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarCheck, CalendarDays, Zap, LogOut, Utensils, Armchair, ClipboardList } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import logo from '../../assets/cygnet-logo.png';
 
 const Sidebar = () => {
     const { logout } = useAuth();
     const location = useLocation();
 
-    const isActive = (path) => location.pathname.includes(path);
+    // Helper to determine if a route is active
+    const isActive = (path) => location.pathname === path;
 
     const navItems = [
         { name: 'Dashboard', path: '/cafeteria-manager/dashboard', icon: LayoutDashboard },
-        { name: 'User Directory', path: '/cafeteria-manager/user-directory', icon: Users },
-
-        { name: 'Holidays', path: '/cafeteria-manager/holidays', icon: CalendarDays },
         { name: 'Food Management', path: '/cafeteria-manager/food-management', icon: Utensils },
-        { name: 'Desk Management', path: '/cafeteria-manager/desk-management', icon: Monitor },
+        { name: 'User Directory', path: '/cafeteria-manager/user-directory', icon: Users },
+        { name: 'Attendance', path: '/cafeteria-manager/attendance', icon: CalendarCheck },
+        { name: 'Holidays', path: '/cafeteria-manager/holidays', icon: CalendarDays },
     ];
 
     const accessTools = [
-        { name: 'My Attendance', path: '/cafeteria-manager/my-attendance', icon: ClipboardList },
+        { name: 'Desk Management', path: '/cafeteria-manager/desk-management', icon: Armchair },
         { name: 'Services', path: '/cafeteria-manager/services', icon: Zap },
+        { name: 'My Attendance', path: '/cafeteria-manager/my-attendance', icon: ClipboardList },
     ];
 
     return (
         <aside className="w-[260px] bg-white text-[#1a367c] flex flex-col p-8 border-r border-[#e0e0e0] flex-shrink-0 h-full z-50">
             {/* Logo Section */}
             <div className="flex items-center gap-3 mb-12">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#20323c] to-[#2c4a96] rounded-full flex items-center justify-center text-white font-bold text-xl">
-                    C
-                </div>
+                <img src={logo} alt="Cygnet Logo" className="w-10 h-10 object-contain" />
                 <div className="flex flex-col">
                     <h2 className="text-lg font-bold text-[#1a367c] leading-tight tracking-tight">
                         CYGNET<span className="text-[#f9b012]">.ONE</span>

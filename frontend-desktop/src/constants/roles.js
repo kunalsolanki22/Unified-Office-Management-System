@@ -4,5 +4,6 @@ export const ROLES = {
     MANAGER: 'Manager', // Legacy map to CafeteriaManager
     TEAM_LEAD: 'TeamLead',
     ATTENDANCE_MANAGER: 'AttendanceManager',
-    CAFETERIA_MANAGER: 'CafeteriaManager'
+    CAFETERIA_MANAGER: 'CafeteriaManager',
+    REPORTING_MANAGER: 'ReportingManager'
 };

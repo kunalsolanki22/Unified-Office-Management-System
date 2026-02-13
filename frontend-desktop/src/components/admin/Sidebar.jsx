@@ -12,7 +12,8 @@ const Sidebar = () => {
         { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
         { name: 'Project Approvals', path: '/admin/project-approvals', icon: CheckSquare },
         { name: 'User Directory', path: '/admin/user-directory', icon: Users },
-        { name: 'Attendance', path: '/admin/attendance', icon: CalendarCheck },
+        { name: 'Attendance', path: '/admin/attendance-validation', icon: CalendarCheck },
+        { name: 'Approvals', path: '/admin/approvals-hub', icon: CheckSquare },
         { name: 'Holidays', path: '/admin/holidays', icon: CalendarDays },
     ];
 

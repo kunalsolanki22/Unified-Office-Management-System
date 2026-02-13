@@ -52,7 +52,7 @@ const Dashboard = () => {
                     </div>
                     <Button
                         onClick={() => navigate('/cafeteria-manager/food-management')}
-                        className="w-full justify-between group"
+                        className="w-full justify-between group bg-[#1a367c] hover:bg-[#2c4a96] border-transparent"
                     >
                         <span>+ ADD FOOD ITEM</span>
                         <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />

@@ -13,6 +13,7 @@ import AdminRoutes from './modules/AdminRoutes';
 import TeamLeadRoutes from './modules/TeamLeadRoutes';
 import AttendanceManagerRoutes from './modules/AttendanceManagerRoutes'; // Attendance Manager Routes
 import CafeteriaManagerRoutes from './modules/CafeteriaManagerRoutes';
+import ReportingManagerRoutes from './modules/ReportingManagerRoutes';
 
 
 // Pages
@@ -55,6 +56,11 @@ const AppRoutes = () => {
                 {/* Cafeteria Manager Module */}
                 <Route element={<ProtectedRoutes allowedRoles={[ROLES.CAFETERIA_MANAGER, ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
                     <Route path="/cafeteria-manager/*" element={<CafeteriaManagerRoutes />} />
+                </Route>
+
+                {/* Reporting Manager Module */}
+                <Route element={<ProtectedRoutes allowedRoles={[ROLES.REPORTING_MANAGER, ROLES.SUPER_ADMIN]} />}>
+                    <Route path="/reporting-manager/*" element={<ReportingManagerRoutes />} />
                 </Route>
 
                 {/* Fallback */}

@@ -1,3 +1,4 @@
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -13,7 +14,9 @@ import {
     Car,
     Coffee,
     Monitor,
-    HardDrive
+    Video,
+    HardDrive,
+    FileText
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -64,7 +67,7 @@ const Dashboard = () => {
 
                     <div className="relative z-10">
                         <button
-                            onClick={() => navigate('/attendance-manager/attendance')}
+                            onClick={() => navigate('/reporting-manager/approvals')}
                             className="bg-[#1a367c] text-white px-7 py-3.5 rounded-xl text-xs font-bold tracking-widest flex items-center gap-3 hover:bg-[#2c4a96] transition-all hover:shadow-lg hover:shadow-blue-900/20 group/btn"
                         >
                             REVIEW REQUESTS
@@ -128,7 +131,7 @@ const Dashboard = () => {
 
                     <div className="mt-auto pt-4 border-t border-slate-50">
                         <button
-                            onClick={() => navigate('/attendance-manager/holidays')}
+                            onClick={() => navigate('/reporting-manager/holidays')}
                             className="w-full bg-[#f8f9fa] text-[#1a367c] py-3 rounded-xl text-xs font-bold tracking-widest flex items-center justify-center gap-2 hover:bg-[#1a367c] hover:text-white transition-all group/btn"
                         >
                             VIEW CALENDAR
@@ -136,11 +139,9 @@ const Dashboard = () => {
                         </button>
                     </div>
 
-
                     <div className="h-1 w-10 bg-[#f9b012] mt-6 rounded-full transition-all duration-300 group-hover:w-20"></div>
                 </motion.div>
             </div>
-
 
 
 
@@ -158,14 +159,14 @@ const Dashboard = () => {
                         { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
                         { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
                         { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation' },
-                        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling' },
+                        { icon: Video, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling' },
                         { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment' },
                     ].map((action, idx) => (
                         <motion.div
                             key={idx}
                             variants={itemVariants}
                             whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)' }}
-                            onClick={() => navigate('/attendance-manager/action-hub')}
+                            onClick={() => navigate('/reporting-manager/placeholder')}
                             className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group"
                         >
                             <div className="absolute inset-0 bg-radial-gradient from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -186,7 +187,7 @@ const Dashboard = () => {
                     ))}
                 </div>
             </div>
-        </motion.div >
+        </motion.div>
     );
 };
 

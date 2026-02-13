@@ -1,8 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, CalendarCheck, CheckSquare, CalendarDays, ClipboardList, Zap, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-// Assuming we might want to use the same logo image if available, otherwise just text
-// import logo from '../../assets/cygnet-logo.png'; 
+import logo from '../../assets/cygnet-logo.png';
 
 const Sidebar = () => {
     const { logout } = useAuth();
@@ -27,10 +26,7 @@ const Sidebar = () => {
         <aside className="w-[260px] bg-white text-[#1a367c] flex flex-col p-8 border-r border-[#e0e0e0] flex-shrink-0 h-full z-50">
             {/* Logo Section */}
             <div className="flex items-center gap-3 mb-12">
-                {/* <img src={logo} alt="Cygnet Logo" className="w-10 h-10 object-contain" /> */}
-                <div className="w-10 h-10 bg-gradient-to-br from-[#20323c] to-[#2c4a96] rounded-full flex items-center justify-center text-white font-bold text-xl">
-                    C
-                </div>
+                <img src={logo} alt="Cygnet Logo" className="w-10 h-10 object-contain" />
                 <div className="flex flex-col">
                     <h2 className="text-lg font-bold text-[#1a367c] leading-tight tracking-tight">
                         CYGNET<span className="text-[#f9b012]">.ONE</span>
