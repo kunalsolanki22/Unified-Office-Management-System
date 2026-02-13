@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CalendarDays, MapPin, CheckSquare, ArrowRight, Car } from 'lucide-react';
+import { Bell, CalendarDays, ClipboardList, Package, Building2, ArrowRight, HardDrive } from 'lucide-react';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -11,7 +11,7 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
-const ParkingDashboard = () => {
+const HardwareDashboard = () => {
     const navigate = useNavigate();
 
     return (
@@ -20,29 +20,27 @@ const ParkingDashboard = () => {
             {/* Top Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* Pending Parking Requests Card */}
+                {/* Pending Requests Card */}
                 <motion.div
                     variants={itemVariants}
                     className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col justify-between min-h-[320px] relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                 >
                     <div className="absolute top-0 right-0 w-40 h-40 bg-orange-50 rounded-bl-full -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
-
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-4">
-                            <Car className="w-4 h-4 text-[#f9b012]" />
-                            PARKING REQUESTS
+                            <HardDrive className="w-4 h-4 text-[#f9b012]" />
+                            IT HARDWARE REQUESTS
                         </div>
                         <div className="text-[2.2rem] font-extrabold text-[#1a367c] leading-tight mb-2 bg-gradient-to-r from-[#1a367c] to-[#2d3436] bg-clip-text text-transparent">
-                            05 Pending<br />Approvals
+                            07 Pending<br />Approvals
                         </div>
                         <p className="text-[#8892b0] text-[0.95rem] leading-relaxed max-w-[90%]">
-                            Employee parking slot requests awaiting your review and approval.
+                            Employee hardware requests awaiting your review and approval.
                         </p>
                     </div>
-
                     <div className="relative z-10">
                         <button
-                            onClick={() => navigate('/manager/parking/requests')}
+                            onClick={() => navigate('/hardware/requests')}
                             className="bg-[#1a367c] text-white px-7 py-3.5 rounded-xl text-xs font-bold tracking-widest flex items-center gap-3 hover:bg-[#2c4a96] transition-all hover:shadow-lg hover:shadow-blue-900/20 group/btn"
                         >
                             REVIEW REQUESTS
@@ -102,63 +100,34 @@ const ParkingDashboard = () => {
                     </div>
                     <div className="mt-auto pt-4 border-t border-slate-50">
                         <button
-                            onClick={() => navigate('/manager/holidays')}
+                            onClick={() => navigate('/hardware/holidays')}
                             className="w-full bg-[#f8f9fa] text-[#1a367c] py-3 rounded-xl text-xs font-bold tracking-widest flex items-center justify-center gap-2 hover:bg-[#1a367c] hover:text-white transition-all group/btn"
                         >
                             VIEW CALENDAR
-                           <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                            <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
                         </button>
                     </div>
                 </motion.div>
             </div>
 
-            {/* Parking Stats */}
-            <div>
-                <motion.div variants={itemVariants} className="flex items-center justify-between mb-6">
-                    <h3 className="text-sm font-bold text-[#1a367c] tracking-widest">PARKING OVERVIEW</h3>
-                </motion.div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {[
-                        { label: 'Total Slots', value: '37', iconBg: '#FFF9E6', iconColor: '#FFB012', text: 'P' },
-                        { label: 'Available', value: '24', iconBg: '#E8F5E9', iconColor: '#22C55E', text: '✓' },
-                        { label: 'Occupied', value: '11', iconBg: '#FFF9E6', iconColor: '#FFB012', text: '⏱' },
-                        { label: 'Disabled', value: '2', iconBg: '#FFEBEE', iconColor: '#EF4444', text: '✕' },
-                    ].map((stat) => (
-                        <motion.div
-                            key={stat.label}
-                            variants={itemVariants}
-                            className="bg-white flex items-center justify-between gap-4 px-6 py-5 rounded-[20px] shadow-sm border border-slate-100 hover:-translate-y-1 hover:shadow-xl transition-all duration-300"
-                        >
-                            <div>
-                                <div className="text-[0.8rem] text-[#8892b0] font-semibold mb-1">{stat.label}</div>
-                                <div className="text-[2rem] font-extrabold text-[#1a367c]">{stat.value}</div>
-                            </div>
-                            <div className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0"
-                                style={{ background: stat.iconBg, color: stat.iconColor }}>
-                                {stat.text}
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Quick Actions */}
+            {/* Quick Actions — matches sidebar exactly */}
             <div>
                 <motion.div variants={itemVariants} className="flex items-center justify-between mb-6">
                     <h3 className="text-sm font-bold text-[#1a367c] tracking-widest">QUICK ACTIONS</h3>
                 </motion.div>
-
                 <div className="flex flex-wrap justify-center gap-6">
                     {[
-                        { icon: MapPin, label: 'SLOT MAP', sub: 'Floor-wise Slot Availability', path: '/manager/parking/slots' },
-                        { icon: CheckSquare, label: 'PARKING REQUESTS', sub: 'Review & Approve Employee Requests', path: '/manager/parking/requests' },
+                        { icon: ClipboardList, label: 'REQUESTS', sub: 'Review & Process Employee Requests', path: '/hardware/requests' },
+                        { icon: Package, label: 'ASSETS', sub: 'Manage & Assign Hardware Assets', path: '/hardware/assets' },
+                        { icon: Building2, label: 'VENDORS', sub: 'Manage Hardware Suppliers', path: '/hardware/vendors' },
+                        { icon: CalendarDays, label: 'HOLIDAYS', sub: 'View Company Holiday Calendar', path: '/hardware/holidays' },
                     ].map((action, idx) => (
                         <motion.div
                             key={idx}
                             variants={itemVariants}
                             whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0,0,0,0.1)' }}
                             onClick={() => navigate(action.path)}
-                            className="w-full md:w-[calc(50%-12px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group"
+                            className="w-full md:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group"
                         >
                             <div className="w-16 h-16 bg-[#f8f9fa] rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:text-[#f9b012] transition-colors relative z-10">
                                 <action.icon className="w-7 h-7" strokeWidth={1.5} />
@@ -175,4 +144,4 @@ const ParkingDashboard = () => {
     );
 };
 
-export default ParkingDashboard;
+export default HardwareDashboard;
