@@ -32,10 +32,14 @@ class LeaveService:
         self,
         request_id: UUID
     ) -> Optional[LeaveRequest]:
-        """Get leave request by ID with eager-loaded leave_type."""
+        """Get leave request by ID with eager-loaded relationships."""
         result = await self.db.execute(
             select(LeaveRequest)
-            .options(selectinload(LeaveRequest.leave_type))
+            .options(
+                selectinload(LeaveRequest.leave_type),
+                selectinload(LeaveRequest.final_approver),
+                selectinload(LeaveRequest.rejected_by)
+            )
             .where(LeaveRequest.id == request_id)
         )
         return result.scalar_one_or_none()
@@ -213,9 +217,13 @@ class LeaveService:
         if user.role == UserRole.EMPLOYEE:
             # Employee: Approved by Team Lead
             approver_code = user.team_lead_code
+            if not approver_code:
+                return None, "Cannot create leave request: No team lead assigned to your account. Please contact admin."
         elif user.role == UserRole.TEAM_LEAD:
             # Team Lead: Approved by Manager
             approver_code = user.manager_code
+            if not approver_code:
+                return None, "Cannot create leave request: No manager assigned to your account. Please contact admin."
         elif user.role == UserRole.MANAGER:
             # Manager: Approved by Admin
             result = await self.db.execute(
@@ -226,6 +234,8 @@ class LeaveService:
                 ).limit(1)
             )
             approver_code = result.scalar_one_or_none()
+            if not approver_code:
+                return None, "Cannot create leave request: No active admin found in system."
         elif user.role == UserRole.ADMIN:
             # Admin: Approved by Super Admin
             result = await self.db.execute(
@@ -236,6 +246,8 @@ class LeaveService:
                 ).limit(1)
             )
             approver_code = result.scalar_one_or_none()
+            if not approver_code:
+                return None, "Cannot create leave request: No active super admin found in system."
         elif user.role == UserRole.SUPER_ADMIN:
             # Super Admin: Auto-approved (no approval needed)
             approver_code = user.user_code  # Self-approved
@@ -274,10 +286,14 @@ class LeaveService:
         
         await self.db.commit()
         
-        # Re-query with eager-loaded leave_type to avoid lazy-loading issues
+        # Re-query with all eager-loaded relationships to avoid lazy-loading issues
         result = await self.db.execute(
             select(LeaveRequest)
-            .options(selectinload(LeaveRequest.leave_type))
+            .options(
+                selectinload(LeaveRequest.leave_type),
+                selectinload(LeaveRequest.final_approver),
+                selectinload(LeaveRequest.rejected_by)
+            )
             .where(LeaveRequest.id == leave_request.id)
         )
         leave_request = result.scalar_one()
@@ -360,12 +376,13 @@ class LeaveService:
         
         await self.db.commit()
         
-        # Re-query with eager-loaded leave_type and approver
+        # Re-query with eager-loaded relationships
         result = await self.db.execute(
             select(LeaveRequest)
             .options(
                 selectinload(LeaveRequest.leave_type),
-                selectinload(LeaveRequest.final_approver)
+                selectinload(LeaveRequest.final_approver),
+                selectinload(LeaveRequest.rejected_by)
             )
             .where(LeaveRequest.id == leave_request.id)
         )
@@ -463,11 +480,12 @@ class LeaveService:
         
         await self.db.commit()
         
-        # Re-query with eager-loaded leave_type and rejected_by
+        # Re-query with eager-loaded relationships
         result = await self.db.execute(
             select(LeaveRequest)
             .options(
                 selectinload(LeaveRequest.leave_type),
+                selectinload(LeaveRequest.final_approver),
                 selectinload(LeaveRequest.rejected_by)
             )
             .where(LeaveRequest.id == leave_request.id)
@@ -514,10 +532,14 @@ class LeaveService:
         
         await self.db.commit()
         
-        # Re-query with eager-loaded leave_type
+        # Re-query with eager-loaded relationships
         result = await self.db.execute(
             select(LeaveRequest)
-            .options(selectinload(LeaveRequest.leave_type))
+            .options(
+                selectinload(LeaveRequest.leave_type),
+                selectinload(LeaveRequest.final_approver),
+                selectinload(LeaveRequest.rejected_by)
+            )
             .where(LeaveRequest.id == leave_request.id)
         )
         leave_request = result.scalar_one()
@@ -561,7 +583,12 @@ class LeaveService:
         total_result = await self.db.execute(count_query)
         total = total_result.scalar()
         
-        query = query.options(selectinload(LeaveRequest.leave_type))
+        # Eager-load all required relationships to avoid lazy-loading issues
+        query = query.options(
+            selectinload(LeaveRequest.leave_type),
+            selectinload(LeaveRequest.final_approver),
+            selectinload(LeaveRequest.rejected_by)
+        )
         query = query.offset((page - 1) * page_size).limit(page_size)
         query = query.order_by(LeaveRequest.created_at.desc())
         
@@ -628,7 +655,12 @@ class LeaveService:
         total_result = await self.db.execute(count_query)
         total = total_result.scalar()
         
-        query = base_query.options(selectinload(LeaveRequest.leave_type))
+        # Eager-load all required relationships
+        query = base_query.options(
+            selectinload(LeaveRequest.leave_type),
+            selectinload(LeaveRequest.final_approver),
+            selectinload(LeaveRequest.rejected_by)
+        )
         query = query.offset((page - 1) * page_size).limit(page_size)
         query = query.order_by(LeaveRequest.created_at.desc())
         
@@ -698,6 +730,12 @@ class LeaveService:
         total_result = await self.db.execute(count_query)
         total = total_result.scalar()
         
+        # Eager-load all required relationships
+        query = query.options(
+            selectinload(LeaveRequest.leave_type),
+            selectinload(LeaveRequest.final_approver),
+            selectinload(LeaveRequest.rejected_by)
+        )
         query = query.offset((page - 1) * page_size).limit(page_size)
         query = query.order_by(LeaveRequest.created_at.desc())
         

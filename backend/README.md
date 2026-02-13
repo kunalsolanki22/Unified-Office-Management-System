@@ -14,6 +14,7 @@ A **comprehensive, production-ready backend API** for managing all office operat
 - [User Roles & Hierarchy](#user-roles--hierarchy)
 - [API Endpoints Documentation](#api-endpoints-documentation)
 - [Complete Workflows](#-complete-system-workflows)
+- [Input Validation Reference](#-input-validation-reference)
 - [Database Schema](#database-schema)
 - [Development Guide](#development-guide)
 - [Testing](#testing)
@@ -76,13 +77,14 @@ The **Unified Office Management System** is a modern, scalable backend solution 
 - **History & Reports**: View historical attendance data
 
 ### 🏖️ Leave Management
-- **Four leave types**: Casual (10 days), Sick (12 days), Privilege (15 days), Unpaid
+- **Multiple leave types**: Casual, Sick, Annual, Unpaid, Maternity, Paternity, Bereavement
 - **Leave balance tracking**: Auto-deduction on approval
-- **Two-level approval**: Level 1 (Team Lead) + Level 2 (Manager)
+- **Single-level approval**: Direct supervisor approves (Employee→TL→Manager→Admin→Super Admin)
 - **Half-day support**: First half or second half options
 - **Date range validation**: Prevent overlaps and past-date requests
 - **Leave cancellation**: Cancel pending requests
-- **Pending approvals dashboard**: For Team Leads and Managers
+- **Auto-approval for Super Admin**: No approval needed
+- **Pending approvals dashboard**: Role-based visibility
 
 ### 🅿️ Parking Management
 - **Simplified allocation**: One-click allocate/release, no forms
@@ -1200,6 +1202,46 @@ Authorization: Bearer <access_token>
 
 ## 2. User Management Endpoints
 
+### `GET /users/directory`
+**Description**: 📇 **User Directory - Get all users with basic info (accessible to everyone)**
+
+**Access**: All authenticated users (any role)
+
+**Query Parameters**:
+- `page` (int, default: 1): Page number
+- `page_size` (int, default: 50, max: 100): Results per page
+- `search` (string, optional): Search by name, email, phone, or user code
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "user_code": "AB1234",
+      "first_name": "John",
+      "last_name": "Doe",
+      "full_name": "John Doe",
+      "email": "john.doe@company.com",
+      "phone": "1234567890",
+      "department": "Engineering",
+      "is_active": true
+    }
+  ],
+  "total": 50,
+  "page": 1,
+  "page_size": 50,
+  "message": "User directory retrieved successfully"
+}
+```
+
+**Use Cases**:
+- Employee directory/contact lookup
+- Quick search for colleagues
+- Finding team members by name or department
+
+---
+
 ### `POST /users`
 **Description**: Create a new user
 
@@ -1601,53 +1643,64 @@ Authorization: Bearer <access_token>
 
 ---
 
-### `GET /leave/requests/pending-level1`
-**Description**: Get requests pending Team Lead approval
+### `GET /leave/requests/pending`
+**Description**: Get leave requests pending your approval
 
 **Access**: TEAM_LEAD or above
 
+**Business Logic**:
+- Team Lead sees Employee leave requests
+- Manager sees Team Lead leave requests
+- Admin sees Manager leave requests
+- Super Admin sees Admin leave requests
+
 ---
 
-### `GET /leave/requests/pending-final`
-**Description**: Get requests pending Manager approval
+### `POST /leave/requests/{request_id}/approve`
+**Description**: ✅ **Single-level leave approval (approve or reject)**
 
-**Access**: MANAGER or above
-
----
-
-### `POST /leave/requests/{request_id}/approve-level1`
-**Description**: Team Lead approves leave (Level 1 approval)
-
-**Access**: TEAM_LEAD or above
+**Access**: Direct supervisor of the requester
 
 **Request Body**:
 ```json
 {
   "action": "approve",  // "approve" or "reject"
-  "notes": "Approved by team lead",
-  "rejection_reason": "Not enough coverage"  // Required if reject
+  "notes": "Approved - coverage confirmed",
+  "rejection_reason": "Not enough team coverage"  // Required if action is "reject"
 }
 ```
 
-**Response**: Updated leave request
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "user_code": "AB1234",
+    "leave_type": "casual",
+    "status": "approved",
+    "approver_code": "TL0001",
+    "approver_name": "Team Lead Name",
+    "approved_at": "2026-02-13T10:30:00Z",
+    "approval_notes": "Approved - coverage confirmed"
+  },
+  "message": "Leave request approved successfully"
+}
+```
 
-**Business Logic**:
-- Changes status from "pending_level1" to "approved_level1"
-- For single-day leave, may auto-approve to "approved_final"
+**Single-Level Approval Hierarchy**:
+| Requester Role | Approved By | Notes |
+|----------------|-------------|-------|
+| Employee | Team Lead | Direct team lead approval |
+| Team Lead | Manager | Manager approval |
+| Manager | Admin | Admin approval |
+| Admin | Super Admin | Super Admin approval |
+| Super Admin | Auto-approved | No approval needed |
 
----
-
-### `POST /leave/requests/{request_id}/approve-final`
-**Description**: Manager final approval (Level 2)
-
-**Access**: MANAGER or above
-
-**Request Body**: Same as level1
-
-**Business Logic**:
-- Changes status to "approved_final"
-- Deducts from user's leave balance
-- Can only approve if Level 1 is already approved
+**Key Features**:
+- ✅ Approver details auto-filled from current user
+- ✅ Leave balance auto-deducted on approval
+- ✅ Single approval level (no Level 1 + Level 2)
 
 ---
 
@@ -4880,6 +4933,15 @@ pytest --collect-only
 
 ## 📝 Changelog
 
+### Version 1.1.0 (February 2026)
+
+**Updates:**
+- ✅ Single-level leave approval (simplified from two-level)
+- ✅ User directory endpoint for all authenticated users
+- ✅ Comprehensive input validation reference
+- ✅ Approver details auto-filled from current user
+- ✅ Super Admin leave auto-approval
+
 ### Version 1.0.0 (February 2026)
 
 **Initial Release:**
@@ -4918,6 +4980,560 @@ pytest --collect-only
 - RBAC enforcement at endpoint level
 - Connection pooling and query optimization
 - Vector indexing for fast semantic search
+
+---
+
+## 📋 Input Validation Reference
+
+This section documents all valid input formats, enum values, and validation rules for API requests.
+
+### 🔐 Authentication
+
+#### Login Request
+```json
+{
+  "email": "user@company.com",     // Required: Valid email format
+  "password": "SecurePass@123"     // Required: Minimum 8 characters
+}
+```
+
+#### Password Change Request
+```json
+{
+  "current_password": "OldPass@123",   // Required: Min 8 characters
+  "new_password": "NewPass@123",       // Required: Min 8 characters
+  "confirm_password": "NewPass@123"    // Required: Must match new_password
+}
+```
+
+---
+
+### 👥 User Management
+
+#### User Roles (UserRole)
+| Value | Description |
+|-------|-------------|
+| `super_admin` | Full system access (cannot be created via API) |
+| `admin` | Creates Managers, approves Manager requests |
+| `manager` | Department Manager, creates Team Leads |
+| `team_lead` | Manages Employees, approves Employee requests |
+| `employee` | Regular employee |
+
+#### Manager Types (ManagerType) - Required when role is `manager`
+| Value | Description |
+|-------|-------------|
+| `parking` | Parking slot management |
+| `attendance` | Attendance tracking, creates department Team Leads |
+| `desk_conference` | Desk and conference room allocation |
+| `cafeteria` | Cafeteria tables and food operations |
+| `it_support` | IT assets and support requests |
+
+#### Vehicle Types (VehicleType)
+| Value | Description |
+|-------|-------------|
+| `car` | Car (default) |
+| `bike` | Motorcycle/Bike |
+
+#### User Create Request
+```json
+{
+  "first_name": "John",                    // Required: 1-100 characters
+  "last_name": "Doe",                      // Required: 1-100 characters
+  "email": "john.doe@company.com",         // Optional: Auto-generated if not provided
+  "password": "SecurePass@123",            // Required: Min 8 characters
+  "role": "employee",                      // Required: employee|team_lead|manager|admin
+  "phone": "1234567890",                   // Optional
+  "department": "Engineering",             // Required if role is team_lead
+  "manager_type": "attendance",            // Required if role is manager
+  "team_lead_code": "TL0001",              // Optional: Assigns employee to team
+  "manager_code": "MG0001",                // Optional: Auto-assigned
+  "admin_code": "AD0001",                  // Optional: Auto-assigned
+  "vehicle_number": "ABC123",              // Required: 4-20 characters
+  "vehicle_type": "car"                    // Optional: car|bike (default: car)
+}
+```
+
+#### User Update Request
+```json
+{
+  "first_name": "Jane",                    // Optional: 1-100 characters
+  "last_name": "Smith",                    // Optional: 1-100 characters
+  "phone": "9876543210",                   // Optional
+  "department": "Sales",                   // Optional
+  "is_active": true,                       // Admin+ only
+  "team_lead_code": "TL0002",              // Admin/superior only
+  "manager_code": "MG0001",                // Admin/superior only
+  "vehicle_number": "XYZ789",              // Optional
+  "vehicle_type": "bike"                   // Optional: car|bike
+}
+```
+
+#### Role Change Request
+```json
+{
+  "new_role": "team_lead",                 // Required: employee|team_lead|manager|admin
+  "department": "Engineering",             // Required if new_role is team_lead
+  "manager_type": "attendance",            // Required if new_role is manager
+  "team_lead_code": "TL0001",              // Required if new_role is employee
+  "manager_code": "MG0001",                // Required if new_role is employee|team_lead
+  "admin_code": "AD0001"                   // Required if new_role is manager
+}
+```
+
+---
+
+### 📊 Attendance
+
+#### Attendance Status (AttendanceStatus)
+| Value | Description |
+|-------|-------------|
+| `draft` | Check-in/out recorded, not submitted |
+| `pending_approval` | Submitted, waiting for approval |
+| `approved` | Approved by supervisor |
+| `rejected` | Rejected by supervisor |
+
+#### Check-In / Check-Out
+```json
+{}  // Empty body - just click the button!
+```
+
+#### Submit Attendance
+```json
+{
+  "notes": "Regular work day"              // Optional
+}
+```
+
+#### Approve/Reject Attendance
+```json
+{
+  "action": "approve",                     // Required: "approve" or "reject"
+  "notes": "Approved - all good",          // Optional for approve
+  "rejection_reason": "Missing check-out"  // Required if action is "reject"
+}
+```
+
+---
+
+### 🏖️ Leave Management
+
+#### Leave Types (LeaveType)
+| Value | Description |
+|-------|-------------|
+| `sick` | Sick leave |
+| `casual` | Casual leave |
+| `annual` | Annual/Privilege leave |
+| `unpaid` | Unpaid leave |
+| `maternity` | Maternity leave |
+| `paternity` | Paternity leave |
+| `bereavement` | Bereavement leave |
+
+#### Leave Status (LeaveStatus)
+| Value | Description |
+|-------|-------------|
+| `pending` | Waiting for approval |
+| `approved` | Approved by supervisor |
+| `rejected` | Rejected by supervisor |
+| `cancelled` | Cancelled by employee |
+
+#### Leave Request Create
+```json
+{
+  "leave_type": "casual",                  // Required: sick|casual|annual|unpaid|maternity|paternity|bereavement
+  "start_date": "2026-02-15",              // Required: YYYY-MM-DD (cannot be past date)
+  "end_date": "2026-02-16",                // Required: YYYY-MM-DD (must be >= start_date)
+  "reason": "Personal work",               // Optional
+  "is_half_day": false,                    // Optional: default false
+  "half_day_type": "first_half",           // Required if is_half_day is true: "first_half"|"second_half"
+  "emergency_contact": "Jane Doe",         // Optional
+  "emergency_phone": "9876543210"          // Optional
+}
+```
+
+#### Leave Approval (Single-Level)
+```json
+{
+  "action": "approve",                     // Required: "approve" or "reject"
+  "notes": "Coverage confirmed",           // Optional
+  "rejection_reason": "Insufficient notice" // Required if action is "reject"
+}
+```
+
+---
+
+### 🅿️ Parking Management
+
+#### Parking Types (ParkingType)
+| Value | Description |
+|-------|-------------|
+| `employee` | Employee parking |
+| `visitor` | Visitor parking |
+
+#### Parking Slot Status (ParkingSlotStatus)
+| Value | Description |
+|-------|-------------|
+| `available` | Slot is available |
+| `occupied` | Slot is in use |
+| `disabled` | Slot is disabled |
+| `maintenance` | Under maintenance |
+
+#### Parking Slot Create
+```json
+{
+  "slot_label": "A-01",                    // Required: 1-50 characters
+  "parking_type": "employee",              // Optional: employee|visitor (default: employee)
+  "vehicle_type": "car",                   // Optional: car|bike
+  "notes": "Near entrance"                 // Optional: max 500 characters
+}
+```
+
+#### Visitor Parking Assignment
+```json
+{
+  "visitor_name": "John Guest",            // Required: 2-100 characters
+  "visitor_phone": "+1-234-567-8900",      // Optional: valid phone format
+  "visitor_company": "ABC Corp",           // Optional: max 100 characters
+  "vehicle_number": "VISIT123",            // Optional: max 20 characters
+  "vehicle_type": "car",                   // Optional: car|bike (default: car)
+  "notes": "Meeting with CEO",             // Optional: max 500 characters
+  "host_user_code": "AB1234",              // Optional: employee hosting visitor
+  "slot_id": "uuid"                        // Optional: auto-assigns if not provided
+}
+```
+
+---
+
+### 🪑 Desk & Conference Room Booking
+
+#### Desk Status (DeskStatus)
+| Value | Description |
+|-------|-------------|
+| `available` | Desk is available |
+| `booked` | Desk is booked |
+| `maintenance` | Under maintenance |
+| `disabled` | Desk is disabled |
+
+#### Booking Status (BookingStatus)
+| Value | Description |
+|-------|-------------|
+| `pending` | Awaiting confirmation |
+| `confirmed` | Booking confirmed |
+| `rejected` | Booking rejected |
+| `cancelled` | Cancelled by user |
+| `completed` | Booking completed |
+| `no_show` | User didn't show up |
+
+#### Desk Create
+```json
+{
+  "desk_label": "Desk-A1",                 // Required: 1-50 characters
+  "has_monitor": true,                     // Optional: default true
+  "has_docking_station": false,            // Optional: default false
+  "notes": "Window seat"                   // Optional: max 500 characters
+}
+```
+
+#### Desk Booking Create
+```json
+{
+  "desk_id": "uuid",                       // Required: Valid desk UUID
+  "start_date": "2026-02-15",              // Required: YYYY-MM-DD (not past)
+  "end_date": "2026-02-15",                // Required: YYYY-MM-DD (>= start_date)
+  "notes": "Project meeting week"          // Optional: max 500 characters
+}
+```
+
+---
+
+### 🍽️ Cafeteria & Food Orders
+
+#### Table Types
+| Value | Description |
+|-------|-------------|
+| `regular` | Standard table |
+| `high_top` | High-top/standing table |
+| `booth` | Booth seating |
+
+#### Order Status (OrderStatus)
+| Value | Description |
+|-------|-------------|
+| `pending` | Order placed, not started |
+| `preparing` | Order being prepared |
+| `ready` | Ready for pickup |
+| `delivered` | Delivered to user |
+| `cancelled` | Order cancelled |
+
+#### Cafeteria Table Create
+```json
+{
+  "table_label": "Table-1",                // Required: 1-50 characters
+  "capacity": 4,                           // Required: 1-20
+  "table_type": "regular",                 // Optional: regular|high_top|booth
+  "notes": "Near window"                   // Optional: max 500 characters
+}
+```
+
+#### Cafeteria Booking Create
+```json
+{
+  "table_id": "uuid",                      // Required: Valid table UUID
+  "booking_date": "2026-02-15",            // Required: YYYY-MM-DD (not past)
+  "start_time": "12:00:00",                // Required: HH:MM:SS
+  "end_time": "13:00:00",                  // Required: HH:MM:SS (must be > start_time)
+  "guest_count": 3,                        // Required: 1-20
+  "guest_names": ["Alice", "Bob"],         // Optional: array (length <= guest_count)
+  "notes": "Team lunch"                    // Optional: max 500 characters
+}
+```
+
+#### Food Item Create
+```json
+{
+  "name": "Chicken Sandwich",              // Required: 1-200 characters
+  "description": "Grilled chicken...",     // Optional: max 1000 characters
+  "price": 8.99,                           // Required: > 0
+  "category_id": "uuid",                   // Optional: Valid category UUID
+  "category_name": "Sandwiches",           // Optional: for display
+  "ingredients": ["chicken", "lettuce"],   // Optional: array
+  "tags": ["healthy", "protein"],          // Optional: array
+  "calories": 450,                         // Optional: >= 0
+  "preparation_time_minutes": 15,          // Optional: 1-180 (default: 15)
+  "image_url": "https://..."               // Optional
+}
+```
+
+#### Food Order Create
+```json
+{
+  "items": [                               // Required: 1-20 items
+    {
+      "food_item_id": "uuid",              // Required: Valid food item UUID
+      "quantity": 2,                       // Optional: 1-10 (default: 1)
+      "special_instructions": "No onions"  // Optional: max 500 characters
+    }
+  ],
+  "is_scheduled": false,                   // Optional: default false
+  "scheduled_date": "2026-02-15",          // Required if is_scheduled is true
+  "scheduled_time": "12:00:00",            // Required if is_scheduled is true
+  "notes": "Office party"                  // Optional: max 500 characters
+}
+```
+
+---
+
+### 💻 IT Asset Management
+
+#### Asset Types (AssetType)
+| Value | Description |
+|-------|-------------|
+| `laptop` | Laptop computer |
+| `desktop` | Desktop computer |
+| `monitor` | Display monitor |
+| `keyboard` | Keyboard |
+| `mouse` | Mouse |
+| `headset` | Headset/Headphones |
+| `webcam` | Web camera |
+| `docking_station` | Docking station |
+| `mobile_phone` | Mobile phone |
+| `tablet` | Tablet device |
+| `printer` | Printer |
+| `scanner` | Scanner |
+| `other` | Other equipment |
+
+#### Asset Status (AssetStatus)
+| Value | Description |
+|-------|-------------|
+| `available` | Available for assignment |
+| `assigned` | Currently assigned |
+| `maintenance` | Under maintenance |
+| `retired` | No longer in use |
+
+#### IT Asset Create
+```json
+{
+  "name": "MacBook Pro 16\"",              // Required: 1-200 characters
+  "asset_type": "laptop",                  // Required: See AssetType enum
+  "description": "M3 Max chip...",         // Optional: max 1000 characters
+  "vendor": "Apple",                       // Optional: max 200 characters
+  "model": "MacBook Pro 16 2024",          // Optional: max 200 characters
+  "serial_number": "ABC123XYZ",            // Optional: max 100 characters
+  "specifications": {                      // Optional: JSON object
+    "ram": "64GB",
+    "storage": "1TB SSD",
+    "chip": "M3 Max"
+  },
+  "tags": ["engineering", "high-end"],     // Optional: array
+  "purchase_date": "2026-01-15",           // Optional: YYYY-MM-DD
+  "purchase_price": 3499.99,               // Optional: >= 0
+  "warranty_expiry": "2029-01-15",         // Optional: YYYY-MM-DD
+  "location": "Building A, Floor 3",       // Optional: max 200 characters
+  "notes": "Executive laptop"              // Optional: max 1000 characters
+}
+```
+
+#### IT Asset Assignment
+```json
+{
+  "asset_id": "uuid",                      // Required: Valid asset UUID
+  "user_code": "AB1234",                   // Required: Format AA0000
+  "notes": "Assigned for project X"        // Optional: max 500 characters
+}
+```
+
+---
+
+### 🎫 IT Request Management
+
+#### IT Request Types (ITRequestType)
+| Value | Description |
+|-------|-------------|
+| `new` | General new request |
+| `new_asset` | Request for new asset |
+| `repair` | Repair request |
+| `replacement` | Replacement request |
+| `software_install` | Software installation |
+| `access_request` | Access/permission request |
+| `network_issue` | Network connectivity issue |
+| `other` | Other IT issues |
+
+#### IT Request Priority (ITRequestPriority)
+| Value | Description |
+|-------|-------------|
+| `low` | Low priority |
+| `medium` | Medium priority (default) |
+| `high` | High priority |
+| `critical` | Critical - immediate attention |
+
+#### IT Request Status (ITRequestStatus)
+| Value | Description |
+|-------|-------------|
+| `pending` | Awaiting review |
+| `approved` | Approved, ready to work |
+| `in_progress` | Being worked on |
+| `completed` | Request completed |
+| `rejected` | Request rejected |
+| `cancelled` | Request cancelled |
+
+#### IT Request Create
+```json
+{
+  "request_type": "software_install",      // Required: See ITRequestType enum
+  "title": "Install Visual Studio Code",   // Required: 1-300 characters
+  "description": "Need VS Code for...",    // Required: 10-5000 characters
+  "priority": "medium",                    // Optional: low|medium|high|critical
+  "related_asset_code": "LAP-0001"         // Optional: existing asset code
+}
+```
+
+#### IT Request Approval
+```json
+{
+  "action": "approve",                     // Required: "approve" or "reject"
+  "notes": "Approved for installation",    // Optional: max 1000 characters
+  "rejection_reason": "Not authorized",    // Required if action is "reject" (max 500)
+  "assigned_to_code": "IT0001"             // Optional: IT staff user code
+}
+```
+
+---
+
+### 📁 Project Management
+
+#### Project Status (ProjectStatus)
+| Value | Description |
+|-------|-------------|
+| `draft` | Project being drafted |
+| `pending_approval` | Awaiting approval |
+| `approved` | Approved to start |
+| `in_progress` | Currently in progress |
+| `completed` | Project completed |
+| `on_hold` | Project on hold |
+| `cancelled` | Project cancelled |
+| `rejected` | Project rejected |
+
+#### Project Create
+```json
+{
+  "title": "New CRM System",               // Required: 1-300 characters
+  "description": "Build a new CRM...",     // Required: 10-5000 characters
+  "duration_days": 90,                     // Required: 1-365
+  "justification": "Current system...",    // Optional: max 2000 characters
+  "start_date": "2026-03-01",              // Optional: YYYY-MM-DD (not past)
+  "members": [                             // Optional: array of members
+    {
+      "user_code": "AB1234",               // Required: Format AA0000
+      "role": "developer"                  // Optional: max 50 characters
+    }
+  ]
+}
+```
+
+#### Project Approval
+```json
+{
+  "action": "approve",                     // Required: "approve" or "reject"
+  "notes": "Approved with conditions",     // Optional: max 1000 characters
+  "rejection_reason": "Budget concerns"    // Required if action is "reject" (max 500)
+}
+```
+
+#### Project Member Add
+```json
+{
+  "user_code": "AB1234",                   // Required: Format AA0000
+  "role": "developer"                      // Optional: max 50 characters (default: "member")
+}
+```
+
+---
+
+### 📅 Holiday Management
+
+#### Holiday Create (Super Admin only)
+```json
+{
+  "name": "Christmas Day",                 // Required: 1-200 characters
+  "description": "Company-wide holiday",   // Optional: max 1000 characters
+  "date": "2026-12-25",                    // Required: YYYY-MM-DD
+  "holiday_type": "company",               // Optional: max 50 characters (default: "company")
+  "is_optional": false                     // Optional: default false
+}
+```
+
+---
+
+### 📏 General Validation Rules
+
+#### User Code Format
+- Format: `AA0000` (2 uppercase letters + 4 digits)
+- Example: `AB1234`, `TL0001`, `MG0005`
+- Auto-generated on user creation
+
+#### Auto-Generated Codes
+| Entity | Format | Example |
+|--------|--------|---------|
+| User | `AA0000` | `AB1234` |
+| Parking Slot | `PKG-XXXX` | `PKG-0001` |
+| Desk | `DSK-XXXX` | `DSK-0001` |
+| Cafeteria Table | `TBL-XXXX` | `TBL-0001` |
+| IT Asset | `{TYPE}-XXXX` | `LAP-0001`, `MON-0002` |
+| IT Request | `REQ-YYYYMMDD-XXXX` | `REQ-20260213-0001` |
+| Project | `PRJ-YYYYMMDD-XXXX` | `PRJ-20260213-0001` |
+| Food Order | `ORD-YYYYMMDD-XXXX` | `ORD-20260213-0001` |
+
+#### Date Formats
+- All dates: `YYYY-MM-DD` (ISO 8601)
+- All times: `HH:MM:SS` (24-hour format)
+- All datetimes: `YYYY-MM-DDTHH:MM:SSZ` (ISO 8601 with timezone)
+
+#### Common Validation Errors
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `422 Unprocessable Entity` | Invalid input format | Check enum values and required fields |
+| `400 Bad Request` | Business rule violation | Check date ranges, overlaps, permissions |
+| `401 Unauthorized` | Invalid/missing token | Include valid JWT in Authorization header |
+| `403 Forbidden` | Insufficient permissions | Use account with required role |
+| `404 Not Found` | Resource doesn't exist | Verify UUID and resource existence |
 
 ---
 
