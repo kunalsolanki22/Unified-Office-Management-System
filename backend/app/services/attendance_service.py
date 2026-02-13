@@ -182,10 +182,46 @@ class AttendanceService:
         if attendance.status != AttendanceStatus.DRAFT:
             return None, f"Cannot submit attendance with status {attendance.status.value}"
         
+<<<<<<< HEAD
         # Check all entries are closed
         for entry in attendance.entries:
             if entry.check_out is None:
                 return None, "Please check out before submitting"
+=======
+        # Auto-checkout open entries at 11:59 PM
+        for entry in attendance.entries:
+            if entry.check_out is None:
+                # Set checkout to 23:59:59 of the attendance date
+                auto_checkout_time = datetime.combine(
+                    attendance.date, 
+                    datetime.min.time()
+                ).replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
+                
+                entry.check_out = auto_checkout_time
+                entry.notes = (entry.notes or "") + " | Auto-checkout at 11:59 PM on Submit"
+                
+                # Calculate duration
+                duration = (entry.check_out - entry.check_in).total_seconds() / 3600
+                entry.duration_hours = round(duration, 2)
+                
+        # Recalculate summary fields after potential auto-checkout
+        total_hours = 0.0
+        last_checkout = None
+        
+        for e in attendance.entries:
+            if e.check_out:
+                if last_checkout is None or e.check_out > last_checkout:
+                    last_checkout = e.check_out
+                    
+                if e.duration_hours is not None:
+                    total_hours += float(e.duration_hours)
+                else:
+                    total_hours += (e.check_out - e.check_in).total_seconds() / 3600
+                    
+        attendance.total_hours = round(total_hours, 2)
+        if last_checkout:
+            attendance.last_check_out = last_checkout.time()
+>>>>>>> origin/frontend-user/mahek
         
         attendance.status = AttendanceStatus.PENDING_APPROVAL
         attendance.submitted_at = datetime.now(timezone.utc)

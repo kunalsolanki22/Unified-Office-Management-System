@@ -3,8 +3,13 @@ import './login_screen.dart';
 
 class ManagerProfileScreen extends StatefulWidget {
   final VoidCallback? onBack;
+  final Map<String, dynamic> userProfile;
 
-  const ManagerProfileScreen({super.key, this.onBack});
+  const ManagerProfileScreen({
+    super.key, 
+    this.onBack,
+    this.userProfile = const {}, // Default empty map if not provided
+  });
 
   @override
   State<ManagerProfileScreen> createState() => _ManagerProfileScreenState();
@@ -88,7 +93,21 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
     );
   }
 
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'U';
+    List<String> parts = name.split(RegExp(r'[^a-zA-Z0-9]'));
+    parts = parts.where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return name[0].toUpperCase();
+    if (parts.length == 1) return parts[0].substring(0, 1).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
   Widget _buildProfileSection() {
+    final String fullName = widget.userProfile['full_name'] ?? 'User';
+    final String role = (widget.userProfile['role'] ?? 'MANAGER').toString().toUpperCase();
+    final String userCode = widget.userProfile['user_code'] ?? 'N/A';
+    final String initials = _getInitials(fullName);
+
     return Column(
       children: [
         Stack(
@@ -100,10 +119,10 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
                 color: const Color(0xFF1A237E),
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  'M',
-                  style: TextStyle(
+                  initials,
+                  style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w400,
                     color: Colors.white,
@@ -138,9 +157,9 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Alex Johnson',
-          style: TextStyle(
+        Text(
+          fullName,
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w600,
             color: Color(0xFF1A1A2E),
@@ -151,7 +170,7 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
              Text(
-              'MANAGER',
+              role.replaceAll('_', ' '),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -162,9 +181,9 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
             const SizedBox(width: 8),
             Container(width: 4, height: 4, decoration: const BoxDecoration(color: Colors.grey, shape: BoxShape.circle)),
             const SizedBox(width: 8),
-             const Text(
-              '#EM-9021',
-              style: TextStyle(
+             Text(
+              '#$userCode',
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: Colors.blue,
@@ -178,6 +197,9 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
   }
 
   Widget _buildAccountDetails() {
+    final String email = widget.userProfile['email'] ?? 'N/A';
+    final String phone = widget.userProfile['phone'] ?? 'N/A';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -210,7 +232,7 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
                 iconColor: Colors.blue,
                 iconBgColor: Colors.blue.shade50,
                 label: 'WORK EMAIL',
-                value: 'alex.j@company.com',
+                value: email,
                 showDivider: true,
               ),
               _buildDetailItem(
@@ -218,7 +240,7 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
                 iconColor: Colors.green,
                 iconBgColor: Colors.green.shade50,
                 label: 'PHONE NUMBER',
-                value: '+1234 567 890',
+                value: phone,
                 showDivider: false,
               ),
             ],

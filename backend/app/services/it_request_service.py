@@ -115,7 +115,7 @@ class ITRequestService:
         if not it_request:
             return None, "Request not found"
         
-        if it_request.user_code != user.user_code:
+        if str(it_request.user_id) != str(user.id):
             if user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]:
                 return None, "Cannot update another user's request"
         

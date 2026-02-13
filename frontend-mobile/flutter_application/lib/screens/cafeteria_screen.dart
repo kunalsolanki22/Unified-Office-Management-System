@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'my_orders_screen.dart';
+import '../services/cafeteria_service.dart';
 
 class CafeteriaScreen extends StatefulWidget {
   final bool initialShowDeskBooking;
@@ -43,35 +45,35 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
 
   late bool _isOrderingFood; // Toggle state
   final ScrollController _scrollController = ScrollController();
+  final CafeteriaService _cafeteriaService = CafeteriaService();
   
   // Cart state
   final Map<String, CartItem> _cart = {};
   bool _showCartOverlay = false;
+  bool _isPlacingOrder = false;
 
-  // Desk booking state
+  // Food items from API
+  List<Map<String, dynamic>> _foodItems = [];
+  List<Map<String, dynamic>> _filteredFoodItems = [];
+  bool _isLoadingFood = true;
+  String _searchQuery = '';
+
+  // Desk booking state from API
+  List<Map<String, dynamic>> _tables = [];
+  Set<String> _bookedTableIds = {};
+  bool _isLoadingTables = true;
+  bool _isBookingDesk = false;
   late Map<String, _DeskItem> _desks;
   String? _selectedDeskId;
+  String? _selectedTableUuid;
   String? _userBookedDeskId; // The desk this user has booked
 
   int get _totalCartItems => _cart.values.fold(0, (sum, item) => sum + item.quantity);
   double get _totalCartPrice => _cart.values.fold(0.0, (sum, item) => sum + item.totalPrice);
 
-  // Initialize desks
+  // Initialize desks (empty — populated from API in _fetchTables)
   void _initializeDesks() {
-    _desks = {
-      'A1': _DeskItem(label: 'A1', status: DeskStatus.booked),
-      'A2': _DeskItem(label: 'A2', status: DeskStatus.available),
-      'A3': _DeskItem(label: 'A3', status: DeskStatus.available),
-      'A4': _DeskItem(label: 'A4', status: DeskStatus.booked),
-      'A5': _DeskItem(label: 'A5', status: DeskStatus.available),
-      'A6': _DeskItem(label: 'A6', status: DeskStatus.available),
-      'A7': _DeskItem(label: 'A7', status: DeskStatus.available),
-      'A8': _DeskItem(label: 'A8', status: DeskStatus.available),
-      'B1': _DeskItem(label: 'B1', status: DeskStatus.available),
-      'B2': _DeskItem(label: 'B2', status: DeskStatus.available),
-      'B3': _DeskItem(label: 'B3', status: DeskStatus.booked),
-      'B4': _DeskItem(label: 'B4', status: DeskStatus.available),
-    };
+    _desks = {};
   }
 
   // Get available desk count
@@ -118,10 +120,12 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
         desk.freezeTimer?.cancel();
         desk.status = DeskStatus.available;
         _selectedDeskId = null;
+        _selectedTableUuid = null;
       } else {
         // Select the desk and start freeze timer
         desk.status = DeskStatus.selected;
         _selectedDeskId = deskId;
+        _selectedTableUuid = desk.tableUuid;
         
         // Start 1-minute freeze timer
         desk.freezeTimer?.cancel();
@@ -131,6 +135,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
               _desks[deskId]!.status = DeskStatus.freezed;
               if (_selectedDeskId == deskId) {
                 _selectedDeskId = null;
+                _selectedTableUuid = null;
               }
             });
           }
@@ -139,9 +144,9 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
     });
   }
 
-  // Confirm desk booking
-  void _confirmDeskBooking() {
-    if (_selectedDeskId == null) {
+  // Confirm desk booking via API
+  Future<void> _confirmDeskBooking() async {
+    if (_selectedDeskId == null || _selectedTableUuid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a desk first'),
@@ -161,22 +166,50 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       return;
     }
 
-    setState(() {
-      final desk = _desks[_selectedDeskId!];
-      if (desk != null) {
-        desk.freezeTimer?.cancel();
-        desk.status = DeskStatus.booked;
-        _userBookedDeskId = _selectedDeskId;
-        _selectedDeskId = null;
-      }
-    });
+    setState(() => _isBookingDesk = true);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Desk $_userBookedDeskId booked successfully!'),
-        backgroundColor: const Color(0xFF1A237E),
-      ),
+    final now = DateTime.now();
+    final today = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final startTime = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:00';
+    final endHour = (now.hour + 1).clamp(0, 23);
+    final endTime = '${endHour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:00';
+
+    final result = await _cafeteriaService.createTableBooking(
+      tableId: _selectedTableUuid!,
+      bookingDate: today,
+      startTime: startTime,
+      endTime: endTime,
     );
+
+    if (mounted) {
+      setState(() => _isBookingDesk = false);
+
+      if (result['success']) {
+        setState(() {
+          final desk = _desks[_selectedDeskId!];
+          if (desk != null) {
+            desk.freezeTimer?.cancel();
+            desk.status = DeskStatus.booked;
+            _userBookedDeskId = _selectedDeskId;
+            _selectedDeskId = null;
+            _selectedTableUuid = null;
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Desk $_userBookedDeskId booked successfully!'),
+            backgroundColor: const Color(0xFF1A237E),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to book desk'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _addToCart(String id, String name, String price, IconData icon, Color iconColor, Color iconBgColor) {
@@ -217,6 +250,126 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
     super.initState();
     _isOrderingFood = !widget.initialShowDeskBooking;
     _initializeDesks();
+    _fetchFoodItems();
+    _fetchTables();
+  }
+
+  Future<void> _fetchFoodItems() async {
+    final result = await _cafeteriaService.getFoodItems(isAvailable: true);
+    if (result['success'] && mounted) {
+      setState(() {
+        _foodItems = List<Map<String, dynamic>>.from(result['data'] ?? []);
+        _filteredFoodItems = _foodItems;
+        _isLoadingFood = false;
+      });
+    } else if (mounted) {
+      setState(() => _isLoadingFood = false);
+    }
+  }
+
+  Future<void> _fetchTables() async {
+    final tablesResult = await _cafeteriaService.getCafeteriaTables();
+    final bookingsResult = await _cafeteriaService.getTodaysBookings();
+    if (mounted) {
+      final tables = List<Map<String, dynamic>>.from(tablesResult['data'] ?? []);
+      final bookings = List<Map<String, dynamic>>.from(bookingsResult['data'] ?? []);
+      final bookedIds = bookings.map((b) => b['table_id']?.toString() ?? '').toSet();
+      
+      // Update desk map from API data
+      _desks.clear();
+      for (final table in tables) {
+        final label = table['table_label'] ?? table['table_code'] ?? '';
+        final tableId = table['id']?.toString() ?? '';
+        final isBooked = bookedIds.contains(tableId);
+        _desks[label] = _DeskItem(
+          label: label,
+          status: isBooked ? DeskStatus.booked : DeskStatus.available,
+          tableUuid: tableId,
+        );
+      }
+      setState(() {
+        _tables = tables;
+        _bookedTableIds = bookedIds;
+        _isLoadingTables = false;
+      });
+    }
+  }
+
+  void _filterFoodItems(String query) {
+    setState(() {
+      _searchQuery = query;
+      if (query.isEmpty) {
+        _filteredFoodItems = _foodItems;
+      } else {
+        _filteredFoodItems = _foodItems.where((item) {
+          final name = (item['name'] ?? '').toString().toLowerCase();
+          final cat = (item['category_name'] ?? '').toString().toLowerCase();
+          final q = query.toLowerCase();
+          return name.contains(q) || cat.contains(q);
+        }).toList();
+      }
+    });
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'lunch': return Icons.lunch_dining;
+      case 'beverages': return Icons.coffee;
+      case 'snacks': return Icons.cookie;
+      case 'breakfast': return Icons.breakfast_dining;
+      default: return Icons.restaurant;
+    }
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'lunch': return Colors.orange;
+      case 'beverages': return Colors.blue;
+      case 'snacks': return Colors.purple;
+      case 'breakfast': return Colors.amber;
+      default: return Colors.teal;
+    }
+  }
+
+  Future<void> _placeOrder() async {
+    if (_cart.isEmpty) return;
+    
+    setState(() => _isPlacingOrder = true);
+    
+    final items = _cart.values.map((item) => {
+      'food_item_id': item.id,
+      'quantity': item.quantity,
+    }).toList();
+    
+    final result = await _cafeteriaService.createFoodOrder(items: items);
+    
+    if (mounted) {
+      setState(() {
+        _isPlacingOrder = false;
+        if (result['success']) {
+          _showCartOverlay = false;
+          _cart.clear();
+        }
+      });
+      
+      if (result['success']) {
+        final orderData = result['data'];
+        final orderNum = orderData?['order_number'] ?? '';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Order $orderNum placed successfully!'),
+            backgroundColor: const Color(0xFF1A237E),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to place order'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -354,6 +507,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
         ],
       ),
       child: TextField(
+        onChanged: _filterFoodItems,
         decoration: InputDecoration(
           hintText: 'Search for food...',
           hintStyle: TextStyle(
@@ -363,6 +517,60 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
           prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildViewMyOrdersButton() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF1A237E).withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MyOrdersScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.receipt_long_outlined,
+                    color: const Color(0xFF1A237E), size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  'VIEW MY ORDERS',
+                  style: TextStyle(
+                    color: Color(0xFF1A237E),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.arrow_forward_ios,
+                    color: const Color(0xFF1A237E).withValues(alpha: 0.5),
+                    size: 16),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -471,26 +679,44 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
         const SizedBox(height: 16),
         _buildSearchBar(),
         const SizedBox(height: 16),
-        _buildMenuItem(
-          id: 'gourmet_veggie_platter',
-          icon: Icons.lunch_dining,
-          iconColor: Colors.orange,
-          iconBgColor: Colors.orange.shade50,
-          name: 'Gourmet Veggie Platter',
-          price: '\$12.50',
-          isLunch: true,
-        ),
-        const SizedBox(height: 16),
-        _buildMenuItem(
-          id: 'detox_grain_bowl',
-          icon: Icons.rice_bowl,
-          iconColor: Colors.green,
-          iconBgColor: Colors.green.shade50,
-          name: 'Detox Grain Bowl',
-          price: '\$10.00',
-          isLunch: false,
-          subtitle: 'FRESHLY PREPARED',
-        ),
+        _buildViewMyOrdersButton(), // Added button
+        const SizedBox(height: 24),
+
+        if (_isLoadingFood)
+          const Padding(
+            padding: EdgeInsets.all(40),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_filteredFoodItems.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(40),
+            child: Center(
+              child: Text(
+                _searchQuery.isNotEmpty ? 'No items match your search' : 'No food items available',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              ),
+            ),
+          )
+        else
+          ..._filteredFoodItems.map((item) {
+            final category = (item['category_name'] ?? 'lunch').toString();
+            final iconColor = _getCategoryColor(category);
+            final itemId = item['id']?.toString() ?? '';
+            final price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildMenuItem(
+                id: itemId,
+                icon: _getCategoryIcon(category),
+                iconColor: iconColor,
+                iconBgColor: iconColor.withValues(alpha: 0.1),
+                name: item['name'] ?? '',
+                price: '\$${price.toStringAsFixed(2)}',
+                isLunch: category == 'lunch',
+                subtitle: category.toUpperCase(),
+              ),
+            );
+          }),
         // Add extra padding at bottom when cart bar is visible
         if (_totalCartItems > 0)
           const SizedBox(height: 80),
@@ -499,8 +725,31 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
   }
 
   Widget _buildDeskBookingView() {
-    final zoneADesks = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8'];
-    final zoneBDesks = ['B1', 'B2', 'B3', 'B4'];
+    if (_isLoadingTables) {
+      return ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildToggleButtons(),
+          const SizedBox(height: 24),
+          const Padding(
+            padding: EdgeInsets.all(40),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ],
+      );
+    }
+
+    // Group desks by zone (first letter of label)
+    final Map<String, List<String>> zones = {};
+    for (final label in _desks.keys) {
+      final zone = label.isNotEmpty ? label[0] : '?';
+      zones.putIfAbsent(zone, () => []).add(label);
+    }
+    final zoneNames = {
+      'A': 'ZONE A: MAIN HALL',
+      'B': 'ZONE B: WINDOW SIDE',
+    };
 
     return ListView(
       controller: _scrollController,
@@ -508,18 +757,30 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       children: [
         _buildToggleButtons(),
         const SizedBox(height: 24),
-        _buildZoneSection(
-          zoneName: 'ZONE A: MAIN HALL',
-          freeCount: _getAvailableDeskCount(zoneADesks),
-          deskIds: zoneADesks,
-        ),
-        const SizedBox(height: 24),
-        _buildZoneSection(
-          zoneName: 'ZONE B: WINDOW SIDE',
-          freeCount: _getAvailableDeskCount(zoneBDesks),
-          deskIds: zoneBDesks,
-        ),
-        const SizedBox(height: 32),
+        if (_desks.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(40),
+            child: Center(
+              child: Text(
+                'No tables available',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              ),
+            ),
+          )
+        else
+          ...zones.entries.map((entry) {
+            final zoneName = zoneNames[entry.key] ?? 'ZONE ${entry.key}';
+            return Column(
+              children: [
+                _buildZoneSection(
+                  zoneName: zoneName,
+                  freeCount: _getAvailableDeskCount(entry.value),
+                  deskIds: entry.value,
+                ),
+                const SizedBox(height: 24),
+              ],
+            );
+          }),
         _buildLegend(),
         const SizedBox(height: 24),
         _buildDeskConfirmButton(),
@@ -1050,19 +1311,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
-                            // Handle order confirmation
-                            setState(() {
-                              _showCartOverlay = false;
-                              _cart.clear();
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Order confirmed successfully!'),
-                                backgroundColor: Color(0xFF1A237E),
-                              ),
-                            );
-                          },
+                          onPressed: _isPlacingOrder ? null : _placeOrder,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF1A237E),
                             foregroundColor: Colors.white,
@@ -1072,14 +1321,23 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            'CONFIRM ORDER',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
+                          child: _isPlacingOrder
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text(
+                                  'CONFIRM ORDER',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
@@ -1192,8 +1450,9 @@ enum DeskStatus { available, booked, selected, freezed }
 
 class _DeskItem {
   final String label;
+  final String? tableUuid;
   DeskStatus status;
   Timer? freezeTimer;
 
-  _DeskItem({required this.label, required this.status});
+  _DeskItem({required this.label, required this.status, this.tableUuid});
 }

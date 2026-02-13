@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../../services/attendance_service.dart';
+import '../../services/holiday_service.dart';
+import 'package:intl/intl.dart';
 import '../manager_profile_screen.dart';
 import '../cafeteria_screen.dart';
 import '../parking_screen.dart';
@@ -7,9 +10,9 @@ import '../leave_screen.dart';
 import '../../main.dart'; // Import main.dart for themeNotifier
 
 class ManagerDashboard extends StatefulWidget {
-  final String managerName;
+  final Map<String, dynamic> userProfile;
 
-  const ManagerDashboard({super.key, required this.managerName});
+  const ManagerDashboard({super.key, required this.userProfile});
 
   @override
   State<ManagerDashboard> createState() => _ManagerDashboardState();
@@ -18,23 +21,29 @@ class ManagerDashboard extends StatefulWidget {
 class _ManagerDashboardState extends State<ManagerDashboard> {
   int _selectedIndex = 0;
   final ScrollController _scrollController = ScrollController();
+  final AttendanceService _attendanceService = AttendanceService();
+  final HolidayService _holidayService = HolidayService();
+
+  // Holiday state
+  List<Map<String, dynamic>> _holidays = [];
+  bool _isLoadingHolidays = true;
 
   // Attendance tracking state
   bool _isCheckedIn = false;
   bool _isSubmitted = false;
-  DateTime? _currentCheckInTime;
+  bool _isSubmitting = false; // Add state to track submission progress
+  DateTime? _firstCheckInTime; // Changed from _currentCheckInTime to track first check-in
+  DateTime? _lastCheckOutTime; // Track last check-out for submitted duration
   Duration _totalTrackedDuration = Duration.zero;
   Timer? _timer;
-  DateTime? _lastResetDate;
-
-  // Design constants matching employee dashboard
-  static const Color navyColor = Color(0xFF1A367C);
-  static const Color yellowAccent = Color(0xFFFDBB2D);
+  String? _attendanceStatus; // To store backend status like DRAFT, SUBMITTED
 
   @override
   void initState() {
     super.initState();
-    _checkDayReset();
+    _fetchAttendanceStatus();
+    _startTimer(); // Always run timer to update duration display if checked in
+    _fetchHolidays();
   }
 
   @override
@@ -44,161 +53,263 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     super.dispose();
   }
 
-  void _checkDayReset() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    
-    if (_lastResetDate == null || _lastResetDate!.isBefore(today)) {
+  Future<void> _fetchAttendanceStatus() async {
+    final result = await _attendanceService.getMyStatus();
+    if (result['success']) {
+      final data = result['data'];
+      if (!mounted) return;
+      
       setState(() {
-        _isCheckedIn = false;
-        _isSubmitted = false;
-        _currentCheckInTime = null;
-        _totalTrackedDuration = Duration.zero;
-        _lastResetDate = today;
+        _isCheckedIn = data['is_checked_in'] ?? false;
+        // Handle potential null or different types for total_hours
+        final totalHours = data['total_hours'];
+        double hours = 0.0;
+        if (totalHours is int) {
+          hours = totalHours.toDouble();
+        } else if (totalHours is double) {
+          hours = totalHours;
+        }
+        _totalTrackedDuration = Duration(minutes: (hours * 60).round());
+        
+        _attendanceStatus = data['status'];
+        _isSubmitted = _attendanceStatus == 'submitted' || 
+                       _attendanceStatus == 'approved' || 
+                       _attendanceStatus == 'pending_approval';
+        
+        if (data['first_check_in'] != null) {
+          _firstCheckInTime = _tryParseDate(data['first_check_in']);
+        }
+        
+        if (data['last_check_out'] != null) {
+          _lastCheckOutTime = _tryParseDate(data['last_check_out']);
+        }
+        
+        if (_isCheckedIn) {
+           final entries = data['entries'] as List?;
+           if (entries != null && entries.isNotEmpty) {
+             // Find the entry where check_out is null
+             final openEntry = entries.firstWhere(
+               (e) => e['check_out'] == null, 
+               orElse: () => null
+             );
+             
+             if (openEntry != null && openEntry['check_in'] != null) {
+               _currentSessionStartTime = _tryParseDate(openEntry['check_in']);
+             }
+           }
+        } else {
+          _currentSessionStartTime = null;
+        }
       });
-      _timer?.cancel();
     }
   }
 
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {});
+      if (mounted && _isCheckedIn) {
+        setState(() {}); // Trigger rebuild to update duration text
+      }
     });
   }
 
-  void _handleCheckIn() {
+  DateTime? _currentSessionStartTime;
+
+  // Design constants matching employee dashboard
+  static const Color navyColor = Color(0xFF1A367C);
+  static const Color yellowAccent = Color(0xFFFDBB2D);
+  
+  String get managerName => widget.userProfile['full_name'] ?? 'Manager';
+
+  DateTime? _tryParseDate(dynamic dateStr) {
+    if (dateStr == null) return null;
+    if (dateStr is! String) return null;
+    try {
+      return DateTime.parse(dateStr);
+    } catch (e) {
+      print('Error parsing date: $dateStr - $e');
+      return null;
+    }
+  }
+
+  Future<void> _handleCheckIn() async {
     if (_isSubmitted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Attendance already submitted for today!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Attendance already submitted for today!'), backgroundColor: Colors.orange),
+      );
       return;
     }
-    
     if (_isCheckedIn) return;
     
-    setState(() {
-      _isCheckedIn = true;
-      _currentCheckInTime = DateTime.now();
-    });
-    _startTimer();
+    // Optimistic update
+    setState(() => _isCheckedIn = true);
+
+    final result = await _attendanceService.checkIn();
     
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Checked in successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 1500),
-        ),
-      );
+    if (result['success']) {
+      await _fetchAttendanceStatus(); // Refresh to get exact server times
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Checked in successfully!'), backgroundColor: Colors.green),
+        );
+      }
+    } else {
+      setState(() => _isCheckedIn = false); // Revert
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
-  void _handleCheckOut() {
+  Future<void> _handleCheckOut() async {
     if (_isSubmitted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Attendance already submitted for today!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
-      return;
-    }
-    
-    if (!_isCheckedIn) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Please check in first!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
-      return;
-    }
-    
-    if (_currentCheckInTime != null) {
-      final sessionDuration = DateTime.now().difference(_currentCheckInTime!);
-      setState(() {
-        _totalTrackedDuration += sessionDuration;
-        _isCheckedIn = false;
-        _currentCheckInTime = null;
-      });
-    }
-    _timer?.cancel();
-    
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Checked out successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 1500),
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Attendance already submitted for today!'), backgroundColor: Colors.orange),
       );
+      return;
+    }
+    if (!_isCheckedIn) return;
+    
+    // Optimistic update
+    setState(() => _isCheckedIn = false);
+
+    final result = await _attendanceService.checkOut();
+    
+    if (result['success']) {
+      await _fetchAttendanceStatus();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Checked out successfully!'), backgroundColor: Colors.green),
+        );
+      }
+    } else {
+       setState(() => _isCheckedIn = true); // Revert
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
-  void _handleSubmit() {
-    if (_isSubmitted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Attendance already submitted for today!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
+
+  Future<void> _handleSubmit() async {
+    // Check if currently checked in
+    if (_isCheckedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please check out before submitting!'), backgroundColor: Colors.orange),
+      );
       return;
     }
-    
-    if (_isCheckedIn && _currentCheckInTime != null) {
-      final sessionDuration = DateTime.now().difference(_currentCheckInTime!);
-      _totalTrackedDuration += sessionDuration;
+
+    // Show confirmation dialog
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: !_isSubmitting, // Prevent dismissing while submitting
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Confirm Submission',
+            style: TextStyle(
+              color: navyColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Text(
+            'Are you sure you want to submit your attendance for today?',
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(false),
+              child: Text(
+                'No',
+                style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w600),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: navyColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Yes, Submit'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      // Call submit API
+      final result = await _attendanceService.submitAttendance();
+
+      if (result['success']) {
+        await _fetchAttendanceStatus();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Attendance submitted successfully!'), backgroundColor: Colors.green),
+          );
+        }
+      } else {
+         if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
-    
-    _timer?.cancel();
-    
-    setState(() {
-      _isSubmitted = true;
-      _isCheckedIn = false;
-      _currentCheckInTime = null;
-    });
-    
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Attendance submitted successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 1500),
-        ),
-      );
   }
 
   String _formatDuration() {
+    if (_isSubmitted) {
+      // Logic for submitted state: First Check-in to Last Check-out
+      if (_firstCheckInTime != null && _lastCheckOutTime != null) {
+        final duration = _lastCheckOutTime!.difference(_firstCheckInTime!);
+        final hours = duration.inHours;
+        final minutes = duration.inMinutes % 60;
+         return '${hours.toString().padLeft(2, '0')}h ${minutes.toString().padLeft(2, '0')}m';
+      } else {
+         // Fallback if times are missing but submitted
+         return _formatDurationFromDuration(_totalTrackedDuration);
+      }
+    }
+  
+    // Logic for active tracking
     Duration displayDuration = _totalTrackedDuration;
     
-    if (_isCheckedIn && _currentCheckInTime != null) {
-      displayDuration += DateTime.now().difference(_currentCheckInTime!);
+    if (_isCheckedIn && _currentSessionStartTime != null) {
+      displayDuration += DateTime.now().difference(_currentSessionStartTime!);
     }
     
-    if (!_isSubmitted && displayDuration == Duration.zero) {
+    return _formatDurationFromDuration(displayDuration);
+  }
+  
+  String _formatDurationFromDuration(Duration duration) {
+    if (duration == Duration.zero) {
       return '--h --m';
     }
     
-    final hours = displayDuration.inHours;
-    final minutes = displayDuration.inMinutes % 60;
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
     return '${hours.toString().padLeft(2, '0')}h ${minutes.toString().padLeft(2, '0')}m';
   }
 
@@ -222,6 +333,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
                 _buildDashboardContent(),
                 const LeaveScreen(),
                 ManagerProfileScreen(
+                  userProfile: widget.userProfile,
                   onBack: () {
                     setState(() {
                       _selectedIndex = 0;
@@ -364,7 +476,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Good Morning, ${widget.managerName}',
+                'Good Morning, $managerName',
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -411,7 +523,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
                       ),
                       child: Center(
                         child: Text(
-                          _getInitials(widget.managerName),
+                          _getInitials(managerName),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -596,7 +708,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
               SizedBox(
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _isSubmitted ? null : _handleSubmit,
+                  onPressed: (_isSubmitted || _isSubmitting) ? null : _handleSubmit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _isSubmitted 
                         ? navyColor.withOpacity(0.5)
@@ -610,13 +722,22 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     elevation: 0,
                   ),
-                  child: Text(
-                    _isSubmitted ? 'Submitted' : 'Submit',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  child: _isSubmitting 
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        _isSubmitted ? 'Submitted' : 'Submit',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -758,6 +879,44 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     );
   }
 
+  Future<void> _fetchHolidays() async {
+    final result = await _holidayService.getHolidays(upcomingOnly: false);
+    if (result['success'] && mounted) {
+      setState(() {
+        _holidays = List<Map<String, dynamic>>.from(result['data'] ?? []);
+        _isLoadingHolidays = false;
+      });
+    } else if (mounted) {
+      setState(() => _isLoadingHolidays = false);
+    }
+  }
+
+  String _getHolidayStatus(String dateStr) {
+    try {
+      final holidayDate = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final hDate = DateTime(holidayDate.year, holidayDate.month, holidayDate.day);
+      
+      if (hDate.isBefore(today)) return 'COMPLETED';
+      if (hDate.isAtSameMomentAs(today)) return 'TODAY';
+      final diff = hDate.difference(today).inDays;
+      if (diff <= 7) return 'UPCOMING';
+      return 'SCHEDULED';
+    } catch (e) {
+      return 'SCHEDULED';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'COMPLETED': return Colors.green;
+      case 'TODAY': return Colors.blue;
+      case 'UPCOMING': return Colors.orange;
+      default: return Colors.grey;
+    }
+  }
+
   Widget _buildAnnouncedHolidays() {
     return Container(
       width: double.infinity,
@@ -783,32 +942,48 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
               fontWeight: FontWeight.bold,
               color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.white
-                  : const Color(0xFF1A237E), // Navy Blue
+                  : const Color(0xFF1A237E),
               letterSpacing: 0.5,
             ),
           ),
           const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columnSpacing: 20,
-              horizontalMargin: 0,
-              columns: const [
-                DataColumn(label: Text('DATE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
-                DataColumn(label: Text('EVENT NAME', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
-                DataColumn(label: Text('DAY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
-                DataColumn(label: Text('CATEGORY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
-                DataColumn(label: Text('STATUS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
-              ],
-              rows: [
-                _buildHolidayRow('Jan 26, 2026', 'Republic Day', 'Monday', 'NATIONAL', 'COMPLETED', Colors.green),
-                _buildHolidayRow('Feb 26, 2026', 'Maha Shivratri', 'Thursday', 'RELIGIOUS', 'UPCOMING', Colors.orange),
-                _buildHolidayRow('Mar 14, 2026', 'Holi', 'Saturday', 'FESTIVAL', 'SCHEDULED', Colors.grey),
-                _buildHolidayRow('Mar 29, 2026', 'Ram Navami', 'Sunday', 'RELIGIOUS', 'SCHEDULED', Colors.grey),
-                _buildHolidayRow('Apr 10, 2026', 'Good Friday', 'Friday', 'RELIGIOUS', 'SCHEDULED', Colors.grey),
-              ],
-            ),
-          ),
+          _isLoadingHolidays
+              ? const Center(child: CircularProgressIndicator())
+              : _holidays.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          'No holidays announced yet',
+                          style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                        ),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columnSpacing: 20,
+                        horizontalMargin: 0,
+                        columns: const [
+                          DataColumn(label: Text('DATE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
+                          DataColumn(label: Text('EVENT NAME', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
+                          DataColumn(label: Text('DAY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
+                          DataColumn(label: Text('CATEGORY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
+                          DataColumn(label: Text('STATUS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
+                        ],
+                        rows: _holidays.map((holiday) {
+                          final dateStr = holiday['date'] ?? '';
+                          DateTime? parsedDate;
+                          try { parsedDate = DateTime.parse(dateStr); } catch (_) {}
+                          final formattedDate = parsedDate != null ? DateFormat('MMM dd, yyyy').format(parsedDate) : dateStr;
+                          final dayName = parsedDate != null ? DateFormat('EEEE').format(parsedDate) : '';
+                          final category = (holiday['holiday_type'] ?? 'company').toString().toUpperCase();
+                          final status = _getHolidayStatus(dateStr);
+                          final statusColor = _getStatusColor(status);
+                          return _buildHolidayRow(formattedDate, holiday['name'] ?? '', dayName, category, status, statusColor);
+                        }).toList(),
+                      ),
+                    ),
         ],
       ),
     );
@@ -822,7 +997,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
             color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87
         ))),
         DataCell(Text(name, style: TextStyle(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.blueAccent[100] : const Color(0xFF1A237E), // Navy Blue
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.blueAccent[100] : const Color(0xFF1A237E),
             fontWeight: FontWeight.w500
         ))),
         DataCell(Text(day, style: TextStyle(
