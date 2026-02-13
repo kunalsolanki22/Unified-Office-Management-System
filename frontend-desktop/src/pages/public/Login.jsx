@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -27,6 +27,12 @@ function Login() {
             navigate('/admin/dashboard');
         } else if (user.role === 'TeamLead') {
             navigate('/team-lead/dashboard');
+        } else if (user.role === 'AttendanceManager') {
+            navigate('/attendance-manager/dashboard');
+        } else if (user.role === 'ReportingManager') {
+            navigate('/reporting-manager/dashboard');
+        } else if (user.role === 'CafeteriaManager') {
+            navigate('/cafeteria-manager/dashboard');
         } else if (user.role === 'Manager') {
             if (user.manager_type === 'parking') {
                 navigate('/parking/dashboard');
@@ -58,7 +64,6 @@ function Login() {
             return;
         }
 
-        // login sets user in AuthContext — useEffect above handles redirect
         login({ email, password });
         toast.success("Login successful");
     };

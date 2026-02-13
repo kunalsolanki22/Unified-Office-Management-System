@@ -8,10 +8,12 @@ import AuthLayout from '../layouts/AuthLayout';
 // Module Routes
 import SuperAdminRoutes from './modules/SuperAdminRoutes';
 import AdminRoutes from './modules/AdminRoutes';
-import ManagerRoutes from './modules/ManagerRoutes';
 import TeamLeadRoutes from './modules/TeamLeadRoutes';
 import ParkingRoutes from './modules/ParkingRoutes';
 import HardwareRoutes from './modules/HardwareRoutes';
+import AttendanceManagerRoutes from './modules/AttendanceManagerRoutes';
+import CafeteriaManagerRoutes from './modules/CafeteriaManagerRoutes';
+import ReportingManagerRoutes from './modules/ReportingManagerRoutes';
 
 // Public
 import Login from '../pages/public/Login';
@@ -42,12 +44,7 @@ const AppRoutes = () => {
                     <Route path="/admin/*" element={<AdminRoutes />} />
                 </Route>
 
-                {/* Manager Module (other managers) */}
-                <Route element={<ProtectedRoutes allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
-                    <Route path="/manager/*" element={<ManagerRoutes />} />
-                </Route>
-
-                {/* Parking Manager — separate persona */}
+                {/* Parking Manager */}
                 <Route element={<ProtectedRoutes
                     allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
                     allowedManagerTypes={['parking']}
@@ -55,7 +52,7 @@ const AppRoutes = () => {
                     <Route path="/parking/*" element={<ParkingRoutes />} />
                 </Route>
 
-                {/* IT Hardware Manager — separate persona */}
+                {/* IT Hardware Manager */}
                 <Route element={<ProtectedRoutes
                     allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
                     allowedManagerTypes={['it_support']}
@@ -68,6 +65,22 @@ const AppRoutes = () => {
                     <Route path="/team-lead/*" element={<TeamLeadRoutes />} />
                 </Route>
 
+                {/* Attendance Manager Module */}
+                <Route element={<ProtectedRoutes allowedRoles={[ROLES.ATTENDANCE_MANAGER, ROLES.SUPER_ADMIN]} />}>
+                    <Route path="/attendance-manager/*" element={<AttendanceManagerRoutes />} />
+                </Route>
+
+                {/* Cafeteria Manager Module */}
+                <Route element={<ProtectedRoutes allowedRoles={[ROLES.CAFETERIA_MANAGER, ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
+                    <Route path="/cafeteria-manager/*" element={<CafeteriaManagerRoutes />} />
+                </Route>
+
+                {/* Reporting Manager Module */}
+                <Route element={<ProtectedRoutes allowedRoles={[ROLES.REPORTING_MANAGER, ROLES.SUPER_ADMIN]} />}>
+                    <Route path="/reporting-manager/*" element={<ReportingManagerRoutes />} />
+                </Route>
+
+                {/* Fallback */}
                 <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
         </BrowserRouter>

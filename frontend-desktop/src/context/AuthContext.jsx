@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
 
     const login = (userData) => {
-        let role = ROLES.MANAGER;
+        let role = ROLES.CAFETERIA_MANAGER;
         let manager_type = null;
 
         if (userData.email.includes('super')) {
@@ -16,18 +16,18 @@ export const AuthProvider = ({ children }) => {
             role = ROLES.ADMIN;
         } else if (userData.email.includes('team')) {
             role = ROLES.TEAM_LEAD;
-        } else if (
-            userData.email.includes('parking') ||
-            userData.email.includes('it') ||
-            userData.email.includes('hardware') ||
-            userData.email.includes('manager')
-        ) {
+        } else if (userData.email.includes('attendance')) {
+            role = ROLES.ATTENDANCE_MANAGER;
+        } else if (userData.email.includes('reporting')) {
+            role = ROLES.REPORTING_MANAGER;
+        } else if (userData.email.includes('parking')) {
             role = ROLES.MANAGER;
-            if (userData.email.includes('parking')) {
-                manager_type = 'parking';
-            } else {
-                manager_type = 'it_support';
-            }
+            manager_type = 'parking';
+        } else if (userData.email.includes('it') || userData.email.includes('hardware')) {
+            role = ROLES.MANAGER;
+            manager_type = 'it_support';
+        } else if (userData.email.includes('cafeteria') || userData.email.includes('manager')) {
+            role = ROLES.CAFETERIA_MANAGER;
         }
 
         setUser({ ...userData, role, manager_type });
@@ -40,6 +40,9 @@ export const AuthProvider = ({ children }) => {
         if (u.role === ROLES.SUPER_ADMIN) return '/super-admin/dashboard';
         if (u.role === ROLES.ADMIN) return '/admin/dashboard';
         if (u.role === ROLES.TEAM_LEAD) return '/team-lead/dashboard';
+        if (u.role === ROLES.ATTENDANCE_MANAGER) return '/attendance-manager/dashboard';
+        if (u.role === ROLES.REPORTING_MANAGER) return '/reporting-manager/dashboard';
+        if (u.role === ROLES.CAFETERIA_MANAGER) return '/cafeteria-manager/dashboard';
         if (u.role === ROLES.MANAGER) {
             if (u.manager_type === 'parking') return '/parking/dashboard';
             return '/hardware/dashboard';
@@ -56,4 +59,5 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

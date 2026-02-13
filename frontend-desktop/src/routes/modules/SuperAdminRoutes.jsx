@@ -1,11 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import SuperAdminLayout from '../../layouts/SuperAdminLayout';
-import { ROUTES } from '../../constants/routes';
+
 
 // Pages
 import Dashboard from '../../pages/super-admin/Dashboard';
 import AdminManagement from '../../pages/super-admin/AdminManagement';
 import Attendance from '../../pages/super-admin/Attendance';
+import ApprovalsHub from '../../pages/super-admin/ApprovalsHub';
 import Holidays from '../../pages/super-admin/Holidays';
 import ActionHub from '../../pages/super-admin/ActionHub';
 import Analytics from '../../pages/super-admin/Analytics';
@@ -17,6 +18,7 @@ const SuperAdminRoutes = () => {
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="admins" element={<AdminManagement />} />
                 <Route path="attendance" element={<Attendance />} />
+                <Route path="approvals" element={<ApprovalsHub />} />
                 <Route path="holidays" element={<Holidays />} />
                 <Route path="actions" element={<ActionHub />} />
                 <Route path="analytics" element={<Analytics />} />

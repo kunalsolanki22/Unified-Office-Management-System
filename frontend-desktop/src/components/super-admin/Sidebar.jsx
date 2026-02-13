@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, CalendarCheck, CalendarDays, Zap, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarCheck, CalendarDays, Zap, LogOut, FileText } from 'lucide-react';
 
 import logo from '../../assets/cygnet-logo.png';
 
@@ -13,6 +13,7 @@ const Sidebar = () => {
         { name: 'Dashboard', path: '/super-admin/dashboard', icon: LayoutDashboard },
         { name: 'Admin', path: '/super-admin/admins', icon: Users },
         { name: 'Attendance', path: '/super-admin/attendance', icon: CalendarCheck },
+        { name: 'Approvals', path: '/super-admin/approvals', icon: FileText },
         { name: 'Holidays', path: '/super-admin/holidays', icon: CalendarDays },
     ];
 

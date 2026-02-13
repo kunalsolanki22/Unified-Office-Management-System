@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -45,7 +44,7 @@ const Dashboard = () => {
                     variants={itemVariants}
                     className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col justify-between min-h-[320px] relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                 >
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-blue-50 rounded-bl-full -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-orange-50 rounded-bl-full -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
 
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-4">
@@ -75,7 +74,7 @@ const Dashboard = () => {
                 {/* Organization Announcements Card */}
                 <motion.div
                     variants={itemVariants}
-                    className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col min-h-[320px] relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                    className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col min-h-[320px] relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
                 >
                     <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-6">
                         <Bell className="w-4 h-4 text-[#f9b012]" />
@@ -96,12 +95,13 @@ const Dashboard = () => {
                             </div>
                         ))}
                     </div>
+                    <div className="h-1 w-10 bg-[#f9b012] mt-6 rounded-full transition-all duration-300 group-hover:w-20"></div>
                 </motion.div>
 
                 {/* Upcoming Holidays Card */}
                 <motion.div
                     variants={itemVariants}
-                    className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col min-h-[320px] relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                    className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col min-h-[320px] relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
                 >
                     <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-6">
                         <CalendarDays className="w-4 h-4 text-[#f9b012]" />
@@ -132,6 +132,7 @@ const Dashboard = () => {
                             <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
                         </button>
                     </div>
+                    <div className="h-1 w-10 bg-[#f9b012] mt-6 rounded-full transition-all duration-300 group-hover:w-20"></div>
                 </motion.div>
             </div>
 

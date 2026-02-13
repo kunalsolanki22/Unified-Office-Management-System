@@ -1,14 +1,16 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Car, Coffee, Monitor, Users, HardDrive } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const ActionHub = () => {
+    const navigate = useNavigate();
+
     const actions = [
-        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
-        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
-        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation' },
-        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling' },
-        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment' },
+        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls', path: '/admin/parking' },
+        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: '/admin/cafeteria' },
+        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation', path: '/admin/desks' },
+        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling', path: '/admin/rooms' },
+        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment', path: '/admin/assets' },
     ];
 
     return (
@@ -31,7 +33,8 @@ const ActionHub = () => {
                     <motion.div
                         key={idx}
                         whileHover={{ y: -5, boxShadow: '0 10px 30px rgba(0, 0, 0, 0.06)' }}
-                        className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] xl:w-[calc(25%-18px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group min-h-[250px] justify-center transition-all duration-300"
+                        onClick={() => navigate(action.path || 'dashboard')}
+                        className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group min-h-[250px] justify-center transition-all duration-300"
                     >
                         <div className="absolute inset-0 bg-radial-gradient from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
