@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'manager/manager_dashboard.dart';
 import 'forgot_password_screen.dart';
 import 'employee/employee_dashboard.dart';
+import '../services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,6 +14,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
   bool _rememberMe = false;
   bool _obscurePassword = true;
 
@@ -201,8 +204,8 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       children: [
         SizedBox(
-          width: 20,
-          height: 20,
+          width: 24,
+          height: 24,
           child: Checkbox(
             value: _rememberMe,
             onChanged: (value) {
@@ -217,11 +220,14 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         const SizedBox(width: 8),
-        const Text(
-          'Remember Me',
-          style: TextStyle(
-            fontSize: 14,
-            color: Color(0xFF333333),
+        const Expanded(
+          child: Text(
+            'Remember Me',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF333333),
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -233,7 +239,7 @@ class _LoginPageState extends State<LoginPage> {
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
-        onPressed: _handleLogin,
+        onPressed: _isLoading ? null : _handleLogin,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF4A6CF7),
           foregroundColor: Colors.white,
@@ -242,13 +248,22 @@ class _LoginPageState extends State<LoginPage> {
           ),
           elevation: 0,
         ),
-        child: const Text(
-          'Login',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Text(
+                'Login',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
       ),
     );
   }
@@ -290,133 +305,133 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // Email validation: must contain @ and a . after @
+  // Email validation: simple check for @ and .
   String? _validateEmail(String email) {
     if (email.isEmpty) {
       return 'Email is required';
     }
-    
-    if (!email.contains('@')) {
-      return 'Email must contain @';
-    }
-    
-    // Check if there's a . after @
-    final atIndex = email.indexOf('@');
-    final afterAt = email.substring(atIndex + 1);
-    if (!afterAt.contains('.')) {
-      return 'Email must contain a "." after @';
-    }
-    
-    // Make sure there's something before the .
-    final dotIndex = afterAt.indexOf('.');
-    if (dotIndex == 0 || dotIndex == afterAt.length - 1) {
+    if (!email.contains('@') || !email.contains('.')) {
       return 'Invalid email format';
     }
-    
-    return null; // Valid
+    return null;
   }
 
-  // Password validation: min 8 chars, special char (!@#$&), a number, uppercase
+  // Password validation: just required check for now to allow easier testing
   String? _validatePassword(String password) {
     if (password.isEmpty) {
       return 'Password is required';
     }
-    
-    if (password.length < 8) {
-      return 'Password must be at least 8 characters';
-    }
-    
-    if (!RegExp(r'[A-Z]').hasMatch(password)) {
-      return 'Password must contain an uppercase letter';
-    }
-    
-    if (!RegExp(r'[0-9]').hasMatch(password)) {
-      return 'Password must contain a number';
-    }
-    
-    if (!RegExp(r'[!@#$&]').hasMatch(password)) {
-      return 'Password must contain a special character (!@#\$&)';
-    }
-    
-    return null; // Valid
+    return null;
   }
 
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
     // Validate email
     final emailError = _validateEmail(email);
     if (emailError != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(emailError),
-            backgroundColor: Colors.red,
-            duration: const Duration(milliseconds: 1500),
-          ),
-        );
+      _showErrorStackBar(emailError);
       return;
     }
 
     // Validate password
     final passwordError = _validatePassword(password);
     if (passwordError != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(passwordError),
-            backgroundColor: Colors.red,
-            duration: const Duration(milliseconds: 1500),
-          ),
-        );
+      _showErrorStackBar(passwordError);
       return;
     }
 
-    // Extract name from email (everything before @)
-    String name = "User";
-    if (email.contains('@')) {
-      String rawName = email.split('@')[0];
-      // Capitalize first letter
-      if (rawName.isNotEmpty) {
-        name = rawName[0].toUpperCase() + rawName.substring(1);
-      }
-    }
+    setState(() {
+      _isLoading = true;
+    });
 
-    // Check if email contains "manager" (case insensitive)
-    if (email.toLowerCase().contains('manager')) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Login Successful'),
-            backgroundColor: Colors.green,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ManagerDashboard(managerName: name),
+    final result = await _authService.login(email, password);
+
+    setState(() {
+      _isLoading = false;
+    });
+
+      if (result['success']) {
+        // Login successful, get user role
+        final userRoleData = await _authService.getCurrentUserRole();
+        
+        if (userRoleData != null) {
+          // Normalize to uppercase to handle case differences
+          final role = (userRoleData['role'] ?? 'EMPLOYEE').toString().toUpperCase(); 
+          
+          // Try to fetch full profile for dynamic name
+          String name = userRoleData['sub'] ?? 'User';
+          Map<String, dynamic>? profile; // Declare outside try block
+          try {
+            profile = await _authService.getUserProfile();
+            if (profile != null && profile['full_name'] != null) {
+              name = profile['full_name'];
+            }
+          } catch (e) {
+            print('Failed to fetch profile: $e');
+            // Fallback to name from token
+          }
+          
+          _showSuccessSnackBar('Login Successful');
+  
+          if (context.mounted) {
+             if (role == 'MANAGER' || role == 'ADMIN' || role == 'SUPER_ADMIN') {
+              // Construct a profile map if the fetch failed or was partial
+              final Map<String, dynamic> finalProfile = profile ?? {
+                'full_name': name,
+                'role': role,
+                'email': userRoleData['sub'] ?? '',
+                // Add checks to prevent nulls
+              };
+              // Ensure full_name is present if it wasn't in the fetch
+              if (finalProfile['full_name'] == null) finalProfile['full_name'] = name;
+
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ManagerDashboard(userProfile: finalProfile),
+                ),
+              );
+            } else {
+              // TEAM_LEAD, EMPLOYEE
+               Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => EmployeeDashboard(userName: name)),
+              );
+            }
+          }
+        } else {
+          _showErrorStackBar('Failed to retrieve user role');
+        }
+      } else {
+      _showErrorStackBar(result['message']);
+    }
+  }
+
+  void _showErrorStackBar(String message) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(milliseconds: 1500),
         ),
       );
-    } else {
-      // Employee login - route to employee dashboard
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Login Successful'),
-            backgroundColor: Colors.green,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => EmployeeDashboard(userName: name)),
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+          duration: const Duration(milliseconds: 1500),
+        ),
       );
-    }
   }
 }

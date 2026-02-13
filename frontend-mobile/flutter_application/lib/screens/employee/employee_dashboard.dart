@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../../services/attendance_service.dart';
 import 'employee_profile_screen.dart';
 import '../cafeteria_screen.dart';
 import '../parking_screen.dart';
@@ -21,14 +22,18 @@ class EmployeeDashboard extends StatefulWidget {
 
 class _EmployeeDashboardState extends State<EmployeeDashboard> {
   int _selectedIndex = 0;
+  final AttendanceService _attendanceService = AttendanceService();
 
   // Attendance tracking state
   bool _isCheckedIn = false;
   bool _isSubmitted = false;
-  DateTime? _currentCheckInTime;
+  bool _isSubmitting = false;
+  DateTime? _firstCheckInTime;
+  DateTime? _lastCheckOutTime;
   Duration _totalTrackedDuration = Duration.zero;
   Timer? _timer;
-  DateTime? _lastResetDate;
+  String? _attendanceStatus;
+  DateTime? _currentSessionStartTime;
 
   // Design constants matching HTML
   static const Color navyColor = Color(0xFF1A367C);
@@ -38,7 +43,8 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
   @override
   void initState() {
     super.initState();
-    _checkDayReset();
+    _fetchAttendanceStatus();
+    _startTimer();
   }
 
   @override
@@ -47,157 +53,225 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
     super.dispose();
   }
 
-  void _checkDayReset() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    
-    if (_lastResetDate == null || _lastResetDate!.isBefore(today)) {
-      // Reset for new day
+  Future<void> _fetchAttendanceStatus() async {
+    final result = await _attendanceService.getMyStatus();
+    if (result['success']) {
+      final data = result['data'];
+      if (!mounted) return;
+      
       setState(() {
-        _isCheckedIn = false;
-        _isSubmitted = false;
-        _currentCheckInTime = null;
-        _totalTrackedDuration = Duration.zero;
-        _lastResetDate = today;
+        _isCheckedIn = data['is_checked_in'] ?? false;
+        final totalHours = data['total_hours'];
+        double hours = 0.0;
+        if (totalHours is int) {
+          hours = totalHours.toDouble();
+        } else if (totalHours is double) {
+          hours = totalHours;
+        }
+        _totalTrackedDuration = Duration(minutes: (hours * 60).round());
+        
+        _attendanceStatus = data['status'];
+        _isSubmitted = _attendanceStatus == 'submitted' || 
+                       _attendanceStatus == 'approved' || 
+                       _attendanceStatus == 'pending_approval';
+        
+        if (data['first_check_in'] != null) {
+          _firstCheckInTime = _tryParseDate(data['first_check_in']);
+        }
+        
+        if (data['last_check_out'] != null) {
+          _lastCheckOutTime = _tryParseDate(data['last_check_out']);
+        }
+        
+        if (_isCheckedIn) {
+           final entries = data['entries'] as List?;
+           if (entries != null && entries.isNotEmpty) {
+             final openEntry = entries.firstWhere(
+               (e) => e['check_out'] == null, 
+               orElse: () => null
+             );
+             
+             if (openEntry != null && openEntry['check_in'] != null) {
+               _currentSessionStartTime = _tryParseDate(openEntry['check_in']);
+             }
+           }
+        } else {
+          _currentSessionStartTime = null;
+        }
       });
-      _timer?.cancel();
+    }
+  }
+
+  DateTime? _tryParseDate(dynamic dateStr) {
+    if (dateStr == null) return null;
+    if (dateStr is! String) return null;
+    try {
+      return DateTime.parse(dateStr);
+    } catch (e) {
+      print('Error parsing date: $dateStr - $e');
+      return null;
     }
   }
 
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {}); // Refresh to update duration display
+      if (mounted && _isCheckedIn) {
+        setState(() {});
+      }
     });
   }
 
-  void _handleCheckIn() {
+  Future<void> _handleCheckIn() async {
     if (_isSubmitted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Attendance already submitted for today!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Attendance already submitted for today!'), backgroundColor: Colors.orange),
+      );
       return;
     }
+    if (_isCheckedIn) return;
     
-    if (_isCheckedIn) return; // Already checked in
+    setState(() => _isCheckedIn = true);
+
+    final result = await _attendanceService.checkIn();
     
-    setState(() {
-      _isCheckedIn = true;
-      _currentCheckInTime = DateTime.now();
-    });
-    _startTimer();
-    
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Checked in successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 1500),
-        ),
-      );
+    if (result['success']) {
+      await _fetchAttendanceStatus();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Checked in successfully!'), backgroundColor: Colors.green),
+        );
+      }
+    } else {
+      setState(() => _isCheckedIn = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
-  void _handleCheckOut() {
+  Future<void> _handleCheckOut() async {
     if (_isSubmitted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Attendance already submitted for today!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
-      return;
-    }
-    
-    if (!_isCheckedIn) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Please check in first!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
-      return;
-    }
-    
-    // Calculate duration for this session and add to total
-    if (_currentCheckInTime != null) {
-      final sessionDuration = DateTime.now().difference(_currentCheckInTime!);
-      setState(() {
-        _totalTrackedDuration += sessionDuration;
-        _isCheckedIn = false;
-        _currentCheckInTime = null;
-      });
-    }
-    _timer?.cancel();
-    
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Checked out successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 1500),
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Attendance already submitted for today!'), backgroundColor: Colors.orange),
       );
+      return;
+    }
+    if (!_isCheckedIn) return;
+    
+    setState(() => _isCheckedIn = false);
+
+    final result = await _attendanceService.checkOut();
+    
+    if (result['success']) {
+      await _fetchAttendanceStatus();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Checked out successfully!'), backgroundColor: Colors.green),
+        );
+      }
+    } else {
+       setState(() => _isCheckedIn = true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
-  void _handleSubmit() {
-    if (_isSubmitted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Attendance already submitted for today!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
+  Future<void> _handleSubmit() async {
+    if (_isCheckedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please check out before submitting!'), backgroundColor: Colors.orange),
+      );
       return;
     }
-    
-    // If still checked in, add current session to total
-    if (_isCheckedIn && _currentCheckInTime != null) {
-      final sessionDuration = DateTime.now().difference(_currentCheckInTime!);
-      _totalTrackedDuration += sessionDuration;
+
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: !_isSubmitting,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Confirm Submission',
+            style: TextStyle(
+              color: navyColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Text(
+            'Are you sure you want to submit your attendance for today?',
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(false),
+              child: Text(
+                'No',
+                style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w600),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: navyColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Yes, Submit'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final result = await _attendanceService.submitAttendance();
+
+      if (result['success']) {
+        await _fetchAttendanceStatus();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Attendance submitted successfully!'), backgroundColor: Colors.green),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Submission failed'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
-    
-    _timer?.cancel();
-    
-    setState(() {
-      _isSubmitted = true;
-      _isCheckedIn = false;
-      _currentCheckInTime = null;
-    });
-    
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Attendance submitted successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 1500),
-        ),
-      );
   }
 
   String _formatDuration() {
     Duration displayDuration = _totalTrackedDuration;
     
-    // Add current session if checked in
-    if (_isCheckedIn && _currentCheckInTime != null) {
-      displayDuration += DateTime.now().difference(_currentCheckInTime!);
+    if (_isCheckedIn && _currentSessionStartTime != null) {
+      displayDuration += DateTime.now().difference(_currentSessionStartTime!);
+    }
+    
+    if (_isSubmitted && displayDuration == Duration.zero && _firstCheckInTime != null && _lastCheckOutTime != null) {
+      displayDuration = _lastCheckOutTime!.difference(_firstCheckInTime!);
     }
     
     if (!_isSubmitted && displayDuration == Duration.zero) {
@@ -557,7 +631,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                 SizedBox(
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: _isSubmitted ? null : _handleSubmit,
+                    onPressed: (_isSubmitted || _isSubmitting) ? null : _handleSubmit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isSubmitted 
                           ? navyColor.withOpacity(0.5)
@@ -571,13 +645,22 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       elevation: 0,
                     ),
-                    child: Text(
-                      _isSubmitted ? 'Submitted' : 'Submit',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            _isSubmitted ? 'Submitted' : 'Submit',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 12),
