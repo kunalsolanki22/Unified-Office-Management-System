@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../services/attendance_service.dart';
+import '../../services/holiday_service.dart';
+import 'package:intl/intl.dart';
 import '../manager_profile_screen.dart';
 import '../cafeteria_screen.dart';
 import '../parking_screen.dart';
@@ -20,6 +22,11 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
   int _selectedIndex = 0;
   final ScrollController _scrollController = ScrollController();
   final AttendanceService _attendanceService = AttendanceService();
+  final HolidayService _holidayService = HolidayService();
+
+  // Holiday state
+  List<Map<String, dynamic>> _holidays = [];
+  bool _isLoadingHolidays = true;
 
   // Attendance tracking state
   bool _isCheckedIn = false;
@@ -36,6 +43,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     super.initState();
     _fetchAttendanceStatus();
     _startTimer(); // Always run timer to update duration display if checked in
+    _fetchHolidays();
   }
 
   @override
@@ -871,6 +879,44 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     );
   }
 
+  Future<void> _fetchHolidays() async {
+    final result = await _holidayService.getHolidays(upcomingOnly: false);
+    if (result['success'] && mounted) {
+      setState(() {
+        _holidays = List<Map<String, dynamic>>.from(result['data'] ?? []);
+        _isLoadingHolidays = false;
+      });
+    } else if (mounted) {
+      setState(() => _isLoadingHolidays = false);
+    }
+  }
+
+  String _getHolidayStatus(String dateStr) {
+    try {
+      final holidayDate = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final hDate = DateTime(holidayDate.year, holidayDate.month, holidayDate.day);
+      
+      if (hDate.isBefore(today)) return 'COMPLETED';
+      if (hDate.isAtSameMomentAs(today)) return 'TODAY';
+      final diff = hDate.difference(today).inDays;
+      if (diff <= 7) return 'UPCOMING';
+      return 'SCHEDULED';
+    } catch (e) {
+      return 'SCHEDULED';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'COMPLETED': return Colors.green;
+      case 'TODAY': return Colors.blue;
+      case 'UPCOMING': return Colors.orange;
+      default: return Colors.grey;
+    }
+  }
+
   Widget _buildAnnouncedHolidays() {
     return Container(
       width: double.infinity,
@@ -896,32 +942,48 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
               fontWeight: FontWeight.bold,
               color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.white
-                  : const Color(0xFF1A237E), // Navy Blue
+                  : const Color(0xFF1A237E),
               letterSpacing: 0.5,
             ),
           ),
           const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columnSpacing: 20,
-              horizontalMargin: 0,
-              columns: const [
-                DataColumn(label: Text('DATE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
-                DataColumn(label: Text('EVENT NAME', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
-                DataColumn(label: Text('DAY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
-                DataColumn(label: Text('CATEGORY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
-                DataColumn(label: Text('STATUS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
-              ],
-              rows: [
-                _buildHolidayRow('Jan 26, 2026', 'Republic Day', 'Monday', 'NATIONAL', 'COMPLETED', Colors.green),
-                _buildHolidayRow('Feb 26, 2026', 'Maha Shivratri', 'Thursday', 'RELIGIOUS', 'UPCOMING', Colors.orange),
-                _buildHolidayRow('Mar 14, 2026', 'Holi', 'Saturday', 'FESTIVAL', 'SCHEDULED', Colors.grey),
-                _buildHolidayRow('Mar 29, 2026', 'Ram Navami', 'Sunday', 'RELIGIOUS', 'SCHEDULED', Colors.grey),
-                _buildHolidayRow('Apr 10, 2026', 'Good Friday', 'Friday', 'RELIGIOUS', 'SCHEDULED', Colors.grey),
-              ],
-            ),
-          ),
+          _isLoadingHolidays
+              ? const Center(child: CircularProgressIndicator())
+              : _holidays.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          'No holidays announced yet',
+                          style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                        ),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columnSpacing: 20,
+                        horizontalMargin: 0,
+                        columns: const [
+                          DataColumn(label: Text('DATE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
+                          DataColumn(label: Text('EVENT NAME', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
+                          DataColumn(label: Text('DAY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
+                          DataColumn(label: Text('CATEGORY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
+                          DataColumn(label: Text('STATUS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8C8D90)))),
+                        ],
+                        rows: _holidays.map((holiday) {
+                          final dateStr = holiday['date'] ?? '';
+                          DateTime? parsedDate;
+                          try { parsedDate = DateTime.parse(dateStr); } catch (_) {}
+                          final formattedDate = parsedDate != null ? DateFormat('MMM dd, yyyy').format(parsedDate) : dateStr;
+                          final dayName = parsedDate != null ? DateFormat('EEEE').format(parsedDate) : '';
+                          final category = (holiday['holiday_type'] ?? 'company').toString().toUpperCase();
+                          final status = _getHolidayStatus(dateStr);
+                          final statusColor = _getStatusColor(status);
+                          return _buildHolidayRow(formattedDate, holiday['name'] ?? '', dayName, category, status, statusColor);
+                        }).toList(),
+                      ),
+                    ),
         ],
       ),
     );
@@ -935,7 +997,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
             color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87
         ))),
         DataCell(Text(name, style: TextStyle(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.blueAccent[100] : const Color(0xFF1A237E), // Navy Blue
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.blueAccent[100] : const Color(0xFF1A237E),
             fontWeight: FontWeight.w500
         ))),
         DataCell(Text(day, style: TextStyle(
