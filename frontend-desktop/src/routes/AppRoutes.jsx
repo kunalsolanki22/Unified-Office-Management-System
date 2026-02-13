@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoutes from './ProtectedRoutes';
-import { ROUTES } from '../constants/routes';
 import { ROLES } from '../constants/roles';
 
 // Layouts
@@ -9,27 +8,31 @@ import AuthLayout from '../layouts/AuthLayout';
 // Module Routes
 import SuperAdminRoutes from './modules/SuperAdminRoutes';
 import AdminRoutes from './modules/AdminRoutes';
-
 import TeamLeadRoutes from './modules/TeamLeadRoutes';
-import AttendanceManagerRoutes from './modules/AttendanceManagerRoutes'; // Attendance Manager Routes
+import ParkingRoutes from './modules/ParkingRoutes';
+import HardwareRoutes from './modules/HardwareRoutes';
+import AttendanceManagerRoutes from './modules/AttendanceManagerRoutes';
 import CafeteriaManagerRoutes from './modules/CafeteriaManagerRoutes';
 import ReportingManagerRoutes from './modules/ReportingManagerRoutes';
 import ConferenceDeskManagerRoutes from './modules/ConferenceDeskManagerRoutes';
 
-
-// Pages
+// Public
 import Login from '../pages/public/Login';
 
-const Unauthorized = () => <div>Unauthorized</div>;
+const Unauthorized = () => (
+    <div className="flex items-center justify-center h-screen text-[#1a367c] font-bold text-xl">
+        Unauthorized Access
+    </div>
+);
 
 const AppRoutes = () => {
     return (
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
-                {/* Public Routes */}
+                {/* Public */}
                 <Route element={<AuthLayout />}>
-                    <Route path={ROUTES.LOGIN} element={<Login />} />
-                    <Route path={ROUTES.UNAUTHORIZED} element={<Unauthorized />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/unauthorized" element={<Unauthorized />} />
                 </Route>
 
                 {/* Super Admin Module */}
@@ -42,7 +45,21 @@ const AppRoutes = () => {
                     <Route path="/admin/*" element={<AdminRoutes />} />
                 </Route>
 
+                {/* Parking Manager */}
+                <Route element={<ProtectedRoutes
+                    allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
+                    allowedManagerTypes={['parking']}
+                />}>
+                    <Route path="/parking/*" element={<ParkingRoutes />} />
+                </Route>
 
+                {/* IT Hardware Manager */}
+                <Route element={<ProtectedRoutes
+                    allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
+                    allowedManagerTypes={['it_support']}
+                />}>
+                    <Route path="/hardware/*" element={<HardwareRoutes />} />
+                </Route>
 
                 {/* Team Lead Module */}
                 <Route element={<ProtectedRoutes allowedRoles={[ROLES.TEAM_LEAD, ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
@@ -70,7 +87,7 @@ const AppRoutes = () => {
                 </Route>
 
                 {/* Fallback */}
-                <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
+                <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
         </BrowserRouter>
     );
