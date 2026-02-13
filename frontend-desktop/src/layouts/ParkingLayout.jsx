@@ -115,7 +115,7 @@ const ParkingLayout = () => {
             <div className="flex-1 flex flex-col overflow-hidden">
 
                 {/* Header */}
-                <header className="h-[90px] flex items-center justify-between bg-white/90 backdrop-blur-md border-b border-transparent px-10 flex-shrink-0">
+                <header className="h-[90px] flex items-center justify-between bg-white/90 backdrop-blur-md border-b border-transparent px-10 flex-shrink-0 relative z-50">
                     <div>
                         <p className="text-[0.65rem] uppercase tracking-[1.5px] text-[#8892b0] mb-0.5">
                             PARKING MANAGER PORTAL
