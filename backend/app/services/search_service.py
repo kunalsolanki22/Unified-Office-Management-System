@@ -25,8 +25,8 @@ class SearchService:
         filters: Optional[Dict[str, Any]] = None
     ) -> SemanticSearchResponse:
         """Perform hybrid search (semantic + keyword)."""
-        # Generate query embedding
-        query_embedding = await self.embedding_service.generate_embedding(query)
+        # Generate query embedding as list for search
+        query_embedding = await self.embedding_service.generate_embedding_list(query)
         
         if domain == SearchDomain.FOOD:
             results = await self._search_food(query, query_embedding, limit, filters)
@@ -55,42 +55,49 @@ class SearchService:
     ) -> List[SearchResultItem]:
         """Search food items."""
         results = []
+        used_semantic = False
         
         if query_embedding:
-            # Semantic search using pgvector
-            embedding_str = f"[{','.join(map(str, query_embedding))}]"
-            
-            sql = text("""
-                SELECT 
-                    id, name, description, category_name as category, 
-                    1 - (embedding <=> :embedding::vector) as similarity
-                FROM food_items
-                WHERE is_active = true 
-                AND is_available = true
-                AND embedding IS NOT NULL
-                ORDER BY embedding <=> :embedding::vector
-                LIMIT :limit
-            """)
-            
-            result = await self.db.execute(
-                sql,
-                {"embedding": embedding_str, "limit": limit}
-            )
-            rows = result.fetchall()
-            
-            for row in rows:
-                results.append(SearchResultItem(
-                    id=str(row.id),
-                    name=row.name,
-                    description=row.description or "",
-                    score=float(row.similarity),
-                    metadata={
-                        "category": row.category,
-                        "type": "food"
-                    }
-                ))
-        else:
-            # Fallback to keyword search
+            # Try semantic search using pgvector
+            try:
+                embedding_str = f"[{','.join(map(str, query_embedding))}]"
+                
+                sql = text("""
+                    SELECT 
+                        id, name, description, category_name as category, 
+                        1 - (embedding <=> :embedding::vector) as similarity
+                    FROM food_items
+                    WHERE is_active = true 
+                    AND is_available = true
+                    AND embedding IS NOT NULL
+                    ORDER BY embedding <=> :embedding::vector
+                    LIMIT :limit
+                """)
+                
+                result = await self.db.execute(
+                    sql,
+                    {"embedding": embedding_str, "limit": limit}
+                )
+                rows = result.fetchall()
+                
+                for row in rows:
+                    results.append(SearchResultItem(
+                        id=str(row.id),
+                        name=row.name,
+                        description=row.description or "",
+                        score=float(row.similarity),
+                        metadata={
+                            "category": row.category,
+                            "type": "food"
+                        }
+                    ))
+                used_semantic = len(results) > 0
+            except Exception as e:
+                print(f"Semantic search failed, falling back to keyword: {e}")
+                used_semantic = False
+        
+        # Fallback to keyword search if semantic didn't work or no embedding
+        if not used_semantic:
             search_pattern = f"%{query}%"
             stmt = select(FoodItem).where(
                 and_(
@@ -99,8 +106,7 @@ class SearchService:
                     or_(
                         FoodItem.name.ilike(search_pattern),
                         FoodItem.description.ilike(search_pattern),
-                        # Cast enum to string for ilike operation
-                        func.cast(FoodItem.category, String).ilike(search_pattern)
+                        FoodItem.category_name.ilike(search_pattern)
                     )
                 )
             ).limit(limit)
@@ -119,7 +125,6 @@ class SearchService:
                         "type": "food"
                     }
                 ))
-
         
         # Apply additional filters
         if filters:
@@ -139,43 +144,50 @@ class SearchService:
     ) -> List[SearchResultItem]:
         """Search IT assets."""
         results = []
+        used_semantic = False
         
         if query_embedding:
-            # Semantic search using pgvector
-            embedding_str = f"[{','.join(map(str, query_embedding))}]"
-            
-            sql = text("""
-                SELECT 
-                    id, name, description, asset_type, vendor, status,
-                    1 - (embedding <=> :embedding::vector) as similarity
-                FROM it_assets
-                WHERE is_active = true 
-                AND embedding IS NOT NULL
-                ORDER BY embedding <=> :embedding::vector
-                LIMIT :limit
-            """)
-            
-            result = await self.db.execute(
-                sql,
-                {"embedding": embedding_str, "limit": limit}
-            )
-            rows = result.fetchall()
-            
-            for row in rows:
-                results.append(SearchResultItem(
-                    id=str(row.id),
-                    name=row.name,
-                    description=row.description or "",
-                    score=float(row.similarity),
-                    metadata={
-                        "asset_type": row.asset_type,
-                        "vendor": row.vendor,
-                        "status": row.status,
-                        "type": "it_asset"
-                    }
-                ))
-        else:
-            # Fallback to keyword search
+            # Try semantic search using pgvector
+            try:
+                embedding_str = f"[{','.join(map(str, query_embedding))}]"
+                
+                sql = text("""
+                    SELECT 
+                        id, name, description, asset_type, vendor, status,
+                        1 - (embedding <=> :embedding::vector) as similarity
+                    FROM it_assets
+                    WHERE is_active = true 
+                    AND embedding IS NOT NULL
+                    ORDER BY embedding <=> :embedding::vector
+                    LIMIT :limit
+                """)
+                
+                result = await self.db.execute(
+                    sql,
+                    {"embedding": embedding_str, "limit": limit}
+                )
+                rows = result.fetchall()
+                
+                for row in rows:
+                    results.append(SearchResultItem(
+                        id=str(row.id),
+                        name=row.name,
+                        description=row.description or "",
+                        score=float(row.similarity),
+                        metadata={
+                            "asset_type": row.asset_type,
+                            "vendor": row.vendor,
+                            "status": row.status,
+                            "type": "it_asset"
+                        }
+                    ))
+                used_semantic = len(results) > 0
+            except Exception as e:
+                print(f"Semantic search failed for IT assets, falling back to keyword: {e}")
+                used_semantic = False
+        
+        # Fallback to keyword search if semantic didn't work or no embedding
+        if not used_semantic:
             search_pattern = f"%{query}%"
             stmt = select(ITAsset).where(
                 and_(
@@ -183,7 +195,8 @@ class SearchService:
                     or_(
                         ITAsset.name.ilike(search_pattern),
                         ITAsset.description.ilike(search_pattern),
-                        ITAsset.vendor.ilike(search_pattern)
+                        ITAsset.vendor.ilike(search_pattern),
+                        ITAsset.asset_code.ilike(search_pattern)
                     )
                 )
             ).limit(limit)
