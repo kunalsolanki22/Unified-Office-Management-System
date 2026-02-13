@@ -49,6 +49,7 @@ function Login() {
         else if (email.includes('team')) role = ROLES.TEAM_LEAD;
         else if (email.includes('attendance')) role = ROLES.ATTENDANCE_MANAGER;
         else if (email.includes('reporting')) role = ROLES.REPORTING_MANAGER;
+        else if (email.includes('conference') || email.includes('desk')) role = ROLES.CONFERENCE_DESK_MANAGER;
         else if (email.includes('manager') || email.includes('cafeteria')) role = ROLES.CAFETERIA_MANAGER;
 
         login({ email, role });
@@ -74,6 +75,9 @@ function Login() {
                 break;
             case ROLES.REPORTING_MANAGER:
                 navigate('/reporting-manager/dashboard');
+                break;
+            case ROLES.CONFERENCE_DESK_MANAGER:
+                navigate('/conference-desk-manager/dashboard');
                 break;
             case ROLES.CAFETERIA_MANAGER:
             case ROLES.MANAGER: // Fallback for legacy

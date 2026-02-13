@@ -5,5 +5,6 @@ export const ROLES = {
     TEAM_LEAD: 'TeamLead',
     ATTENDANCE_MANAGER: 'AttendanceManager',
     CAFETERIA_MANAGER: 'CafeteriaManager',
-    REPORTING_MANAGER: 'ReportingManager'
+    REPORTING_MANAGER: 'ReportingManager',
+    CONFERENCE_DESK_MANAGER: 'ConferenceDeskManager'
 };

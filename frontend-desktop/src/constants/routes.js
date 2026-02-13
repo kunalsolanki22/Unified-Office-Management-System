@@ -24,4 +24,7 @@ export const ROUTES = {
 
     // Team Lead
     TEAM_LEAD_DASHBOARD: '/team-lead/dashboard',
+
+    // Conference & Desk Manager
+    CONFERENCE_DESK_MANAGER_DASHBOARD: '/conference-desk-manager/dashboard',
 };

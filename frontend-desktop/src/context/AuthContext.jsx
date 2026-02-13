@@ -11,11 +11,12 @@ export const AuthProvider = ({ children }) => {
         // In a real app, this would come from the backend API response
         let role = ROLES.CAFETERIA_MANAGER;
 
-        if (userData.email.includes('admin')) role = ROLES.ADMIN;
         if (userData.email.includes('super')) role = ROLES.SUPER_ADMIN;
-        if (userData.email.includes('team')) role = ROLES.TEAM_LEAD;
-        if (userData.email.includes('attendance')) role = ROLES.ATTENDANCE_MANAGER;
-        if (userData.email.includes('reporting')) role = ROLES.REPORTING_MANAGER;
+        else if (userData.email.includes('admin')) role = ROLES.ADMIN;
+        else if (userData.email.includes('team')) role = ROLES.TEAM_LEAD;
+        else if (userData.email.includes('attendance')) role = ROLES.ATTENDANCE_MANAGER;
+        else if (userData.email.includes('reporting')) role = ROLES.REPORTING_MANAGER;
+        else if (userData.email.includes('conference') || userData.email.includes('desk')) role = ROLES.CONFERENCE_DESK_MANAGER;
         else if (userData.email.includes('manager') || userData.email.includes('cafeteria')) role = ROLES.CAFETERIA_MANAGER;
 
         setUser({ ...userData, role });

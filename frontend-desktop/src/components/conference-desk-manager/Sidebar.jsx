@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, CalendarCheck, CalendarDays, Zap, LogOut, Utensils, Armchair, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarCheck, CheckSquare, CalendarDays, ClipboardList, Zap, LogOut, Monitor, Projector } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/cygnet-logo.png';
 
@@ -7,22 +7,21 @@ const Sidebar = () => {
     const { logout } = useAuth();
     const location = useLocation();
 
-    // Helper to determine if a route is active
-    const isActive = (path) => location.pathname === path;
+    const isActive = (path) => location.pathname.includes(path);
 
     const navItems = [
-        { name: 'Dashboard', path: '/cafeteria-manager/dashboard', icon: LayoutDashboard },
-        { name: 'Food Management', path: '/cafeteria-manager/food-management', icon: Utensils },
-        { name: 'Desk Management', path: '/cafeteria-manager/desk-management', icon: Armchair },
-        { name: 'User Directory', path: '/cafeteria-manager/user-directory', icon: Users },
-        { name: 'Attendance', path: '/cafeteria-manager/attendance', icon: CalendarCheck },
-        { name: 'Approvals', path: '/cafeteria-manager/approvals', icon: CalendarCheck }, // Using similar icon or distinct one
-        { name: 'Holidays', path: '/cafeteria-manager/holidays', icon: CalendarDays },
+        { name: 'Dashboard', path: '/conference-desk-manager/dashboard', icon: LayoutDashboard },
+        { name: 'User Directory', path: '/conference-desk-manager/user-directory', icon: Users },
+        { name: 'Desk Booking', path: '/conference-desk-manager/desk-booking', icon: Monitor },
+        { name: 'Conference Booking', path: '/conference-desk-manager/conference-booking', icon: Projector },
+        { name: 'Attendance', path: '/conference-desk-manager/attendance', icon: CalendarCheck },
+        { name: 'Approvals', path: '/conference-desk-manager/approvals', icon: CheckSquare },
+        { name: 'Holidays', path: '/conference-desk-manager/holidays', icon: CalendarDays },
     ];
 
     const accessTools = [
-        { name: 'Services', path: '/cafeteria-manager/services', icon: Zap },
-        { name: 'My Attendance', path: '/cafeteria-manager/my-attendance', icon: ClipboardList },
+        { name: 'My Attendance', path: '/conference-desk-manager/my-attendance', icon: ClipboardList },
+        { name: 'Services', path: '/conference-desk-manager/action-hub', icon: Zap },
     ];
 
     return (
@@ -81,10 +80,7 @@ const Sidebar = () => {
 
             {/* Footer / Exit Portal */}
             <div className="mt-auto">
-                <button
-                    onClick={logout}
-                    className="flex items-center gap-2.5 text-[#8892b0] text-[0.8rem] font-medium cursor-pointer hover:text-[#1a367c] transition-colors pl-2 w-full text-left"
-                >
+                <button onClick={logout} className="flex items-center gap-2.5 text-[#8892b0] text-[0.8rem] font-medium cursor-pointer hover:text-[#1a367c] transition-colors pl-2 w-full text-left">
                     <LogOut className="w-4 h-4" />
                     EXIT PORTAL
                 </button>
