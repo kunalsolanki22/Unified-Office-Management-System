@@ -21,6 +21,15 @@ router = APIRouter()
 
 def build_leave_request_response(leave_request: LeaveRequest) -> dict:
     """Build response dict from LeaveRequest model to avoid lazy-loading issues."""
+    # Get approver/rejector names from relationships if loaded
+    approver_name = None
+    if hasattr(leave_request, 'final_approver') and leave_request.final_approver:
+        approver_name = leave_request.final_approver.full_name
+    
+    rejected_by_name = None
+    if hasattr(leave_request, 'rejected_by') and leave_request.rejected_by:
+        rejected_by_name = leave_request.rejected_by.full_name
+    
     return {
         "id": leave_request.id,
         "user_code": leave_request.user_code,
@@ -33,23 +42,34 @@ def build_leave_request_response(leave_request: LeaveRequest) -> dict:
         "half_day_type": leave_request.half_day_type,
         "reason": leave_request.reason,
         "status": leave_request.status,
-        "level1_approver_code": leave_request.level1_approver_code,
-        "level1_approver_name": None,  # Could be fetched if needed
-        "level1_approved_at": leave_request.level1_approved_at,
-        "level1_notes": leave_request.level1_notes,
-        "final_approver_code": leave_request.final_approver_code,
-        "final_approver_name": None,  # Could be fetched if needed
-        "final_approved_at": leave_request.final_approved_at,
-        "final_approval_notes": leave_request.final_approval_notes,
+        # Single-level approval - using final_approver fields
+        "approver_code": leave_request.final_approver_code,
+        "approver_name": approver_name,
+        "approved_at": leave_request.final_approved_at,
+        "approval_notes": leave_request.final_approval_notes,
+        # Rejection details
         "rejection_reason": leave_request.rejection_reason,
         "rejected_by_code": leave_request.rejected_by_code,
+        "rejected_by_name": rejected_by_name,
         "rejected_at": leave_request.rejected_at,
+        # Cancellation
         "cancelled_at": leave_request.cancelled_at,
         "cancellation_reason": leave_request.cancellation_reason,
+        # Emergency contact
         "emergency_contact": leave_request.emergency_contact,
         "emergency_phone": leave_request.emergency_phone,
+        # Timestamps
         "created_at": leave_request.created_at,
         "updated_at": leave_request.updated_at,
+        # Deprecated fields (kept for backward compatibility)
+        "level1_approver_code": None,
+        "level1_approver_name": None,
+        "level1_approved_at": None,
+        "level1_notes": None,
+        "final_approver_code": leave_request.final_approver_code,
+        "final_approver_name": approver_name,
+        "final_approved_at": leave_request.final_approved_at,
+        "final_approval_notes": leave_request.final_approval_notes,
     }
 
 
@@ -138,18 +158,30 @@ async def get_leave_request(
     )
 
 
-@router.post("/requests/{request_id}/approve-level1", response_model=APIResponse[LeaveRequestResponse])
-async def approve_leave_level1(
+@router.post("/requests/{request_id}/approve", response_model=APIResponse[LeaveRequestResponse])
+async def approve_leave_request(
     request_id: UUID,
     approval_data: LeaveApproval,
     current_user: User = Depends(require_team_lead_or_above),
     db: AsyncSession = Depends(get_db)
 ):
-    """Approve leave request (Level 1 - Team Lead). Team Lead+ required."""
+    """
+    Approve or reject leave request (single-level approval).
+    
+    Approval hierarchy:
+    - Employee leave: Approved by Team Lead
+    - Team Lead leave: Approved by Manager  
+    - Manager leave: Approved by Admin
+    - Admin leave: Approved by Super Admin
+    - Super Admin leave: Auto-approved on creation
+    
+    Approver details are automatically filled from current logged-in user.
+    Team Lead+ required.
+    """
     leave_service = LeaveService(db)
     
     if approval_data.action == "approve":
-        leave_request, error = await leave_service.approve_level1(
+        leave_request, error = await leave_service.approve_leave(
             current_user, request_id, approval_data.notes
         )
     else:
@@ -174,18 +206,61 @@ async def approve_leave_level1(
     )
 
 
-@router.post("/requests/{request_id}/approve-final", response_model=APIResponse[LeaveRequestResponse])
+# Keep old endpoints for backward compatibility (deprecated)
+@router.post("/requests/{request_id}/approve-level1", response_model=APIResponse[LeaveRequestResponse], deprecated=True)
+async def approve_leave_level1(
+    request_id: UUID,
+    approval_data: LeaveApproval,
+    current_user: User = Depends(require_team_lead_or_above),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    DEPRECATED: Use /approve instead.
+    This endpoint now redirects to single-level approval.
+    """
+    leave_service = LeaveService(db)
+    
+    if approval_data.action == "approve":
+        leave_request, error = await leave_service.approve_leave(
+            current_user, request_id, approval_data.notes
+        )
+    else:
+        if not approval_data.rejection_reason:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Rejection reason is required"
+            )
+        leave_request, error = await leave_service.reject_leave(
+            current_user, request_id, approval_data.rejection_reason
+        )
+    
+    if error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error
+        )
+    
+    return create_response(
+        data=build_leave_request_response(leave_request),
+        message=f"Leave request {approval_data.action}d successfully"
+    )
+
+
+@router.post("/requests/{request_id}/approve-final", response_model=APIResponse[LeaveRequestResponse], deprecated=True)
 async def approve_leave_final(
     request_id: UUID,
     approval_data: LeaveApproval,
     current_user: User = Depends(require_manager_or_above),
     db: AsyncSession = Depends(get_db)
 ):
-    """Final approval for leave request. Manager+ required."""
+    """
+    DEPRECATED: Use /approve instead.
+    This endpoint now redirects to single-level approval.
+    """
     leave_service = LeaveService(db)
     
     if approval_data.action == "approve":
-        leave_request, error = await leave_service.approve_final(
+        leave_request, error = await leave_service.approve_leave(
             current_user, request_id, approval_data.notes
         )
     else:

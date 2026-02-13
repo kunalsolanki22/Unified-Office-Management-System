@@ -13,12 +13,14 @@ from ..models.enums import LeaveType, LeaveStatus, UserRole
 
 class LeaveService:
     """
-    Leave management service with two-level hierarchical approval.
+    Leave management service with single-level hierarchical approval.
     
-    Approval Hierarchy:
-    - EMPLOYEE: Level 1 by TEAM_LEAD, then Level 2 by MANAGER
-    - TEAM_LEAD: Approved directly by MANAGER
-    - MANAGER: Approved by SUPER_ADMIN
+    Approval Hierarchy (single approver per role):
+    - EMPLOYEE: Approved by TEAM_LEAD
+    - TEAM_LEAD: Approved by MANAGER
+    - MANAGER: Approved by ADMIN
+    - ADMIN: Approved by SUPER_ADMIN
+    - SUPER_ADMIN: Auto-approved (no approval needed)
     
     All leave uses user_code as the primary identifier.
     """
@@ -149,12 +151,14 @@ class LeaveService:
         emergency_phone: Optional[str] = None
     ) -> Tuple[Optional[LeaveRequest], Optional[str]]:
         """
-        Create a new leave request with hierarchical approval setup.
+        Create a new leave request with single-level approval.
         
-        Determines approvers based on employee role:
-        - EMPLOYEE: level1 = team_lead_code, final = manager_code
-        - TEAM_LEAD: level1 = None, final = manager_code
-        - MANAGER: level1 = None, final = super_admin
+        Determines single approver based on employee role:
+        - EMPLOYEE: Approved by TEAM_LEAD
+        - TEAM_LEAD: Approved by MANAGER
+        - MANAGER: Approved by ADMIN
+        - ADMIN: Approved by SUPER_ADMIN
+        - SUPER_ADMIN: Auto-approved (no approval needed)
         """
         year = start_date.year
         
@@ -193,7 +197,6 @@ class LeaveService:
                 LeaveRequest.user_code == user.user_code,
                 LeaveRequest.status.in_([
                     LeaveStatus.PENDING, 
-                    LeaveStatus.APPROVED_BY_TEAM_LEAD, 
                     LeaveStatus.APPROVED
                 ]),
                 LeaveRequest.start_date <= end_date,
@@ -203,23 +206,28 @@ class LeaveService:
         if overlap_result.scalar_one_or_none():
             return None, "Overlapping leave request exists"
         
-        # Determine approvers based on role
-        level1_approver_code = None
-        final_approver_code = None
+        # Determine single approver based on role (single-level approval)
+        approver_code = None
+        initial_status = LeaveStatus.PENDING
         
         if user.role == UserRole.EMPLOYEE:
-            # Employee: Team Lead -> Manager
-            level1_approver_code = user.team_lead_code
-            # Get manager code from team lead
-            if user.team_lead_code:
-                tl = await self.get_user_by_code(user.team_lead_code)
-                if tl:
-                    final_approver_code = tl.manager_code
+            # Employee: Approved by Team Lead
+            approver_code = user.team_lead_code
         elif user.role == UserRole.TEAM_LEAD:
-            # Team Lead: Direct to Manager
-            final_approver_code = user.manager_code
+            # Team Lead: Approved by Manager
+            approver_code = user.manager_code
         elif user.role == UserRole.MANAGER:
-            # Manager: Direct to Super Admin
+            # Manager: Approved by Admin
+            result = await self.db.execute(
+                select(User.user_code).where(
+                    User.role == UserRole.ADMIN,
+                    User.is_deleted == False,
+                    User.is_active == True
+                ).limit(1)
+            )
+            approver_code = result.scalar_one_or_none()
+        elif user.role == UserRole.ADMIN:
+            # Admin: Approved by Super Admin
             result = await self.db.execute(
                 select(User.user_code).where(
                     User.role == UserRole.SUPER_ADMIN,
@@ -227,7 +235,11 @@ class LeaveService:
                     User.is_active == True
                 ).limit(1)
             )
-            final_approver_code = result.scalar_one_or_none()
+            approver_code = result.scalar_one_or_none()
+        elif user.role == UserRole.SUPER_ADMIN:
+            # Super Admin: Auto-approved (no approval needed)
+            approver_code = user.user_code  # Self-approved
+            initial_status = LeaveStatus.APPROVED
         
         # Create request
         leave_request = LeaveRequest(
@@ -241,15 +253,24 @@ class LeaveService:
             half_day_type=half_day_type,
             emergency_contact=emergency_contact,
             emergency_phone=emergency_phone,
-            status=LeaveStatus.PENDING,
-            level1_approver_code=level1_approver_code,
-            final_approver_code=final_approver_code
+            status=initial_status,
+            final_approver_code=approver_code
         )
         self.db.add(leave_request)
         
-        # Update pending days in balance
-        if leave_type != LeaveType.UNPAID and balance:
-            balance.pending_days = balance.pending_days + total_days
+        # For Super Admin auto-approved, also update balance immediately
+        if initial_status == LeaveStatus.APPROVED:
+            # Auto-approved - update used days directly
+            if leave_type != LeaveType.UNPAID and balance:
+                balance.used_days = balance.used_days + total_days
+            # Set approval details for self-approved
+            leave_request.final_approver_code = user.user_code
+            leave_request.final_approved_at = datetime.now(timezone.utc)
+            leave_request.final_approval_notes = "Auto-approved (Super Admin)"
+        else:
+            # Update pending days in balance
+            if leave_type != LeaveType.UNPAID and balance:
+                balance.pending_days = balance.pending_days + total_days
         
         await self.db.commit()
         
@@ -263,17 +284,23 @@ class LeaveService:
         
         return leave_request, None
     
-    async def approve_level1(
+    async def approve_leave(
         self,
         approver: User,
         request_id: UUID,
         notes: Optional[str] = None
     ) -> Tuple[Optional[LeaveRequest], Optional[str]]:
         """
-        Team Lead approves leave request (Level 1).
+        Single-level approval for leave request.
         
-        Only applicable for Employee leave requests.
-        After Level 1 approval, request goes to Manager for final approval.
+        Approval hierarchy:
+        - Employee leave: Approved by Team Lead
+        - Team Lead leave: Approved by Manager
+        - Manager leave: Approved by Admin
+        - Admin leave: Approved by Super Admin
+        - Super Admin leave: Auto-approved on creation
+        
+        Approver details are automatically filled from current user.
         """
         leave_request = await self.get_leave_request_by_id(request_id)
         if not leave_request:
@@ -282,67 +309,36 @@ class LeaveService:
         if leave_request.status != LeaveStatus.PENDING:
             return None, f"Cannot approve request with status {leave_request.status.value}"
         
-        # Verify approver is the designated level1 approver
-        if leave_request.level1_approver_code != approver.user_code:
+        # Verify approver is the designated approver or has higher authority
+        can_approve = False
+        
+        if leave_request.final_approver_code == approver.user_code:
+            can_approve = True
+        elif approver.role == UserRole.SUPER_ADMIN:
             # Super admin can approve any
-            if approver.role != UserRole.SUPER_ADMIN:
-                return None, "You are not authorized to approve this request at Level 1"
+            can_approve = True
+        elif approver.role == UserRole.ADMIN:
+            # Admin can approve manager, team lead, employee leaves
+            requestor = await self.get_user_by_code(leave_request.user_code)
+            if requestor and requestor.role in [UserRole.MANAGER, UserRole.TEAM_LEAD, UserRole.EMPLOYEE]:
+                can_approve = True
+        elif approver.role == UserRole.MANAGER:
+            # Manager can approve team lead, employee leaves
+            requestor = await self.get_user_by_code(leave_request.user_code)
+            if requestor and requestor.role in [UserRole.TEAM_LEAD, UserRole.EMPLOYEE]:
+                can_approve = True
+        elif approver.role == UserRole.TEAM_LEAD:
+            # Team Lead can only approve employee leaves
+            requestor = await self.get_user_by_code(leave_request.user_code)
+            if requestor and requestor.role == UserRole.EMPLOYEE:
+                can_approve = True
         
-        leave_request.status = LeaveStatus.APPROVED_BY_TEAM_LEAD
-        leave_request.level1_approved_at = datetime.now(timezone.utc)
-        leave_request.level1_notes = notes
+        if not can_approve:
+            return None, "You are not authorized to approve this leave request"
         
-        await self.db.commit()
-        
-        # Re-query with eager-loaded leave_type
-        result = await self.db.execute(
-            select(LeaveRequest)
-            .options(selectinload(LeaveRequest.leave_type))
-            .where(LeaveRequest.id == leave_request.id)
-        )
-        leave_request = result.scalar_one()
-        
-        return leave_request, None
-    
-    async def approve_final(
-        self,
-        approver: User,
-        request_id: UUID,
-        notes: Optional[str] = None
-    ) -> Tuple[Optional[LeaveRequest], Optional[str]]:
-        """
-        Manager/Super Admin approves leave request (Final).
-        
-        - For Employees: After Team Lead approval
-        - For Team Leads: Direct approval by Manager
-        - For Managers: Approval by Super Admin
-        """
-        leave_request = await self.get_leave_request_by_id(request_id)
-        if not leave_request:
-            return None, "Leave request not found"
-        
-        # Get the requestor to check their role
-        requestor = await self.get_user_by_code(leave_request.user_code)
-        if not requestor:
-            return None, "Requestor not found"
-        
-        # Check valid status for final approval
-        if requestor.role == UserRole.EMPLOYEE:
-            # Employee requests need Level 1 approval first
-            if leave_request.status != LeaveStatus.APPROVED_BY_TEAM_LEAD:
-                return None, "Employee leave requests must be approved by Team Lead first"
-        else:
-            # Team Lead and Manager requests can be approved directly
-            if leave_request.status != LeaveStatus.PENDING:
-                return None, f"Cannot approve request with status {leave_request.status.value}"
-        
-        # Verify approver is the designated final approver
-        if leave_request.final_approver_code != approver.user_code:
-            # Super admin can approve any
-            if approver.role != UserRole.SUPER_ADMIN:
-                return None, "You are not authorized to give final approval"
-        
+        # Update leave request with approver details
         leave_request.status = LeaveStatus.APPROVED
+        leave_request.final_approver_code = approver.user_code
         leave_request.final_approved_at = datetime.now(timezone.utc)
         leave_request.final_approval_notes = notes
         
@@ -364,15 +360,43 @@ class LeaveService:
         
         await self.db.commit()
         
-        # Re-query with eager-loaded leave_type
+        # Re-query with eager-loaded leave_type and approver
         result = await self.db.execute(
             select(LeaveRequest)
-            .options(selectinload(LeaveRequest.leave_type))
+            .options(
+                selectinload(LeaveRequest.leave_type),
+                selectinload(LeaveRequest.final_approver)
+            )
             .where(LeaveRequest.id == leave_request.id)
         )
         leave_request = result.scalar_one()
         
         return leave_request, None
+    
+    # Keep old methods for backward compatibility (deprecated)
+    async def approve_level1(
+        self,
+        approver: User,
+        request_id: UUID,
+        notes: Optional[str] = None
+    ) -> Tuple[Optional[LeaveRequest], Optional[str]]:
+        """
+        DEPRECATED: Use approve_leave() instead.
+        This method now just calls approve_leave for backward compatibility.
+        """
+        return await self.approve_leave(approver, request_id, notes)
+    
+    async def approve_final(
+        self,
+        approver: User,
+        request_id: UUID,
+        notes: Optional[str] = None
+    ) -> Tuple[Optional[LeaveRequest], Optional[str]]:
+        """
+        DEPRECATED: Use approve_leave() instead.
+        This method now just calls approve_leave for backward compatibility.
+        """
+        return await self.approve_leave(approver, request_id, notes)
     
     async def reject_leave(
         self,
@@ -380,26 +404,43 @@ class LeaveService:
         request_id: UUID,
         reason: str
     ) -> Tuple[Optional[LeaveRequest], Optional[str]]:
-        """Reject leave request at any approval level."""
+        """
+        Reject leave request.
+        
+        Rejection can be done by the designated approver or higher authority.
+        Approver details are automatically filled from current user.
+        """
         leave_request = await self.get_leave_request_by_id(request_id)
         if not leave_request:
             return None, "Leave request not found"
         
-        if leave_request.status not in [LeaveStatus.PENDING, LeaveStatus.APPROVED_BY_TEAM_LEAD]:
+        if leave_request.status != LeaveStatus.PENDING:
             return None, f"Cannot reject request with status {leave_request.status.value}"
         
-        # Verify approver has permission
+        # Verify approver has permission (similar logic as approve)
         can_reject = False
-        if approver.role == UserRole.SUPER_ADMIN:
+        
+        if leave_request.final_approver_code == approver.user_code:
             can_reject = True
-        elif leave_request.level1_approver_code == approver.user_code:
+        elif approver.role == UserRole.SUPER_ADMIN:
             can_reject = True
-        elif leave_request.final_approver_code == approver.user_code:
-            can_reject = True
+        elif approver.role == UserRole.ADMIN:
+            requestor = await self.get_user_by_code(leave_request.user_code)
+            if requestor and requestor.role in [UserRole.MANAGER, UserRole.TEAM_LEAD, UserRole.EMPLOYEE]:
+                can_reject = True
+        elif approver.role == UserRole.MANAGER:
+            requestor = await self.get_user_by_code(leave_request.user_code)
+            if requestor and requestor.role in [UserRole.TEAM_LEAD, UserRole.EMPLOYEE]:
+                can_reject = True
+        elif approver.role == UserRole.TEAM_LEAD:
+            requestor = await self.get_user_by_code(leave_request.user_code)
+            if requestor and requestor.role == UserRole.EMPLOYEE:
+                can_reject = True
         
         if not can_reject:
             return None, "You are not authorized to reject this request"
         
+        # Update with rejector details (auto-filled from current user)
         leave_request.status = LeaveStatus.REJECTED
         leave_request.rejection_reason = reason
         leave_request.rejected_by_code = approver.user_code
@@ -422,10 +463,13 @@ class LeaveService:
         
         await self.db.commit()
         
-        # Re-query with eager-loaded leave_type
+        # Re-query with eager-loaded leave_type and rejected_by
         result = await self.db.execute(
             select(LeaveRequest)
-            .options(selectinload(LeaveRequest.leave_type))
+            .options(
+                selectinload(LeaveRequest.leave_type),
+                selectinload(LeaveRequest.rejected_by)
+            )
             .where(LeaveRequest.id == leave_request.id)
         )
         leave_request = result.scalar_one()
@@ -446,7 +490,7 @@ class LeaveService:
         if leave_request.user_code != user.user_code:
             return None, "Cannot cancel another user's request"
         
-        if leave_request.status not in [LeaveStatus.PENDING, LeaveStatus.APPROVED_BY_TEAM_LEAD]:
+        if leave_request.status != LeaveStatus.PENDING:
             return None, "Cannot cancel approved or rejected requests"
         
         leave_request.status = LeaveStatus.CANCELLED

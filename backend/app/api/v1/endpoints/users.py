@@ -10,7 +10,8 @@ from ....core.dependencies import (
 from ....models.user import User
 from ....models.enums import UserRole, ManagerType
 from ....schemas.user import (
-    UserCreate, UserUpdate, UserResponse, PasswordUpdateByAdmin, UserRoleChange
+    UserCreate, UserUpdate, UserResponse, PasswordUpdateByAdmin, UserRoleChange,
+    UserBasicInfoResponse
 )
 from ....schemas.base import APIResponse, PaginatedResponse
 from ....services.user_service import UserService
@@ -28,6 +29,43 @@ async def get_current_user_profile(
     return create_response(
         data=UserResponse.model_validate(current_user),
         message="Profile retrieved successfully"
+    )
+
+
+@router.get("/directory", response_model=PaginatedResponse[UserBasicInfoResponse])
+async def get_user_directory(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    search: Optional[str] = Query(None, description="Search by name, email, phone, or user code"),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get user directory with basic info - Accessible to ALL authenticated users.
+    
+    Returns a list of all active users with basic public information:
+    - user_code
+    - full_name
+    - email
+    - phone
+    - department
+    - is_active
+    
+    This endpoint is designed for employee directory/contact lookup functionality.
+    """
+    user_service = UserService(db)
+    users, total = await user_service.get_all_users_basic_info(
+        page=page,
+        page_size=page_size,
+        search=search
+    )
+    
+    return create_paginated_response(
+        data=[UserBasicInfoResponse.model_validate(user) for user in users],
+        total=total,
+        page=page,
+        page_size=page_size,
+        message="User directory retrieved successfully"
     )
 
 

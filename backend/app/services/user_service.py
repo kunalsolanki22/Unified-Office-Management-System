@@ -416,6 +416,52 @@ class UserService:
         
         return list(users), total
     
+    async def get_all_users_basic_info(
+        self,
+        page: int = 1,
+        page_size: int = 50,
+        search: Optional[str] = None
+    ) -> Tuple[List[User], int]:
+        """
+        Get all active users with basic information.
+        
+        This endpoint is accessible to ALL users regardless of role.
+        Returns only basic public information: name, email, phone, department.
+        """
+        query = select(User).where(
+            User.is_deleted == False,
+            User.is_active == True
+        )
+        count_query = select(func.count(User.id)).where(
+            User.is_deleted == False,
+            User.is_active == True
+        )
+        
+        # Apply search filter if provided
+        if search:
+            search_filter = or_(
+                User.first_name.ilike(f"%{search}%"),
+                User.last_name.ilike(f"%{search}%"),
+                User.email.ilike(f"%{search}%"),
+                User.user_code.ilike(f"%{search}%"),
+                User.phone.ilike(f"%{search}%")
+            )
+            query = query.where(search_filter)
+            count_query = count_query.where(search_filter)
+        
+        # Get total count
+        total_result = await self.db.execute(count_query)
+        total = total_result.scalar()
+        
+        # Apply pagination and ordering
+        query = query.offset((page - 1) * page_size).limit(page_size)
+        query = query.order_by(User.first_name, User.last_name)
+        
+        result = await self.db.execute(query)
+        users = result.scalars().all()
+        
+        return list(users), total
+    
     async def get_managers_by_type(
         self,
         manager_type: ManagerType

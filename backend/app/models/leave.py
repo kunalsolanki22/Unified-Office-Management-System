@@ -60,14 +60,17 @@ class LeaveBalance(Base, TimestampMixin):
 
 class LeaveRequest(Base, TimestampMixin):
     """
-    Leave request with hierarchical approval workflow.
+    Leave request with single-level hierarchical approval workflow.
     
-    Approval Flow (based on user role):
-    - EMPLOYEE leave -> TEAM_LEAD approves (level1) -> MANAGER approves (level2)
-    - TEAM_LEAD leave -> MANAGER approves (direct)
-    - MANAGER leave -> SUPER_ADMIN approves (direct)
+    Approval Flow (based on user role - single approver):
+    - EMPLOYEE leave -> TEAM_LEAD approves
+    - TEAM_LEAD leave -> MANAGER approves
+    - MANAGER leave -> ADMIN approves
+    - ADMIN leave -> SUPER_ADMIN approves
+    - SUPER_ADMIN leave -> Auto-approved (no approval needed)
     
     Uses user_code instead of user_id throughout.
+    Approver details are automatically filled when approving/rejecting.
     """
     __tablename__ = "leave_requests"
     

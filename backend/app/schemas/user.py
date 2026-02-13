@@ -225,6 +225,32 @@ class TeamMemberResponse(BaseModel):
         from_attributes = True
 
 
+class UserBasicInfoResponse(BaseModel):
+    """
+    Basic user information accessible to all users.
+    Contains only non-sensitive public information.
+    """
+    user_code: str
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str] = None
+    department: Optional[str] = None
+    is_active: bool = True
+    
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}"
+    
+    def model_dump(self, **kwargs):
+        data = super().model_dump(**kwargs)
+        data['full_name'] = self.full_name
+        return data
+    
+    class Config:
+        from_attributes = True
+
+
 class ManagerListResponse(BaseModel):
     """Response for listing managers under an admin."""
     managers: List['UserMinimalResponse']
