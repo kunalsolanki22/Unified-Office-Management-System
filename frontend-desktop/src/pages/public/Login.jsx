@@ -17,7 +17,6 @@ function Login() {
     const emailRef = useRef(null);
     const passwordRef = useRef(null);
 
-    // Navigate AFTER user state is actually set
     useEffect(() => {
         if (!user) return;
 
@@ -33,6 +32,8 @@ function Login() {
             navigate('/reporting-manager/dashboard');
         } else if (user.role === 'CafeteriaManager') {
             navigate('/cafeteria-manager/dashboard');
+        } else if (user.role === 'ConferenceDeskManager') {
+            navigate('/conference-desk-manager/dashboard');
         } else if (user.role === 'Manager') {
             if (user.manager_type === 'parking') {
                 navigate('/parking/dashboard');

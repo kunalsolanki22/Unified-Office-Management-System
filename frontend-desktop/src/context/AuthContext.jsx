@@ -37,6 +37,7 @@ export const AuthProvider = ({ children }) => {
         if (u.role === ROLES.ATTENDANCE_MANAGER) return '/attendance-manager/dashboard';
         if (u.role === ROLES.REPORTING_MANAGER) return '/reporting-manager/dashboard';
         if (u.role === ROLES.CAFETERIA_MANAGER) return '/cafeteria-manager/dashboard';
+        if (u.role === ROLES.CONFERENCE_DESK_MANAGER) return '/conference-desk-manager/dashboard';
         if (u.role === ROLES.MANAGER) {
             if (u.manager_type === 'parking') return '/parking/dashboard';
             return '/hardware/dashboard';
