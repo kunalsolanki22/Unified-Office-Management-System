@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
         } else if (userData.email.includes('it') || userData.email.includes('hardware')) {
             role = ROLES.MANAGER;
             manager_type = 'it_support';
-        } else if (userData.email.includes('cafeteria') || userData.email.includes('manager')) {
+        } else if (userData.email.includes('cafeteria')) {
             role = ROLES.CAFETERIA_MANAGER;
         }
 
