@@ -1,58 +1,59 @@
-import { createContext, useContext, useState } from 'react';
-import { ROLES } from '../constants/roles';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { authService } from '../services/authService';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    const login = (userData) => {
-        let role = ROLES.CAFETERIA_MANAGER;
-        let manager_type = null;
+    useEffect(() => {
+        const token = localStorage.getItem('access_token');
+        const savedUser = localStorage.getItem('user');
+        if (token && savedUser) {
+            setUser(JSON.parse(savedUser));
+        }
+        setLoading(false);
+    }, []);
 
-        if (userData.email.includes('super')) role = ROLES.SUPER_ADMIN;
-        else if (userData.email.includes('admin')) role = ROLES.ADMIN;
-        else if (userData.email.includes('team')) role = ROLES.TEAM_LEAD;
-        else if (userData.email.includes('attendance')) role = ROLES.ATTENDANCE_MANAGER;
-        else if (userData.email.includes('reporting')) role = ROLES.REPORTING_MANAGER;
-        else if (userData.email.includes('conference') || userData.email.includes('desk')) role = ROLES.CONFERENCE_DESK_MANAGER;
-        else if (userData.email.includes('it') || userData.email.includes('hardware')) {
-            role = ROLES.MANAGER;
-            manager_type = 'it_support';
-        } else if (userData.email.includes('parking')) {
-            role = ROLES.MANAGER;
-            manager_type = 'parking';
-        } else if (userData.email.includes('manager') || userData.email.includes('cafeteria')) role = ROLES.CAFETERIA_MANAGER;
-
-        setUser({ ...userData, role, manager_type });
+    const login = async (email, password) => {
+        const data = await authService.login(email, password);
+        localStorage.setItem('access_token', data.data.access_token);
+        const meData = await authService.me();
+        const userData = meData.data;
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+        return userData;
     };
 
-    const getRedirectPath = (userObj) => {
-        const u = userObj || user;
-        if (!u) return '/login';
+    const logout = () => {
+        localStorage.clear();
+        setUser(null);
+    };
 
-        if (u.role === ROLES.SUPER_ADMIN) return '/super-admin/dashboard';
-        if (u.role === ROLES.ADMIN) return '/admin/dashboard';
-        if (u.role === ROLES.TEAM_LEAD) return '/team-lead/dashboard';
-        if (u.role === ROLES.ATTENDANCE_MANAGER) return '/attendance-manager/dashboard';
-        if (u.role === ROLES.REPORTING_MANAGER) return '/reporting-manager/dashboard';
-        if (u.role === ROLES.CAFETERIA_MANAGER) return '/cafeteria-manager/dashboard';
-        if (u.role === ROLES.CONFERENCE_DESK_MANAGER) return '/conference-desk-manager/dashboard';
-        if (u.role === ROLES.MANAGER) {
-            if (u.manager_type === 'parking') return '/parking/dashboard';
-            return '/hardware/dashboard';
+    const getRedirectPath = (userData) => {
+        const role = userData?.role;
+        const managerType = userData?.manager_type;
+        if (role === 'SUPER_ADMIN') return '/super-admin/dashboard';
+        if (role === 'ADMIN') return '/admin/dashboard';
+        if (role === 'MANAGER') {
+            if (managerType === 'PARKING') return '/parking/dashboard';
+            if (managerType === 'IT_SUPPORT') return '/hardware/dashboard';
+            if (managerType === 'ATTENDANCE') return '/attendance-manager/dashboard';
+            if (managerType === 'CAFETERIA') return '/cafeteria-manager/dashboard';
+            if (managerType === 'DESK_CONFERENCE') return '/conference-desk-manager/dashboard';
         }
+        if (role === 'TEAM_LEAD') return '/reporting-manager/dashboard';
+        if (role === 'EMPLOYEE') return '/employee/dashboard';
         return '/login';
     };
 
-    const logout = () => setUser(null);
-
     return (
-        <AuthContext.Provider value={{ user, login, logout, getRedirectPath }}>
+        <AuthContext.Provider value={{ user, login, logout, loading, getRedirectPath }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
+export default AuthContext;
