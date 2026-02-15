@@ -296,12 +296,8 @@ class ITAssetService:
         ).options(
             selectinload(ITAssetAssignment.asset),
             selectinload(ITAssetAssignment.user),
-<<<<<<< HEAD
             selectinload(ITAssetAssignment.assigned_by),
             selectinload(ITAssetAssignment.returned_to)
-=======
-            selectinload(ITAssetAssignment.assigned_by)
->>>>>>> origin/frontend-user/mahek
         )
         
         if active_only:

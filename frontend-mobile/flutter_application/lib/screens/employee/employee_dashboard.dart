@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../services/attendance_service.dart';
 import '../../services/holiday_service.dart';
+import '../../utils/snackbar_helper.dart';
 import 'package:intl/intl.dart';
 import 'employee_profile_screen.dart';
 import '../cafeteria_screen.dart';
@@ -132,9 +133,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
 
   Future<void> _handleCheckIn() async {
     if (_isSubmitted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Attendance already submitted for today!'), backgroundColor: Colors.orange),
-      );
+      SnackbarHelper.showWarning(context, 'Attendance already submitted for today!');
       return;
     }
     if (_isCheckedIn) return;
@@ -146,25 +145,19 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
     if (result['success']) {
       await _fetchAttendanceStatus();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Checked in successfully!'), backgroundColor: Colors.green),
-        );
+        SnackbarHelper.showSuccess(context, 'Checked in successfully!');
       }
     } else {
       setState(() => _isCheckedIn = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
-        );
+        SnackbarHelper.showError(context, result['message']);
       }
     }
   }
 
   Future<void> _handleCheckOut() async {
     if (_isSubmitted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Attendance already submitted for today!'), backgroundColor: Colors.orange),
-      );
+      SnackbarHelper.showWarning(context, 'Attendance already submitted for today!');
       return;
     }
     if (!_isCheckedIn) return;
@@ -176,25 +169,19 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
     if (result['success']) {
       await _fetchAttendanceStatus();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Checked out successfully!'), backgroundColor: Colors.green),
-        );
+        SnackbarHelper.showSuccess(context, 'Checked out successfully!');
       }
     } else {
        setState(() => _isCheckedIn = true);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
-        );
+        SnackbarHelper.showError(context, result['message']);
       }
     }
   }
 
   Future<void> _handleSubmit() async {
     if (_isCheckedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please check out before submitting!'), backgroundColor: Colors.orange),
-      );
+      SnackbarHelper.showWarning(context, 'Please check out before submitting!');
       return;
     }
 
@@ -247,22 +234,16 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
       if (result['success']) {
         await _fetchAttendanceStatus();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Attendance submitted successfully!'), backgroundColor: Colors.green),
-          );
+          SnackbarHelper.showSuccess(context, 'Attendance submitted successfully!');
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Submission failed'), backgroundColor: Colors.red),
-          );
+          SnackbarHelper.showError(context, result['message'] ?? 'Submission failed');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        SnackbarHelper.showError(context, 'Error: $e');
       }
     } finally {
       if (mounted) {
@@ -535,7 +516,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
           const SizedBox(height: 28),
           _buildAnnouncedHolidays(),
           const SizedBox(height: 28),
-          _buildMyActivitySection(),
+          // Removed My Activity section
         ],
       ),
     );

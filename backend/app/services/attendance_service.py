@@ -182,12 +182,6 @@ class AttendanceService:
         if attendance.status != AttendanceStatus.DRAFT:
             return None, f"Cannot submit attendance with status {attendance.status.value}"
         
-<<<<<<< HEAD
-        # Check all entries are closed
-        for entry in attendance.entries:
-            if entry.check_out is None:
-                return None, "Please check out before submitting"
-=======
         # Auto-checkout open entries at 11:59 PM
         for entry in attendance.entries:
             if entry.check_out is None:
@@ -221,8 +215,7 @@ class AttendanceService:
         attendance.total_hours = round(total_hours, 2)
         if last_checkout:
             attendance.last_check_out = last_checkout.time()
->>>>>>> origin/frontend-user/mahek
-        
+
         attendance.status = AttendanceStatus.PENDING_APPROVAL
         attendance.submitted_at = datetime.now(timezone.utc)
         

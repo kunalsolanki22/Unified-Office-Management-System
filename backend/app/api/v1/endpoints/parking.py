@@ -81,12 +81,13 @@ async def allocate_parking(
             detail="You already have an active parking slot"
         )
     
-    # Find first available slot
+    # Find first available slot - ordered alphabetically by slot_label
+    # This ensures Floor 1 (A, B) is filled before Floor 2 (C, D)
     query = select(ParkingSlot).where(
         ParkingSlot.parking_type == ParkingType.EMPLOYEE,
         ParkingSlot.status == ParkingSlotStatus.AVAILABLE,
         ParkingSlot.is_active == True
-    ).limit(1)
+    ).order_by(ParkingSlot.slot_label.asc()).limit(1)
     
     result = await db.execute(query)
     slot = result.scalar_one_or_none()
@@ -119,6 +120,7 @@ async def allocate_parking(
         data={
             "message": "Parking allocated successfully",
             "slot_code": slot.slot_code,
+            "slot_label": slot.slot_label,
             "vehicle_number": current_user.vehicle_number,
             "vehicle_type": current_user.vehicle_type if current_user.vehicle_type else "car",
             "entry_time": allocation.entry_time.isoformat()
@@ -171,6 +173,7 @@ async def release_parking(
         data={
             "message": "Parking released successfully",
             "slot_code": slot.slot_code if slot else "UNKNOWN",
+            "slot_label": slot.slot_label if slot else None,
             "vehicle_number": allocation.vehicle_number,
             "entry_time": allocation.entry_time.isoformat(),
             "exit_time": exit_time.isoformat(),
@@ -212,7 +215,8 @@ async def get_my_parking(
             "has_active_parking": True,
             "slot": {
                 "id": str(slot.id) if slot else None,
-                "slot_code": slot.slot_code if slot else "UNKNOWN"
+                "slot_code": slot.slot_code if slot else "UNKNOWN",
+                "slot_label": slot.slot_label if slot else None
             },
             "vehicle": {
                 "vehicle_number": allocation.vehicle_number,
@@ -245,7 +249,7 @@ async def get_slot_summary(
 @router.get("/slots/list", response_model=APIResponse[dict])
 async def list_slots(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=100),
+    limit: int = Query(200, ge=1, le=500),
     status_filter: Optional[str] = Query(None, alias="status"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -255,7 +259,7 @@ async def list_slots(
     """
     service = ParkingService(db)
     
-    # Build query
+    # Build query - ordered alphabetically by slot_label for consistent display
     query = select(ParkingSlot).where(ParkingSlot.is_active == True)
     
     if status_filter:
@@ -265,7 +269,7 @@ async def list_slots(
         except ValueError:
             pass
     
-    query = query.offset(skip).limit(limit)
+    query = query.order_by(ParkingSlot.slot_label.asc()).offset(skip).limit(limit)
     result = await db.execute(query)
     slots = result.scalars().all()
     
@@ -288,6 +292,9 @@ async def list_slots(
         slot_info = {
             "id": str(slot.id),
             "slot_code": slot.slot_code,
+            "slot_label": slot.slot_label,
+            "parking_type": slot.parking_type.value if slot.parking_type else None,
+            "vehicle_type": slot.vehicle_type.value if slot.vehicle_type else None,
             "status": slot.status.value,
             "created_at": slot.created_at.isoformat() if slot.created_at else None,
             "updated_at": slot.updated_at.isoformat() if slot.updated_at else None,

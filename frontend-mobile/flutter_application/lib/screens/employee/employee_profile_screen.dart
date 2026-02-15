@@ -1,10 +1,77 @@
 import 'package:flutter/material.dart';
 import '../login_screen.dart';
+import '../../services/auth_service.dart';
 
-class EmployeeProfileScreen extends StatelessWidget {
+class EmployeeProfileScreen extends StatefulWidget {
   final VoidCallback? onBack;
 
   const EmployeeProfileScreen({super.key, this.onBack});
+
+  @override
+  State<EmployeeProfileScreen> createState() => _EmployeeProfileScreenState();
+}
+
+class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
+  final AuthService _authService = AuthService();
+  Map<String, dynamic>? _profile;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final profile = await _authService.getUserProfile();
+    if (!mounted) return;
+
+    setState(() {
+      _profile = profile;
+      _isLoading = false;
+      if (profile == null) {
+        _errorMessage = 'Failed to load profile data';
+      }
+    });
+  }
+
+  String _fullName() {
+    if (_profile == null) return 'Loading...';
+    final fullName = _profile?['full_name']?.toString() ?? '';
+    if (fullName.isNotEmpty) {
+      return fullName;
+    }
+    return '${_profile?['first_name'] ?? ''} ${_profile?['last_name'] ?? ''}'.trim();
+  }
+
+  String _role() {
+    final role = _profile?['role']?.toString();
+    if (role == null || role.isEmpty) return 'ROLE';
+    return role.toUpperCase().replaceAll('_', ' ');
+  }
+
+  String _userCode() {
+    return _profile?['user_code']?.toString().isNotEmpty == true
+        ? '#${_profile?['user_code']}'
+        : '#USER';
+  }
+
+  String _valueOrDash(dynamic value) {
+    final str = value?.toString() ?? '';
+    return str.isEmpty ? '—' : str;
+  }
+
+  String _avatarLetter() {
+    final name = _fullName().trim();
+    if (name.isEmpty || name == 'Loading...') return 'A';
+    return name.substring(0, 1).toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +84,19 @@ class EmployeeProfileScreen extends StatelessWidget {
           _buildProfileSection(),
           const SizedBox(height: 32),
           _buildAccountDetails(),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: CircularProgressIndicator(),
+            )
+          else if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ),
           const SizedBox(height: 48),
           _buildLogoutButton(context),
         ],
@@ -45,8 +125,8 @@ class EmployeeProfileScreen extends StatelessWidget {
             child: IconButton(
               icon: const Icon(Icons.chevron_left, color: Color(0xFF1A367C)),
               onPressed: () {
-                if (onBack != null) {
-                  onBack!();
+                if (widget.onBack != null) {
+                  widget.onBack!();
                 } else {
                   Navigator.of(context).maybePop();
                 }
@@ -78,10 +158,10 @@ class EmployeeProfileScreen extends StatelessWidget {
                 color: const Color(0xFF1A367C),
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  'A',
-                  style: TextStyle(
+                  _avatarLetter(),
+                  style: const TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -116,9 +196,9 @@ class EmployeeProfileScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Alex Johnson',
-          style: TextStyle(
+        Text(
+          _fullName(),
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w600,
             color: Color(0xFF1A1A2E),
@@ -129,7 +209,7 @@ class EmployeeProfileScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'SOFTWARE ENGINEER',
+              _role(),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -147,9 +227,9 @@ class EmployeeProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Text(
-              '#EM-1042',
-              style: TextStyle(
+            Text(
+              _userCode(),
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1A367C),
@@ -195,7 +275,7 @@ class EmployeeProfileScreen extends StatelessWidget {
                 iconColor: const Color(0xFF1A367C),
                 iconBgColor: const Color(0xFFE3F2FD),
                 label: 'WORK EMAIL',
-                value: 'alex.johnson@company.com',
+                value: _valueOrDash(_profile?['email']),
                 showDivider: true,
               ),
               _buildDetailItem(
@@ -203,7 +283,7 @@ class EmployeeProfileScreen extends StatelessWidget {
                 iconColor: const Color(0xFF4CAF50),
                 iconBgColor: const Color(0xFFE8F5E9),
                 label: 'PHONE NUMBER',
-                value: '+1234 567 890',
+                value: _valueOrDash(_profile?['phone']),
                 showDivider: true,
               ),
               _buildDetailItem(
@@ -211,7 +291,7 @@ class EmployeeProfileScreen extends StatelessWidget {
                 iconColor: const Color(0xFFFDBB2D),
                 iconBgColor: const Color(0xFFFFF8E1),
                 label: 'DEPARTMENT',
-                value: 'Engineering',
+                value: _valueOrDash(_profile?['department']),
                 showDivider: false,
               ),
             ],
@@ -279,7 +359,8 @@ class EmployeeProfileScreen extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () {
+        onPressed: () async {
+          await _authService.logout();
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const LoginPage()),
             (route) => false,

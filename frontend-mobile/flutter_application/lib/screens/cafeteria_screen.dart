@@ -4,6 +4,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'my_orders_screen.dart';
 import '../services/cafeteria_service.dart';
+import '../services/search_service.dart';
+import '../utils/snackbar_helper.dart';
 
 class CafeteriaScreen extends StatefulWidget {
   final bool initialShowDeskBooking;
@@ -42,6 +44,7 @@ class CartItem {
 }
 
 class _CafeteriaScreenState extends State<CafeteriaScreen> {
+  final SearchService _searchService = SearchService();
 
   late bool _isOrderingFood; // Toggle state
   final ScrollController _scrollController = ScrollController();
@@ -71,6 +74,11 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
   int get _totalCartItems => _cart.values.fold(0, (sum, item) => sum + item.quantity);
   double get _totalCartPrice => _cart.values.fold(0.0, (sum, item) => sum + item.totalPrice);
 
+  String _getDeskDisplayLabel(String? deskId) {
+    if (deskId == null) return '';
+    return _desks[deskId]?.label ?? deskId;
+  }
+
   // Initialize desks (empty — populated from API in _fetchTables)
   void _initializeDesks() {
     _desks = {};
@@ -96,12 +104,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
 
     // If user already has a booked desk, show message
     if (_userBookedDeskId != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('You already have desk $_userBookedDeskId booked. You can only book one desk at a time.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      SnackbarHelper.showWarning(context, 'You already have desk ${_getDeskDisplayLabel(_userBookedDeskId)} booked. You can only book one desk at a time.');
       return;
     }
 
@@ -147,22 +150,12 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
   // Confirm desk booking via API
   Future<void> _confirmDeskBooking() async {
     if (_selectedDeskId == null || _selectedTableUuid == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a desk first'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      SnackbarHelper.showWarning(context, 'Please select a desk first');
       return;
     }
 
     if (_userBookedDeskId != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('You already have desk $_userBookedDeskId booked.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      SnackbarHelper.showWarning(context, 'You already have desk ${_getDeskDisplayLabel(_userBookedDeskId)} booked.');
       return;
     }
 
@@ -195,19 +188,9 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
             _selectedTableUuid = null;
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Desk $_userBookedDeskId booked successfully!'),
-            backgroundColor: const Color(0xFF1A237E),
-          ),
-        );
+        SnackbarHelper.showSuccess(context, 'Desk ${_getDeskDisplayLabel(_userBookedDeskId)} booked successfully!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Failed to book desk'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarHelper.showError(context, result['message'] ?? 'Failed to book desk');
       }
     }
   }
@@ -267,48 +250,108 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
     }
   }
 
+  // Shorten table label for display (e.g., "Center Table 1" -> "Center 1")
+  String _shortenTableLabel(String label) {
+    return label
+        .replaceAll(' Table', '')
+        .replaceAll(' Top', '');
+  }
+
+  // Get zone key from table type
+  String _getZoneKey(String tableType) {
+    switch (tableType.toLowerCase()) {
+      case 'large': return 'CENTER';
+      case 'round': return 'ROUND';
+      case 'high': return 'HIGH';
+      case 'regular': return 'WINDOW';
+      default: return 'OTHER';
+    }
+  }
+
   Future<void> _fetchTables() async {
     final tablesResult = await _cafeteriaService.getCafeteriaTables();
     final bookingsResult = await _cafeteriaService.getTodaysBookings();
+    final myBookingsResult = await _cafeteriaService.getMyBookings();
     if (mounted) {
       final tables = List<Map<String, dynamic>>.from(tablesResult['data'] ?? []);
       final bookings = List<Map<String, dynamic>>.from(bookingsResult['data'] ?? []);
       final bookedIds = bookings.map((b) => b['table_id']?.toString() ?? '').toSet();
-      
-      // Update desk map from API data
+
+      // Check if user already has a booking for today
+      final myBookings = List<Map<String, dynamic>>.from(myBookingsResult['data'] ?? []);
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      String? userBookedTableId;
+      for (final booking in myBookings) {
+        final bookingDate = booking['booking_date']?.toString().split('T')[0] ?? '';
+        if (bookingDate == today) {
+          userBookedTableId = booking['table_id']?.toString();
+          break;
+        }
+      }
+
+      // Update desk map from API data - group by table_type
       _desks.clear();
+
+      // Sort tables by label for consistent ordering
+      tables.sort((a, b) => (a['table_label'] ?? '').toString().compareTo((b['table_label'] ?? '').toString()));
+
       for (final table in tables) {
-        final label = table['table_label'] ?? table['table_code'] ?? '';
         final tableId = table['id']?.toString() ?? '';
+        if (tableId.isEmpty) continue;
+        
+        final tableLabel = (table['table_label'] ?? table['table_code'] ?? '').toString();
+        final tableType = (table['table_type'] ?? 'regular').toString();
         final isBooked = bookedIds.contains(tableId);
-        _desks[label] = _DeskItem(
-          label: label,
-          status: isBooked ? DeskStatus.booked : DeskStatus.available,
+        final isUserBooked = tableId == userBookedTableId;
+
+        DeskStatus status;
+        if (isUserBooked) {
+          status = DeskStatus.yours;
+        } else if (isBooked) {
+          status = DeskStatus.booked;
+        } else {
+          status = DeskStatus.available;
+        }
+
+        _desks[tableId] = _DeskItem(
+          label: _shortenTableLabel(tableLabel),
+          fullLabel: tableLabel,
+          zoneKey: _getZoneKey(tableType),
+          status: status,
           tableUuid: tableId,
         );
       }
       setState(() {
         _tables = tables;
         _bookedTableIds = bookedIds;
+        _userBookedDeskId = userBookedTableId;
         _isLoadingTables = false;
       });
     }
   }
 
-  void _filterFoodItems(String query) {
+  Future<void> _filterFoodItems(String query) async {
     setState(() {
       _searchQuery = query;
       if (query.isEmpty) {
         _filteredFoodItems = _foodItems;
-      } else {
-        _filteredFoodItems = _foodItems.where((item) {
-          final name = (item['name'] ?? '').toString().toLowerCase();
-          final cat = (item['category_name'] ?? '').toString().toLowerCase();
-          final q = query.toLowerCase();
-          return name.contains(q) || cat.contains(q);
-        }).toList();
       }
     });
+    if (query.isNotEmpty) {
+      final result = await _searchService.semanticSearch(query: query, searchType: 'food');
+      if (result['success'] == true && result['data'] != null && result['data']['results'] != null) {
+        setState(() {
+          _filteredFoodItems = List<Map<String, dynamic>>.from(
+            (result['data']['results'] as List).map((e) => e['item'])
+          );
+        });
+      } else {
+        setState(() {
+          _filteredFoodItems = [];
+        });
+        SnackbarHelper.showError(context, result['message'] ?? 'Semantic search failed');
+      }
+    }
   }
 
   IconData _getCategoryIcon(String category) {
@@ -355,19 +398,9 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       if (result['success']) {
         final orderData = result['data'];
         final orderNum = orderData?['order_number'] ?? '';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Order $orderNum placed successfully!'),
-            backgroundColor: const Color(0xFF1A237E),
-          ),
-        );
+        SnackbarHelper.showSuccess(context, 'Order $orderNum placed successfully!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Failed to place order'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarHelper.showError(context, result['message'] ?? 'Failed to place order');
       }
     }
   }
@@ -507,7 +540,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
         ],
       ),
       child: TextField(
-        onChanged: _filterFoodItems,
+        onChanged: (q) => _filterFoodItems(q),
         decoration: InputDecoration(
           hintText: 'Search for food...',
           hintStyle: TextStyle(
@@ -740,16 +773,20 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       );
     }
 
-    // Group desks by zone (first letter of label)
+    // Group desks by zone (assigned from API mapping)
     final Map<String, List<String>> zones = {};
-    for (final label in _desks.keys) {
-      final zone = label.isNotEmpty ? label[0] : '?';
-      zones.putIfAbsent(zone, () => []).add(label);
+    for (final entry in _desks.entries) {
+      final zone = entry.value.zoneKey;
+      zones.putIfAbsent(zone, () => []).add(entry.key);
     }
     final zoneNames = {
-      'A': 'ZONE A: MAIN HALL',
-      'B': 'ZONE B: WINDOW SIDE',
+      'CENTER': 'CENTER TABLES (Large)',
+      'ROUND': 'ROUND TABLES',
+      'HIGH': 'HIGH TOP TABLES',
+      'WINDOW': 'WINDOW TABLES',
+      'OTHER': 'OTHER TABLES',
     };
+    final zoneOrder = ['CENTER', 'ROUND', 'HIGH', 'WINDOW', 'OTHER'];
 
     return ListView(
       controller: _scrollController,
@@ -757,6 +794,11 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       children: [
         _buildToggleButtons(),
         const SizedBox(height: 24),
+        // Show user's booked table info if they have one
+        if (_userBookedDeskId != null)
+          _buildYourTableCard(),
+        if (_userBookedDeskId != null)
+          const SizedBox(height: 16),
         if (_desks.isEmpty)
           Padding(
             padding: const EdgeInsets.all(40),
@@ -768,14 +810,15 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
             ),
           )
         else
-          ...zones.entries.map((entry) {
-            final zoneName = zoneNames[entry.key] ?? 'ZONE ${entry.key}';
+          ...zoneOrder.where(zones.containsKey).map((zoneKey) {
+            final deskIds = zones[zoneKey]!;
+            final zoneName = zoneNames[zoneKey] ?? zoneKey;
             return Column(
               children: [
                 _buildZoneSection(
                   zoneName: zoneName,
-                  freeCount: _getAvailableDeskCount(entry.value),
-                  deskIds: entry.value,
+                  freeCount: _getAvailableDeskCount(deskIds),
+                  deskIds: deskIds,
                 ),
                 const SizedBox(height: 24),
               ],
@@ -785,6 +828,73 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
         const SizedBox(height: 24),
         _buildDeskConfirmButton(),
       ],
+    );
+  }
+
+  Widget _buildYourTableCard() {
+    final desk = _desks[_userBookedDeskId];
+    if (desk == null) return const SizedBox();
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A237E),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.amber,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                desk.label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: Colors.black,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'YOUR BOOKED TABLE',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  desk.fullLabel,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.table_restaurant,
+            color: Colors.white,
+            size: 32,
+          ),
+        ],
+      ),
     );
   }
 
@@ -860,9 +970,14 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
         bgColor = const Color(0xFF1A237E);
         textColor = Colors.yellow;
         break;
+      case DeskStatus.yours:
+        bgColor = Colors.amber;
+        textColor = Colors.black;
+        border = Border.all(color: Colors.amber.shade700, width: 2);
+        break;
       case DeskStatus.booked:
-        bgColor = Colors.grey[300];
-        textColor = Colors.grey[400]!;
+        bgColor = const Color(0xFF90A4AE);
+        textColor = Colors.white;
         break;
       case DeskStatus.freezed:
         bgColor = Colors.grey[300];
@@ -876,7 +991,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
     return GestureDetector(
       onTap: isTappable ? () => _onDeskTap(deskId) : null,
       child: Container(
-        width: 60,
+        width: 72,
         height: 60,
         decoration: BoxDecoration(
           color: bgColor,
@@ -893,12 +1008,23 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                 ],
         ),
         child: Center(
-          child: Text(
-            desk.label,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (desk.status == DeskStatus.booked)
+                Icon(Icons.event_seat, color: textColor, size: 18),
+              Text(
+                desk.label,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: textColor,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ),
@@ -912,8 +1038,9 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       runSpacing: 8,
       children: [
         _buildLegendItem('AVAILABLE', Colors.white, borderColor: Colors.grey[300]),
+        _buildLegendItem('YOURS', Colors.amber, borderColor: Colors.amber.shade700),
         _buildLegendItem('SELECTED', const Color(0xFF1A237E)),
-        _buildLegendItem('BOOKED', Colors.grey[300]!),
+        _buildLegendItem('BOOKED', const Color(0xFF90A4AE)),
         _buildLegendItem('FREEZED', Colors.grey[300]!, borderColor: Colors.black),
       ],
     );
@@ -965,9 +1092,9 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
         ),
         child: Text(
           alreadyBooked 
-              ? 'DESK $_userBookedDeskId BOOKED'
+            ? 'DESK ${_getDeskDisplayLabel(_userBookedDeskId)} BOOKED'
               : hasSelection 
-                  ? 'CONFIRM DESK $_selectedDeskId BOOKING'
+              ? 'CONFIRM DESK ${_getDeskDisplayLabel(_selectedDeskId)} BOOKING'
                   : 'SELECT A DESK TO BOOK',
           style: const TextStyle(
             fontSize: 14,
@@ -1446,13 +1573,21 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
   }
 }
 
-enum DeskStatus { available, booked, selected, freezed }
+enum DeskStatus { available, booked, selected, freezed, yours }
 
 class _DeskItem {
   final String label;
+  final String fullLabel;
+  final String zoneKey;
   final String? tableUuid;
   DeskStatus status;
   Timer? freezeTimer;
 
-  _DeskItem({required this.label, required this.status, this.tableUuid});
+  _DeskItem({
+    required this.label,
+    required this.fullLabel,
+    required this.zoneKey,
+    required this.status,
+    this.tableUuid,
+  });
 }

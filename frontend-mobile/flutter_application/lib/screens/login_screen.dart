@@ -3,6 +3,7 @@ import 'manager/manager_dashboard.dart';
 import 'forgot_password_screen.dart';
 import 'employee/employee_dashboard.dart';
 import '../services/auth_service.dart';
+import '../utils/snackbar_helper.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -410,28 +411,10 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _showErrorStackBar(String message) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-          duration: const Duration(milliseconds: 1500),
-        ),
-      );
+    SnackbarHelper.showError(context, message);
   }
 
   void _showSuccessSnackBar(String message) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.green,
-          duration: const Duration(milliseconds: 1500),
-        ),
-      );
+    SnackbarHelper.showSuccess(context, message);
   }
 }

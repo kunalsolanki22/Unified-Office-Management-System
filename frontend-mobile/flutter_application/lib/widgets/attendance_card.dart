@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
+import '../utils/snackbar_helper.dart';
 
 class AttendanceCard extends StatefulWidget {
   const AttendanceCard({super.key});
@@ -56,15 +57,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
 
   void _handleCheckIn() {
     if (_isSubmitted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Attendance already submitted for today!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
+      SnackbarHelper.showWarning(context, 'Attendance already submitted for today!');
       return;
     }
     
@@ -76,41 +69,17 @@ class _AttendanceCardState extends State<AttendanceCard> {
     });
     _startTimer();
     
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Checked in successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 1500),
-        ),
-      );
+    SnackbarHelper.showSuccess(context, 'Checked in successfully!');
   }
 
   void _handleCheckOut() {
     if (_isSubmitted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Attendance already submitted for today!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
+      SnackbarHelper.showWarning(context, 'Attendance already submitted for today!');
       return;
     }
     
     if (!_isCheckedIn) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Please check in first!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
+      SnackbarHelper.showWarning(context, 'Please check in first!');
       return;
     }
     
@@ -125,28 +94,12 @@ class _AttendanceCardState extends State<AttendanceCard> {
     }
     _timer?.cancel();
     
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Checked out successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 1500),
-        ),
-      );
+    SnackbarHelper.showSuccess(context, 'Checked out successfully!');
   }
 
   void _handleSubmit() {
     if (_isSubmitted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Attendance already submitted for today!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
+      SnackbarHelper.showWarning(context, 'Attendance already submitted for today!');
       return;
     }
     
@@ -164,15 +117,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
       _currentCheckInTime = null;
     });
     
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Attendance submitted successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 1500),
-        ),
-      );
+    SnackbarHelper.showSuccess(context, 'Attendance submitted successfully!');
   }
 
   String _formatDuration() {

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/parking_service.dart';
+import '../utils/snackbar_helper.dart';
 
 class ParkingScreen extends StatefulWidget {
   const ParkingScreen({super.key});
@@ -8,124 +10,183 @@ class ParkingScreen extends StatefulWidget {
 }
 
 class _ParkingScreenState extends State<ParkingScreen> {
-  bool _isLevel1 = true;
+  bool _isLevel1 = true; // Level 1 = Cars, Level 2 = Bikes
   final ScrollController _scrollController = ScrollController();
+  final ParkingService _parkingService = ParkingService();
+  bool _isLoading = true;
+  bool _isParkingAction = false;
 
-  // Parking state - map of slot ID to SlotType
-  late Map<String, SlotType> _level1Slots;
-  late Map<String, SlotType> _level2Slots;
+  // Parking state - map of slot_label to SlotType
+  Map<String, SlotType> _carSlots = {};  // Level 1: Employee car slots
+  Map<String, SlotType> _bikeSlots = {}; // Level 2: Employee bike slots
   
-  // User's currently assigned slot
-  String? _userParkedSlotId;
-  bool _userIsOnLevel1 = true;
+  // Map slot_label to slot_id for API calls
+  final Map<String, String> _slotLabelToId = {};
+  
+  // User's currently assigned slot label
+  String? _userParkedSlotLabel;
+  bool _userIsOnLevel1 = true; // true = car, false = bike
 
   @override
   void initState() {
     super.initState();
     _initializeSlots();
+    _loadParkingData();
   }
 
   void _initializeSlots() {
-    // Level 1 slots
-    _level1Slots = {
-      'A-01': SlotType.busy,
-      'A-02': SlotType.free,
-      'A-03': SlotType.free,
-      'A-04': SlotType.busy,
-      'A-05': SlotType.free,
-      'B-01': SlotType.free,
-      'B-02': SlotType.busy,
-      'B-03': SlotType.free,
-      'B-04': SlotType.free,
-      'B-05': SlotType.busy,
-    };
-    
-    // Level 2 slots
-    _level2Slots = {
-      'C-01': SlotType.free,
-      'C-02': SlotType.busy,
-      'C-03': SlotType.free,
-      'C-04': SlotType.free,
-      'C-05': SlotType.busy,
-      'D-01': SlotType.busy,
-      'D-02': SlotType.free,
-      'D-03': SlotType.free,
-      'D-04': SlotType.busy,
-      'D-05': SlotType.free,
-    };
+    _carSlots = {};
+    _bikeSlots = {};
+    _slotLabelToId.clear();
+    _userParkedSlotLabel = null;
+    _userIsOnLevel1 = true;
+    _isLoading = true;
+  }
+
+  // Check if a slot is a bike slot based on label
+  bool _isBikeSlot(String label, String? vehicleType) {
+    if (vehicleType?.toLowerCase() == 'bike') return true;
+    return label.toLowerCase().contains('bike');
+  }
+
+  Future<void> _loadParkingData() async {
+    setState(() => _isLoading = true);
+
+    final slotsResult = await _parkingService.getSlotsList();
+    final mySlotResult = await _parkingService.getMySlot();
+    String? userSlotLabel;
+
+    // First check if user has active parking
+    if (mySlotResult['success'] == true) {
+      final data = mySlotResult['data'] ?? {};
+      final hasActiveParking = data['has_active_parking'] == true || 
+                                data['has_active_parking']?.toString().toLowerCase() == 'true';
+      if (hasActiveParking) {
+        userSlotLabel = data['slot']?['slot_label']?.toString() ?? 
+                        data['slot']?['slot_code']?.toString();
+      }
+    }
+
+    if (slotsResult['success'] == true) {
+      final data = slotsResult['data'] ?? {};
+      final slots = List<Map<String, dynamic>>.from(data['slots'] ?? []);
+      _applySlotsFromBackend(slots, userSlotLabel);
+    } else {
+      // Even if slots list fails, show user's parked slot if they have one
+      if (userSlotLabel != null) {
+        final isBike = _isBikeSlot(userSlotLabel, null);
+        setState(() {
+          _userParkedSlotLabel = userSlotLabel;
+          _userIsOnLevel1 = !isBike;
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _applySlotsFromBackend(List<Map<String, dynamic>> slots, String? userSlotLabel) {
+    final carSlots = <String, SlotType>{};
+    final bikeSlots = <String, SlotType>{};
+
+    _slotLabelToId.clear();
+
+    for (final slot in slots) {
+      final slotId = (slot['id'] ?? '').toString();
+      final slotLabel = (slot['slot_label'] ?? '').toString();
+      final parkingType = (slot['parking_type'] ?? '').toString().toLowerCase();
+      final vehicleType = (slot['vehicle_type'] ?? '').toString().toLowerCase();
+      
+      // Only show employee slots
+      if (parkingType != 'employee') continue;
+      
+      // Check if this is user's slot
+      final isUserSlot = userSlotLabel != null && slotLabel == userSlotLabel;
+
+      _slotLabelToId[slotLabel] = slotId;
+
+      final status = (slot['status'] ?? '').toString().toLowerCase();
+      var type = status == 'available' ? SlotType.free : SlotType.busy;
+      
+      if (isUserSlot) {
+        type = SlotType.yours;
+      }
+
+      // Separate cars and bikes
+      if (_isBikeSlot(slotLabel, vehicleType)) {
+        bikeSlots[slotLabel] = type;
+      } else {
+        carSlots[slotLabel] = type;
+      }
+    }
+
+    // Determine if user is on Level 1 (cars) or Level 2 (bikes)
+    bool userIsOnLevel1 = true;
+    if (userSlotLabel != null) {
+      userIsOnLevel1 = !_isBikeSlot(userSlotLabel, null);
+    }
+
+    setState(() {
+      _carSlots = carSlots;
+      _bikeSlots = bikeSlots;
+      _userParkedSlotLabel = userSlotLabel;
+      _userIsOnLevel1 = userIsOnLevel1;
+      _isLoading = false;
+    });
   }
 
   // Get current level slots
-  Map<String, SlotType> get _currentSlots => _isLevel1 ? _level1Slots : _level2Slots;
-
-  // Get available slots sorted alphabetically
-  List<String> _getAvailableSlots() {
-    final slots = _currentSlots.entries
-        .where((e) => e.value == SlotType.free)
-        .map((e) => e.key)
-        .toList();
-    slots.sort();
-    return slots;
-  }
+  Map<String, SlotType> get _currentSlots => _isLevel1 ? _carSlots : _bikeSlots;
 
   // Auto-assign parking slot
-  void _tapToPark() {
-    final availableSlots = _getAvailableSlots();
-    if (availableSlots.isEmpty) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('No available parking slots on this level'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 1500),
-          ),
-        );
-      return;
+  Future<void> _tapToPark() async {
+    if (_isParkingAction) return;
+    setState(() => _isParkingAction = true);
+
+    final result = await _parkingService.allocateParking();
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      final slotLabel = result['data']?['slot_label']?.toString() ?? 
+                         result['data']?['slot_code']?.toString() ?? 'Slot';
+      await _loadParkingData();
+      if (!mounted) return;
+      SnackbarHelper.showSuccess(context, 'Parking slot $slotLabel assigned to you!');
+    } else {
+      final msg = result['message'] ?? 'Failed to allocate parking';
+      // If user already has parking, reload data to show their slot
+      if (msg.toLowerCase().contains('already have')) {
+        await _loadParkingData();
+        if (!mounted) return;
+      }
+      SnackbarHelper.showWarning(context, msg);
     }
 
-    // Assign first available slot alphabetically
-    final assignedSlot = availableSlots.first;
-    setState(() {
-      _currentSlots[assignedSlot] = SlotType.yours;
-      _userParkedSlotId = assignedSlot;
-      _userIsOnLevel1 = _isLevel1;
-    });
-
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('Parking slot $assignedSlot assigned to you!'),
-          backgroundColor: const Color(0xFF1A237E),
-          duration: const Duration(milliseconds: 1500),
-        ),
-      );
+    if (mounted) {
+      setState(() => _isParkingAction = false);
+    }
   }
 
   // Exit parking
-  void _exitParking() {
-    if (_userParkedSlotId == null) return;
+  Future<void> _exitParking() async {
+    if (_userParkedSlotLabel == null || _isParkingAction) return;
+    setState(() => _isParkingAction = true);
 
-    setState(() {
-      // Free up the slot
-      if (_userIsOnLevel1) {
-        _level1Slots[_userParkedSlotId!] = SlotType.free;
-      } else {
-        _level2Slots[_userParkedSlotId!] = SlotType.free;
-      }
-      _userParkedSlotId = null;
-    });
+    final result = await _parkingService.releaseParking();
+    if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('You have exited the parking'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 1500),
-        ),
-      );
+    if (result['success'] == true) {
+      await _loadParkingData();
+      if (!mounted) return;
+      SnackbarHelper.showSuccess(context, 'You have exited the parking');
+    } else {
+      SnackbarHelper.showWarning(context, result['message'] ?? 'Failed to release parking');
+    }
+
+    if (mounted) {
+      setState(() => _isParkingAction = false);
+    }
   }
 
   @override
@@ -163,7 +224,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
                       const SizedBox(height: 24),
                       _buildParkButton(),
                       // Show assigned slot info if parked
-                      if (_userParkedSlotId != null)
+                      if (_userParkedSlotLabel != null)
                         _buildAssignedSlotInfo(),
                     ],
                   ),
@@ -178,7 +239,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
 
   // Build Tap to Park / EXIT button
   Widget _buildParkButton() {
-    final bool isParked = _userParkedSlotId != null;
+    final bool isParked = _userParkedSlotLabel != null;
     final bool isOnCurrentLevel = _userIsOnLevel1 == _isLevel1;
 
     return Padding(
@@ -186,9 +247,11 @@ class _ParkingScreenState extends State<ParkingScreen> {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: isParked
-              ? (isOnCurrentLevel ? _exitParking : null)
-              : _tapToPark,
+          onPressed: (_isLoading || _isParkingAction)
+              ? null
+              : isParked
+                  ? (isOnCurrentLevel ? _exitParking : null)
+                  : _tapToPark,
           style: ElevatedButton.styleFrom(
             backgroundColor: isParked ? Colors.red : const Color(0xFF1A237E),
             foregroundColor: Colors.white,
@@ -210,7 +273,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
               const SizedBox(width: 8),
               Text(
                 isParked 
-                    ? (isOnCurrentLevel ? 'EXIT PARKING' : 'PARKED ON ${_userIsOnLevel1 ? "LEVEL 01" : "LEVEL 02"}')
+                    ? (isOnCurrentLevel ? 'EXIT PARKING' : 'PARKED ON ${_userIsOnLevel1 ? "CAR PARKING" : "BIKE PARKING"}')
                     : 'TAP TO PARK',
                 style: const TextStyle(
                   fontSize: 16,
@@ -245,7 +308,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
             ),
             child: Center(
               child: Text(
-                _userParkedSlotId!,
+                _userParkedSlotLabel!,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
@@ -270,7 +333,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Slot $_userParkedSlotId on ${_userIsOnLevel1 ? "Level 01" : "Level 02"}',
+                  '$_userParkedSlotLabel (${_userIsOnLevel1 ? "Car Parking" : "Bike Parking"})',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -293,17 +356,47 @@ class _ParkingScreenState extends State<ParkingScreen> {
   // ... (AppBar, LevelToggle same)
 
   Widget _buildParkingGrid() {
-    // Get slot IDs for left and right columns based on level
-    List<String> leftSlots;
-    List<String> rightSlots;
-    
-    if (_isLevel1) {
-      leftSlots = ['A-01', 'A-02', 'A-03', 'A-04', 'A-05'];
-      rightSlots = ['B-01', 'B-02', 'B-03', 'B-04', 'B-05'];
-    } else {
-      leftSlots = ['C-01', 'C-02', 'C-03', 'C-04', 'C-05'];
-      rightSlots = ['D-01', 'D-02', 'D-03', 'D-04', 'D-05'];
+    if (_isLoading) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFFCFD8DC),
+          borderRadius: BorderRadius.circular(32),
+        ),
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
     }
+
+    // Get slots dynamically from backend data
+    final slots = _currentSlots.keys.toList()..sort();
+    
+    if (slots.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(48),
+        decoration: BoxDecoration(
+          color: const Color(0xFFCFD8DC),
+          borderRadius: BorderRadius.circular(32),
+        ),
+        child: Center(
+          child: Text(
+            _isLevel1 ? 'No car parking slots available' : 'No bike parking slots available',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        ),
+      );
+    }
+
+    // Split into two columns evenly
+    final midpoint = (slots.length / 2).ceil();
+    final leftSlots = slots.sublist(0, midpoint);
+    final rightSlots = slots.length > midpoint ? slots.sublist(midpoint) : <String>[];
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -339,20 +432,22 @@ class _ParkingScreenState extends State<ParkingScreen> {
             left: 0, right: 0, bottom: 20,
             child: Icon(Icons.arrow_upward, color: Colors.white.withValues(alpha: 0.5), size: 20),
            ),
+            if (slots.length > 3)
            Positioned(
             left: 0, right: 0, top: 180,
             child: Icon(Icons.arrow_upward, color: Colors.white.withValues(alpha: 0.5), size: 20),
            ),
 
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
-                  children: leftSlots.map((slotId) {
-                    final type = _currentSlots[slotId] ?? SlotType.free;
+                  children: leftSlots.map((slotLabel) {
+                    final type = _currentSlots[slotLabel] ?? SlotType.free;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildSlot(type: type, label: slotId),
+                      child: _buildSlot(type: type, label: slotLabel),
                     );
                   }).toList(),
                 ),
@@ -360,11 +455,11 @@ class _ParkingScreenState extends State<ParkingScreen> {
               const SizedBox(width: 40), // Road width
               Expanded(
                 child: Column(
-                  children: rightSlots.map((slotId) {
-                    final type = _currentSlots[slotId] ?? SlotType.free;
+                  children: rightSlots.map((slotLabel) {
+                    final type = _currentSlots[slotLabel] ?? SlotType.free;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildSlot(type: type, label: slotId),
+                      child: _buildSlot(type: type, label: slotLabel),
                     );
                   }).toList(),
                 ),
@@ -474,7 +569,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
                     : null,
                 child: Center(
                   child: Text(
-                    'LEVEL 01',
+                    'CARS',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: _isLevel1 ? const Color(0xFF1A237E) : Colors.grey[400],
@@ -506,7 +601,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
                     : null,
                 child: Center(
                   child: Text(
-                    'LEVEL 02',
+                    'BIKES',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: !_isLevel1 ? const Color(0xFF1A237E) : Colors.grey[400],
@@ -524,16 +619,23 @@ class _ParkingScreenState extends State<ParkingScreen> {
   Widget _buildSlot({required SlotType type, required String label}) {
     Color bgColor;
     Widget? content;
+    
+    // Shorten label for display (e.g., "Employee A1" -> "Emp A1", "Bike Bay 1" -> "Bike 1")
+    String shortLabel = label
+        .replaceAll('Employee ', 'Emp ')
+        .replaceAll('Bike Bay ', 'Bike ');
 
     switch (type) {
       case SlotType.free:
         bgColor = Colors.white;
         content = Center(
           child: Text(
-            label,
+            shortLabel,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               color: Color(0xFF1A237E),
               fontWeight: FontWeight.bold,
+              fontSize: 12,
             ),
           ),
         );
@@ -542,18 +644,34 @@ class _ParkingScreenState extends State<ParkingScreen> {
         bgColor = Colors.amber;
         content = Center(
           child: Text(
-            label,
+            shortLabel,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.black,
               fontWeight: FontWeight.bold,
+              fontSize: 12,
             ),
           ),
         );
         break;
       case SlotType.busy:
         bgColor = const Color(0xFF90A4AE);
-        content = const Center(
-          child: Icon(Icons.directions_car, color: Colors.white54),
+        content = Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.directions_car, color: Colors.white54, size: 20),
+              Text(
+                shortLabel,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
         );
         break;
     }

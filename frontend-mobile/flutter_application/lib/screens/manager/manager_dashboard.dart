@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../services/attendance_service.dart';
 import '../../services/holiday_service.dart';
+import '../../utils/snackbar_helper.dart';
 import 'package:intl/intl.dart';
 import '../manager_profile_screen.dart';
 import '../cafeteria_screen.dart';
@@ -134,9 +135,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
 
   Future<void> _handleCheckIn() async {
     if (_isSubmitted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Attendance already submitted for today!'), backgroundColor: Colors.orange),
-      );
+      SnackbarHelper.showWarning(context, 'Attendance already submitted for today!');
       return;
     }
     if (_isCheckedIn) return;
@@ -149,25 +148,19 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     if (result['success']) {
       await _fetchAttendanceStatus(); // Refresh to get exact server times
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Checked in successfully!'), backgroundColor: Colors.green),
-        );
+        SnackbarHelper.showSuccess(context, 'Checked in successfully!');
       }
     } else {
       setState(() => _isCheckedIn = false); // Revert
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
-        );
+        SnackbarHelper.showError(context, result['message']);
       }
     }
   }
 
   Future<void> _handleCheckOut() async {
     if (_isSubmitted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Attendance already submitted for today!'), backgroundColor: Colors.orange),
-      );
+      SnackbarHelper.showWarning(context, 'Attendance already submitted for today!');
       return;
     }
     if (!_isCheckedIn) return;
@@ -180,16 +173,12 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     if (result['success']) {
       await _fetchAttendanceStatus();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Checked out successfully!'), backgroundColor: Colors.green),
-        );
+        SnackbarHelper.showSuccess(context, 'Checked out successfully!');
       }
     } else {
        setState(() => _isCheckedIn = true); // Revert
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
-        );
+        SnackbarHelper.showError(context, result['message']);
       }
     }
   }
@@ -198,9 +187,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
   Future<void> _handleSubmit() async {
     // Check if currently checked in
     if (_isCheckedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please check out before submitting!'), backgroundColor: Colors.orange),
-      );
+      SnackbarHelper.showWarning(context, 'Please check out before submitting!');
       return;
     }
 
@@ -255,22 +242,16 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
       if (result['success']) {
         await _fetchAttendanceStatus();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Attendance submitted successfully!'), backgroundColor: Colors.green),
-          );
+          SnackbarHelper.showSuccess(context, 'Attendance submitted successfully!');
         }
       } else {
          if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
-          );
+          SnackbarHelper.showError(context, result['message']);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        SnackbarHelper.showError(context, 'Error: $e');
       }
     } finally {
       if (mounted) {
@@ -426,8 +407,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
               ],
             ),
             const SizedBox(height: 24),
-            _buildTeamOverview(),
-            const SizedBox(height: 24),
+            // Removed My Activity (Team Overview) section
             _buildAnnouncedHolidays(),
             const SizedBox(height: 120), // Increased space for bottom nav
           ],

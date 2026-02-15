@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../utils/snackbar_helper.dart';
+import '../services/desk_service.dart';
 
 class DeskBookingScreen extends StatefulWidget {
   const DeskBookingScreen({super.key});
@@ -14,68 +16,120 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
   static const Color bgGray = Color(0xFFF8FAFC);
   static const Color textMuted = Color(0xFF8E99A7);
 
+  final DeskService _deskService = DeskService();
+
   // State
   int _selectedTabIndex = 0; // 0 = Workstation, 1 = Meeting Room
-  String _selectedWing = 'Wing A (Floor 1)';
+  String _selectedWing = 'Wing A';
   String? _selectedDesk;
   bool _isModalVisible = false;
+  bool _isLoading = true;
+  bool _isBooking = false;
 
   // Booking form state
   DateTime _selectedDate = DateTime.now();
   int _selectedDuration = 0; // 0 = Full Day, 1 = Morning, 2 = Evening
-  int _selectedFloor = 0; // 0 = Floor 4, 1 = Floor 2, 2 = Floor 5
+  int _selectedFloor = 0;
   String _currentBookingItem = '';
   String _currentBookingType = '';
+  String _currentBookingItemId = ''; // Store desk/room ID for API
 
-  // Wing options
-  final List<String> _wingOptions = [
-    'Wing A (Floor 1)',
-    'Wing B (Floor 1)',
-    'Wing C (Floor 2)',
-  ];
+  // Dynamic data from API
+  List<String> _wingOptions = ['Wing A', 'Wing B', 'Wing C'];
+  Map<String, bool> _deskAvailability = {};
+  Map<String, String> _deskIds = {}; // Map desk code to desk ID for API
+  List<Map<String, dynamic>> _meetingRooms = [];
 
-  // Desk data
-  final Map<String, bool> _deskAvailability = {
-    'A-101': false, // occupied
-    'A-102': true,
-    'A-103': true,
-    'A-104': true,
-    'A-105': true,
-    'A-106': false, // occupied
-    'A-107': true,
-    'A-108': true,
-    'W-201': true,
-    'W-202': true,
-    'W-203': false, // occupied
-    'W-204': true,
-  };
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
-  // Meeting rooms data
-  final List<Map<String, dynamic>> _meetingRooms = [
-    {
-      'name': 'Conference Hall A',
-      'capacity': 12,
-      'available': true,
-      'amenities': ['TV Screen', 'Whiteboard'],
-    },
-    {
-      'name': 'Board Room',
-      'capacity': 20,
-      'available': false,
-      'amenities': ['Projector', 'Video Conf'],
-    },
-    {
-      'name': 'Thinking Pod',
-      'capacity': 4,
-      'available': true,
-      'amenities': ['Glass Walls', 'Power Outlet'],
-    },
-  ];
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
 
-  void _openBookingModal(String itemName, String itemType) {
+    // Load desks and meeting rooms in parallel
+    final results = await Future.wait([
+      _deskService.getDesks(pageSize: 200),
+      _deskService.getTodaysBookings(),
+      _deskService.getConferenceRooms(pageSize: 50),
+    ]);
+
+    final desksResult = results[0];
+    final bookingsResult = results[1];
+    final roomsResult = results[2];
+
+    if (!mounted) return;
+
+    // Process desks
+    if (desksResult['success'] == true) {
+      final desks = List<Map<String, dynamic>>.from(desksResult['data'] ?? []);
+      final bookedDeskIds = <String>{};
+      
+      // Get booked desk IDs for today
+      if (bookingsResult['success'] == true) {
+        final bookings = List<Map<String, dynamic>>.from(bookingsResult['data'] ?? []);
+        for (final booking in bookings) {
+          final deskId = booking['desk_id']?.toString() ?? '';
+          if (deskId.isNotEmpty) bookedDeskIds.add(deskId);
+        }
+      }
+
+      // Build availability map and wing options
+      final wings = <String>{};
+      final availability = <String, bool>{};
+      final deskIdMap = <String, String>{};
+      
+      for (final desk in desks) {
+        final deskCode = desk['desk_code']?.toString() ?? 'D-${desk['id']}';
+        final deskId = desk['id']?.toString() ?? '';
+        final wing = desk['wing']?.toString() ?? 'Wing A';
+        final floor = desk['floor']?.toString() ?? '1';
+        
+        wings.add('$wing (Floor $floor)');
+        
+        // Desk is available if not booked for today and status is AVAILABLE
+        final isBooked = bookedDeskIds.contains(deskId);
+        final status = desk['status']?.toString().toUpperCase() ?? 'AVAILABLE';
+        availability[deskCode] = !isBooked && status == 'AVAILABLE';
+        deskIdMap[deskCode] = deskId;
+      }
+
+      setState(() {
+        _wingOptions = wings.toList()..sort();
+        _deskAvailability = availability;
+        _deskIds = deskIdMap;
+        if (_wingOptions.isNotEmpty && !_wingOptions.contains(_selectedWing)) {
+          _selectedWing = _wingOptions.first;
+        }
+      });
+    }
+
+    // Process meeting rooms
+    if (roomsResult['success'] == true) {
+      final rooms = List<Map<String, dynamic>>.from(roomsResult['data'] ?? []);
+      final roomList = rooms.map((room) => {
+        'id': room['id']?.toString() ?? '',
+        'name': room['name']?.toString() ?? 'Conference Room',
+        'capacity': room['capacity'] ?? 10,
+        'available': (room['status']?.toString().toUpperCase() ?? 'AVAILABLE') == 'AVAILABLE',
+        'amenities': List<String>.from(room['amenities'] ?? ['Whiteboard']),
+      }).toList();
+
+      setState(() {
+        _meetingRooms = List<Map<String, dynamic>>.from(roomList);
+      });
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  void _openBookingModal(String itemName, String itemType, {String itemId = ''}) {
     setState(() {
       _currentBookingItem = itemName;
       _currentBookingType = itemType;
+      _currentBookingItemId = itemId;
       _isModalVisible = true;
     });
   }
@@ -86,29 +140,84 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     });
   }
 
-  void _confirmBooking() {
-    // Mark desk as occupied if it's a workstation
-    if (_currentBookingType == 'Workstation' &&
-        _deskAvailability.containsKey(_currentBookingItem)) {
-      setState(() {
-        _deskAvailability[_currentBookingItem] = false;
-        _selectedDesk = null;
-      });
+  Future<void> _confirmBooking() async {
+    setState(() => _isBooking = true);
+
+    // Get desk ID from mapping
+    String itemId = _currentBookingItemId;
+    if (itemId.isEmpty && _deskIds.containsKey(_currentBookingItem)) {
+      itemId = _deskIds[_currentBookingItem]!;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "$_currentBookingType '$_currentBookingItem' Reserved Successfully!",
-        ),
-        backgroundColor: const Color(0xFF16A34A),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+    if (itemId.isEmpty) {
+      SnackbarHelper.showError(context, 'Unable to identify desk/room');
+      setState(() => _isBooking = false);
+      return;
+    }
 
-    _closeModal();
+    // Format date
+    final dateStr = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+    
+    // Determine time based on duration selection
+    String startTime, endTime;
+    switch (_selectedDuration) {
+      case 1: // Morning
+        startTime = '09:00:00';
+        endTime = '13:00:00';
+        break;
+      case 2: // Evening
+        startTime = '14:00:00';
+        endTime = '18:00:00';
+        break;
+      default: // Full Day
+        startTime = '09:00:00';
+        endTime = '18:00:00';
+    }
+
+    Map<String, dynamic> result;
+    if (_currentBookingType == 'Workstation') {
+      result = await _deskService.createDeskBooking(
+        deskId: itemId,
+        bookingDate: dateStr,
+        startTime: startTime,
+        endTime: endTime,
+        purpose: 'Workstation booking',
+      );
+    } else {
+      result = await _deskService.createRoomBooking(
+        roomId: itemId,
+        bookingDate: dateStr,
+        startTime: startTime,
+        endTime: endTime,
+        meetingTitle: 'Meeting Room Booking',
+        description: 'Booked via mobile app',
+      );
+    }
+
+    if (!mounted) return;
+    setState(() => _isBooking = false);
+
+    if (result['success'] == true) {
+      // Mark as occupied locally
+      if (_currentBookingType == 'Workstation' && _deskAvailability.containsKey(_currentBookingItem)) {
+        setState(() {
+          _deskAvailability[_currentBookingItem] = false;
+          _selectedDesk = null;
+        });
+      }
+
+      SnackbarHelper.showSuccess(
+        context,
+        "$_currentBookingType '$_currentBookingItem' reserved successfully!",
+      );
+      _closeModal();
+      _loadData(); // Refresh data
+    } else {
+      SnackbarHelper.showError(
+        context,
+        result['message'] ?? 'Failed to create booking',
+      );
+    }
   }
 
   @override
@@ -126,9 +235,11 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                 _buildTabToggle(),
                 // Content
                 Expanded(
-                  child: _selectedTabIndex == 0
-                      ? _buildWorkstationView()
-                      : _buildMeetingRoomView(),
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: navyColor))
+                      : _selectedTabIndex == 0
+                          ? _buildWorkstationView()
+                          : _buildMeetingRoomView(),
                 ),
               ],
             ),
@@ -457,15 +568,16 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     );
   }
 
-  Widget _buildDesk(String deskId) {
-    final bool isAvailable = _deskAvailability[deskId] ?? false;
-    final bool isSelected = _selectedDesk == deskId;
+  Widget _buildDesk(String deskCode) {
+    final bool isAvailable = _deskAvailability[deskCode] ?? false;
+    final bool isSelected = _selectedDesk == deskCode;
+    final String deskId = _deskIds[deskCode] ?? '';
 
     return GestureDetector(
       onTap: isAvailable
           ? () {
-              setState(() => _selectedDesk = deskId);
-              _openBookingModal(deskId, 'Workstation');
+              setState(() => _selectedDesk = deskCode);
+              _openBookingModal(deskCode, 'Workstation', itemId: deskId);
             }
           : null,
       child: AnimatedContainer(
@@ -696,7 +808,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                   height: 40,
                   child: ElevatedButton(
                     onPressed: isAvailable
-                        ? () => _openBookingModal(room['name'], 'Meeting Room')
+                        ? () => _openBookingModal(room['name'], 'Meeting Room', itemId: room['id'] ?? '')
                         : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
@@ -802,7 +914,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _confirmBooking,
+                      onPressed: _isBooking ? null : _confirmBooking,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: navyColor,
                         foregroundColor: Colors.white,
@@ -812,20 +924,29 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'SELECT YOUR SEAT',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
+                      child: _isBooking
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'SELECT YOUR SEAT',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward, size: 18),
+                              ],
                             ),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward, size: 18),
-                        ],
-                      ),
                     ),
                   ),
                 ],

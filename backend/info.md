@@ -870,7 +870,6 @@ POST /leave/requests
 
 ---
 
-<<<<<<< HEAD
 ## 📝 Changelog
 
 ### February 12, 2026 - Bug Fixes
@@ -924,6 +923,3 @@ REJECTED = "rejected"
 ---
 
 *Last Updated: February 12, 2026*
-=======
-*Last Updated: February 11, 2026*
->>>>>>> origin/frontend-user/mahek
