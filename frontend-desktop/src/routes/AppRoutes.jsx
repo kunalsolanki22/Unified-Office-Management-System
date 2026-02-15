@@ -48,7 +48,7 @@ const AppRoutes = () => {
                 {/* Parking Manager */}
                 <Route element={<ProtectedRoutes
                     allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
-                    allowedManagerTypes={['parking']}
+                    allowedManagerTypes={['PARKING']}
                 />}>
                     <Route path="/parking/*" element={<ParkingRoutes />} />
                 </Route>
@@ -56,34 +56,47 @@ const AppRoutes = () => {
                 {/* IT Hardware Manager */}
                 <Route element={<ProtectedRoutes
                     allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
-                    allowedManagerTypes={['it_support']}
+                    allowedManagerTypes={['IT_SUPPORT']}
                 />}>
                     <Route path="/hardware/*" element={<HardwareRoutes />} />
                 </Route>
 
-                {/* Team Lead Module */}
-                <Route element={<ProtectedRoutes allowedRoles={[ROLES.TEAM_LEAD, ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
-                    <Route path="/team-lead/*" element={<TeamLeadRoutes />} />
-                </Route>
-
-                {/* Attendance Manager Module */}
-                <Route element={<ProtectedRoutes allowedRoles={[ROLES.ATTENDANCE_MANAGER, ROLES.SUPER_ADMIN]} />}>
+                {/* Attendance Manager */}
+                <Route element={<ProtectedRoutes
+                    allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
+                    allowedManagerTypes={['ATTENDANCE']}
+                />}>
                     <Route path="/attendance-manager/*" element={<AttendanceManagerRoutes />} />
                 </Route>
 
-                {/* Cafeteria Manager Module */}
-                <Route element={<ProtectedRoutes allowedRoles={[ROLES.CAFETERIA_MANAGER, ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
+                {/* Cafeteria Manager */}
+                <Route element={<ProtectedRoutes
+                    allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
+                    allowedManagerTypes={['CAFETERIA']}
+                />}>
                     <Route path="/cafeteria-manager/*" element={<CafeteriaManagerRoutes />} />
                 </Route>
 
-                {/* Reporting Manager Module */}
-                <Route element={<ProtectedRoutes allowedRoles={[ROLES.REPORTING_MANAGER, ROLES.SUPER_ADMIN]} />}>
+                {/* Conference & Desk Manager */}
+                <Route element={<ProtectedRoutes
+                    allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
+                    allowedManagerTypes={['DESK_CONFERENCE']}
+                />}>
+                    <Route path="/conference-desk-manager/*" element={<ConferenceDeskManagerRoutes />} />
+                </Route>
+
+                {/* Reporting Manager / Team Lead */}
+                <Route element={<ProtectedRoutes
+                    allowedRoles={[ROLES.TEAM_LEAD, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
+                />}>
                     <Route path="/reporting-manager/*" element={<ReportingManagerRoutes />} />
                 </Route>
 
-                {/* Conference & Desk Manager Module */}
-                <Route element={<ProtectedRoutes allowedRoles={[ROLES.CONFERENCE_DESK_MANAGER, ROLES.SUPER_ADMIN]} />}>
-                    <Route path="/conference-desk-manager/*" element={<ConferenceDeskManagerRoutes />} />
+                {/* Team Lead */}
+                <Route element={<ProtectedRoutes
+                    allowedRoles={[ROLES.TEAM_LEAD, ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
+                />}>
+                    <Route path="/team-lead/*" element={<TeamLeadRoutes />} />
                 </Route>
 
                 {/* Fallback */}

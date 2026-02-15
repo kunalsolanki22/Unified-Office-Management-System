@@ -1,10 +1,15 @@
 export const ROLES = {
-    SUPER_ADMIN: 'SuperAdmin',
-    ADMIN: 'Admin',
-    MANAGER: 'Manager', // Legacy map to CafeteriaManager
-    TEAM_LEAD: 'TeamLead',
-    ATTENDANCE_MANAGER: 'AttendanceManager',
-    CAFETERIA_MANAGER: 'CafeteriaManager',
-    REPORTING_MANAGER: 'ReportingManager',
-    CONFERENCE_DESK_MANAGER: 'ConferenceDeskManager'
+    SUPER_ADMIN: 'SUPER_ADMIN',
+    ADMIN: 'ADMIN',
+    MANAGER: 'MANAGER',
+    TEAM_LEAD: 'TEAM_LEAD',
+    EMPLOYEE: 'EMPLOYEE',
+};
+
+export const MANAGER_TYPES = {
+    PARKING: 'PARKING',
+    IT_SUPPORT: 'IT_SUPPORT',
+    ATTENDANCE: 'ATTENDANCE',
+    CAFETERIA: 'CAFETERIA',
+    DESK_CONFERENCE: 'DESK_CONFERENCE',
 };
