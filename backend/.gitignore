@@ -185,3 +185,4 @@ tmp/
 temp/
 *.tmp
 *.temp
+docker-compose.override.yml
