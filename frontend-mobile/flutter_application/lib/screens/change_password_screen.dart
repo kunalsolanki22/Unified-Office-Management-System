@@ -18,6 +18,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  bool _hasToken = false;
 
   @override
   void dispose() {
@@ -26,6 +27,27 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkToken();
+  }
+
+  Future<void> _checkToken() async {
+    final token = await _authService.getToken();
+    setState(() {
+      _hasToken = token != null && token.isNotEmpty;
+      if (_hasToken) {
+        // If authenticated, pre-fill email from profile and hide email field
+        _authService.getUserProfile().then((profile) {
+          if (profile != null && mounted) {
+            _emailController.text = profile['email']?.toString() ?? '';
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -64,9 +86,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
-                // Email field
-                _buildEmailField(),
-                const SizedBox(height: 16),
+                // Email field (only show when not authenticated)
+                if (!_hasToken) ...[
+                  _buildEmailField(),
+                  const SizedBox(height: 16),
+                ],
                 _buildTextField(
                   controller: _oldPasswordController,
                   label: 'Old Password',
@@ -241,16 +265,28 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     setState(() {
       _isLoading = true;
     });
-    // Call backend to check old password and update new password
-    final result = await _authService.changePasswordWithEmail(email, oldPass, newPass);
+    // Call backend to change password. If user is authenticated use token-based endpoint.
     setState(() {
-      _isLoading = false;
+      _isLoading = true;
     });
-    if (result == 'success') {
-      _showSnackBar('Password changed successfully!', Colors.green);
-      Navigator.pop(context);
+    if (_hasToken) {
+      final result = await _authService.changePassword(oldPass, newPass);
+      setState(() => _isLoading = false);
+      if (result == 'success') {
+        _showSnackBar('Password changed successfully!', Colors.green);
+        Navigator.pop(context);
+      } else {
+        _showSnackBar(result, Colors.red);
+      }
     } else {
-      _showSnackBar(result, Colors.red);
+      final result = await _authService.changePasswordWithEmail(email, oldPass, newPass);
+      setState(() => _isLoading = false);
+      if (result == 'success') {
+        _showSnackBar('Password changed successfully!', Colors.green);
+        Navigator.pop(context);
+      } else {
+        _showSnackBar(result, Colors.red);
+      }
     }
   }
 

@@ -10,13 +10,19 @@ import '../parking_screen.dart';
 import '../it_support_screen.dart';
 import '../desk_booking_screen.dart';
 import '../leave_screen.dart';
+import '../directory/directory_screen.dart';
+
 
 class EmployeeDashboard extends StatefulWidget {
   final String userName;
+  final VoidCallback? onToggleTheme;
+  final bool? isDark;
 
   const EmployeeDashboard({
     super.key,
     this.userName = 'Alex',
+    this.onToggleTheme,
+    this.isDark,
   });
 
   @override
@@ -487,7 +493,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
           children: [
             _buildDashboardContent(),
             const LeaveScreen(),
-            _buildDirectoryScreen(),
+            const DirectoryScreen(),
             EmployeeProfileScreen(
               onBack: () {
                 setState(() {
@@ -552,49 +558,64 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
               ),
             ],
           ),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedIndex = 3;
-              });
-            },
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    border: Border.all(color: const Color(0xFFDBEAFE), width: 1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'A',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: navyColor,
+          Row(
+            children: [
+              // Theme toggle button
+              IconButton(
+                icon: Icon(
+                  (widget.isDark ?? true) ? Icons.dark_mode : Icons.light_mode,
+                  color: yellowAccent,
+                ),
+                tooltip: 'Toggle Theme',
+                onPressed: widget.onToggleTheme,
+              ),
+              const SizedBox(width: 8),
+              // Profile icon
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedIndex = 3;
+                  });
+                },
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        border: Border.all(color: const Color(0xFFDBEAFE), width: 1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'A',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: navyColor,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                Positioned(
-                  top: -4,
-                  right: -4,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: yellowAccent,
-                      border: Border.all(color: Colors.white, width: 3),
-                      shape: BoxShape.circle,
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: yellowAccent,
+                          border: Border.all(color: Colors.white, width: 3),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

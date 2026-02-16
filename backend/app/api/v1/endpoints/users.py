@@ -106,6 +106,32 @@ async def list_users(
     )
 
 
+@router.get("/directory", response_model=PaginatedResponse[UserResponse])
+async def get_directory(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(100, ge=1, le=1000),
+    search: Optional[str] = None,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Public directory for authenticated users. Returns limited view based on role."""
+    user_service = UserService(db)
+    users, total = await user_service.list_users(
+        page=page,
+        page_size=page_size,
+        search=search,
+        requesting_user=current_user
+    )
+
+    return create_paginated_response(
+        data=[UserResponse.model_validate(u) for u in users],
+        total=total,
+        page=page,
+        page_size=page_size,
+        message="Directory retrieved successfully"
+    )
+
+
 @router.get("/{user_id}", response_model=APIResponse[UserResponse])
 async def get_user(
     user_id: UUID,

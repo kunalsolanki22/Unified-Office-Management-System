@@ -59,12 +59,18 @@ class DeskService {
       final uri = Uri.parse('$baseUrl/desks/bookings').replace(queryParameters: {
         'booking_date': today,
         'page_size': '100',
+        'status': 'confirmed',
       });
       final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return {'success': true, 'data': data['data'] ?? []};
+        final rawList = data['data'] as List? ?? [];
+        final bookings = rawList.where((b) {
+          final status = b['status']?.toString().toLowerCase();
+          return status == 'confirmed' || status == 'pending';
+        }).toList();
+        return {'success': true, 'data': bookings};
       } else {
         final errorData = json.decode(response.body);
         return {'success': false, 'message': errorData['detail'] ?? 'Failed to fetch bookings'};
@@ -107,10 +113,9 @@ class DeskService {
       final headers = await _getHeaders();
       final body = json.encode({
         'desk_id': deskId,
-        'booking_date': bookingDate,
-        'start_time': startTime,
-        'end_time': endTime,
-        if (purpose != null) 'purpose': purpose,
+        'start_date': bookingDate,
+        'end_date': bookingDate,
+        if (purpose != null) 'notes': purpose,
       });
 
       final response = await http.post(
@@ -135,8 +140,8 @@ class DeskService {
   Future<Map<String, dynamic>> cancelDeskBooking(String bookingId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse('$baseUrl/desks/bookings/$bookingId/cancel'),
+      final response = await http.delete(
+        Uri.parse('$baseUrl/desks/bookings/$bookingId'),
         headers: headers,
       );
 
@@ -210,6 +215,27 @@ class DeskService {
     }
   }
 
+  /// Get current user's room bookings
+  Future<Map<String, dynamic>> getMyRoomBookings() async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/desks/rooms/bookings/my'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data'] ?? []};
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'message': errorData['detail'] ?? 'Failed to fetch my room bookings'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
   /// Create a conference room booking
   Future<Map<String, dynamic>> createRoomBooking({
     required String roomId,
@@ -228,10 +254,10 @@ class DeskService {
         'booking_date': bookingDate,
         'start_time': startTime,
         'end_time': endTime,
-        'meeting_title': meetingTitle,
-        if (description != null) 'description': description,
-        if (expectedAttendees != null) 'expected_attendees': expectedAttendees,
-        if (externalAttendeeEmails != null) 'external_attendee_emails': externalAttendeeEmails,
+        'title': meetingTitle,
+        'description': description ?? '',
+        'attendees_count': expectedAttendees ?? 1,
+        // 'external_attendee_emails': externalAttendeeEmails, // Ignored by backend
       });
 
       final response = await http.post(
@@ -246,6 +272,27 @@ class DeskService {
       } else {
         final errorData = json.decode(response.body);
         return {'success': false, 'message': errorData['detail'] ?? 'Failed to create room booking'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  /// Cancel a conference room booking
+  Future<Map<String, dynamic>> cancelRoomBooking(String bookingId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/desks/rooms/bookings/$bookingId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data']};
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'message': errorData['detail'] ?? 'Failed to cancel room booking'};
       }
     } catch (e) {
       return {'success': false, 'message': 'Connection error: $e'};

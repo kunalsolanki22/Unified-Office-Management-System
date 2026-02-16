@@ -5,8 +5,11 @@ import 'employee/employee_dashboard.dart';
 import '../services/auth_service.dart';
 import '../utils/snackbar_helper.dart';
 
+
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final VoidCallback? onToggleTheme;
+  final bool? isDark;
+  const LoginPage({super.key, this.onToggleTheme, this.isDark});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -48,7 +51,6 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 24),
                 _buildLoginButton(),
                 const SizedBox(height: 16),
-                _buildChangePassword(),
                 const SizedBox(height: 48),
                 _buildFooter(),
               ],
@@ -398,7 +400,13 @@ class _LoginPageState extends State<LoginPage> {
               // TEAM_LEAD, EMPLOYEE
                Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => EmployeeDashboard(userName: name)),
+                MaterialPageRoute(
+                  builder: (context) => EmployeeDashboard(
+                    userName: name,
+                    onToggleTheme: widget.onToggleTheme,
+                    isDark: widget.isDark,
+                  ),
+                ),
               );
             }
           }

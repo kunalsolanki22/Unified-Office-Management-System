@@ -8,12 +8,17 @@ import '../manager_profile_screen.dart';
 import '../cafeteria_screen.dart';
 import '../parking_screen.dart';
 import '../leave_screen.dart';
-import '../../main.dart'; // Import main.dart for themeNotifier
+
 
 class ManagerDashboard extends StatefulWidget {
   final Map<String, dynamic> userProfile;
+  final VoidCallback? onToggleTheme;
 
-  const ManagerDashboard({super.key, required this.userProfile});
+  const ManagerDashboard({
+    super.key,
+    required this.userProfile,
+    this.onToggleTheme,
+  });
 
   @override
   State<ManagerDashboard> createState() => _ManagerDashboardState();
@@ -478,9 +483,9 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
                       : navyColor,
                 ),
                 onPressed: () {
-                  themeNotifier.value = Theme.of(context).brightness == Brightness.dark
-                      ? ThemeMode.light
-                      : ThemeMode.dark;
+                  if (widget.onToggleTheme != null) {
+                    widget.onToggleTheme!();
+                  }
                 },
               ),
               const SizedBox(width: 8),

@@ -299,25 +299,8 @@ class _ParkingScreenState extends State<ParkingScreen> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.amber,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                _userParkedSlotLabel!,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
+          // Removed the yellow slot box per design request. Slot label
+          // is shown in the text section instead.
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -656,11 +639,15 @@ class _ParkingScreenState extends State<ParkingScreen> {
         break;
       case SlotType.busy:
         bgColor = const Color(0xFF90A4AE);
+        // Determine whether this slot is a bike slot. Prefer explicit label check,
+        // but also consider current level (bike view) for robustness.
+        final bool isBike = _isBikeSlot(label, null) || !_isLevel1;
+        final IconData vehicleIcon = isBike ? Icons.pedal_bike : Icons.directions_car;
         content = Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.directions_car, color: Colors.white54, size: 20),
+              Icon(vehicleIcon, color: Colors.white54, size: 20),
               Text(
                 shortLabel,
                 textAlign: TextAlign.center,

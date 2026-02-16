@@ -81,17 +81,30 @@ async def allocate_parking(
             detail="You already have an active parking slot"
         )
     
-    # Find first available slot - ordered alphabetically by slot_label
-    # This ensures Floor 1 (A, B) is filled before Floor 2 (C, D)
+    # Try to find first available slot matching user's vehicle_type
+    # This ensures users with bikes/cars get slots reserved for that vehicle first.
+    preferred_vehicle = current_user.vehicle_type or VehicleType.CAR
+
     query = select(ParkingSlot).where(
         ParkingSlot.parking_type == ParkingType.EMPLOYEE,
         ParkingSlot.status == ParkingSlotStatus.AVAILABLE,
-        ParkingSlot.is_active == True
+        ParkingSlot.is_active == True,
+        ParkingSlot.vehicle_type == preferred_vehicle
     ).order_by(ParkingSlot.slot_label.asc()).limit(1)
-    
+
     result = await db.execute(query)
     slot = result.scalar_one_or_none()
-    
+
+    # Fallback to any available slot if none found for the preferred vehicle type
+    if not slot:
+        query = select(ParkingSlot).where(
+            ParkingSlot.parking_type == ParkingType.EMPLOYEE,
+            ParkingSlot.status == ParkingSlotStatus.AVAILABLE,
+            ParkingSlot.is_active == True
+        ).order_by(ParkingSlot.slot_label.asc()).limit(1)
+        result = await db.execute(query)
+        slot = result.scalar_one_or_none()
+
     if not slot:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

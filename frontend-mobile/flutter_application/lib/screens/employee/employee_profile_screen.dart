@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../login_screen.dart';
 import '../../services/auth_service.dart';
+import '../change_password_screen.dart';
 
 class EmployeeProfileScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -98,6 +99,8 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
               ),
             ),
           const SizedBox(height: 48),
+          _buildChangePasswordButton(),
+          const SizedBox(height: 12),
           _buildLogoutButton(context),
         ],
       ),
@@ -383,6 +386,26 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChangePasswordButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+          );
+        },
+        icon: const Icon(Icons.lock_outline),
+        label: const Text('Change Password'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );

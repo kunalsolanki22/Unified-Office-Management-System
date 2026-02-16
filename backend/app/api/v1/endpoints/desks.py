@@ -413,6 +413,47 @@ async def list_room_bookings(
     )
 
 
+@router.get("/rooms/bookings/my", response_model=APIResponse)
+async def get_my_room_bookings(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get current user's conference room bookings."""
+    desk_service = DeskService(db)
+    bookings, total = await desk_service.list_room_bookings(
+        user_code=current_user.user_code,
+        page=1,
+        page_size=50
+    )
+
+    # Build response with room details
+    response_data = []
+    for booking in bookings:
+        response_data.append({
+            "id": booking.id,
+            "room_id": booking.room_id,
+            "room_code": booking.room.room_code,
+            "room_label": booking.room.room_label,
+            "capacity": booking.room.capacity,
+            "user_code": booking.user_code,
+            "booking_date": booking.booking_date,
+            "start_time": booking.start_time,
+            "end_time": booking.end_time,
+            "title": booking.title,
+            "description": booking.description,
+            "attendees_count": booking.attendees_count,
+            "status": booking.status,
+            "notes": booking.notes,
+            "created_at": booking.created_at,
+            "updated_at": booking.updated_at
+        })
+
+    return create_response(
+        data=response_data,
+        message="My conference room bookings retrieved successfully"
+    )
+
+
 @router.delete("/rooms/bookings/{booking_id}", response_model=APIResponse)
 async def cancel_room_booking(
     booking_id: UUID,
