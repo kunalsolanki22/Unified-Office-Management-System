@@ -563,7 +563,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
               // Theme toggle button
               IconButton(
                 icon: Icon(
-                  (widget.isDark ?? true) ? Icons.dark_mode : Icons.light_mode,
+                  (widget.isDark ?? false) ? Icons.dark_mode : Icons.light_mode,
                   color: yellowAccent,
                 ),
                 tooltip: 'Toggle Theme',

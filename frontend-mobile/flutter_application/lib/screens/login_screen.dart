@@ -393,7 +393,10 @@ class _LoginPageState extends State<LoginPage> {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ManagerDashboard(userProfile: finalProfile),
+                  builder: (context) => ManagerDashboard(
+                    userProfile: finalProfile,
+                    onToggleTheme: widget.onToggleTheme,
+                  ),
                 ),
               );
             } else {

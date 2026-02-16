@@ -1,41 +1,35 @@
 import 'package:flutter/material.dart';
-
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  bool isDark = true;
-
-  void toggleTheme() {
-    setState(() {
-      isDark = !isDark;
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Cygnet.One',
-      debugShowCheckedModeBanner: false,
-      // theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-      home: LoginPage(
-        onToggleTheme: toggleTheme,
-        isDark: isDark,
-      ),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (context, currentMode, _) {
+        return MaterialApp(
+          title: 'Cygnet.One',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: currentMode,
+          home: LoginPage(
+            onToggleTheme: () {
+              themeNotifier.value = themeNotifier.value == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+            },
+            isDark: currentMode == ThemeMode.dark,
+          ),
+        );
+      },
     );
   }
 }
