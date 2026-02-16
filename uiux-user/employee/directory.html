@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Employee Directory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+:root {
+    --navy: #0e1e2b;
+    --yellow: #fbad1a;
+    --bg-gray: #f8fafc;
+    --text-muted: #8e99a7;
+}
+
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-gray);
+            color: #111827;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            height: 100vh;
+            overflow-y: auto;
+            padding-bottom: 140px;
+            position: relative;
+        }
+
+        .card-base {
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(0,0,0,0.01);
+            transition: all 0.2s ease;
+        }
+        .card-base:active { transform: scale(0.98); background-color: #f9fbff; }
+
+        /* Modern Search Bar */
+        .search-container {
+            background: white;
+            border-radius: 20px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            border: 1px solid #f1f5f9;
+        }
+
+        /* Inline Team Tag inside card */
+        .team-tag {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #1a367c;
+            background: #eef2ff;
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        /* Detail Sheet Modal */
+        #detail-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 100%;
+            max-width: 430px;
+            background: white;
+            border-radius: 36px 36px 0 0;
+            z-index: 2000;
+            transition: transform 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+            box-shadow: 0 -15px 50px rgba(0,0,0,0.1);
+            padding: 30px 24px;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(17, 38, 60, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 1500;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .sheet-active #detail-sheet { transform: translateX(-50%) translateY(0); }
+        .sheet-active .overlay { opacity: 1; pointer-events: auto; }
+
+        /* Nav Pill */
+        .bottom-nav-pill {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85%;
+            max-width: 360px;
+            background: white;
+            border-radius: 100px;
+            height: 90px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 15px;
+            z-index: 1000;
+        }
+
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 80px; }
+        .nav-icon-box { width: 48px; height: 48px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .nav-icon-active { background-color: var(--navy); color: white; box-shadow: 0 8px 15px rgba(26, 54, 124, 0.2); }
+        .nav-label { font-size: 9px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
+    </style>
+</head>
+<body id="main-context">
+
+<div class="app-shell">
+    
+    <!-- Header -->
+    <header class="px-6 pt-12 pb-6 flex items-center gap-4 sticky top-0 bg-[#f8fafc]/90 backdrop-blur-md z-50">
+        <button onclick="window.history.back()" class="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-[#1a367c]">
+            <i class="fa-solid fa-chevron-left text-sm"></i>
+        </button>
+        <h1 class="text-xl font-800 tracking-tight text-[#1a367c]">Directory</h1>
+    </header>
+
+    <!-- Search Section -->
+    <div class="px-6 mb-8">
+        <div class="search-container">
+            <i class="fa-solid fa-magnifying-glass text-gray-400 text-sm"></i>
+            <input type="text" placeholder="Search name, role, or team..." class="w-full outline-none text-sm font-600 bg-transparent placeholder:text-gray-300">
+        </div>
+    </div>
+
+    <!-- Employee List (Clean & Structured) -->
+    <div class="px-6 space-y-4">
+        
+        <!-- Employee 1 -->
+        <div class="card-base p-4 flex items-center justify-between" onclick="openDetails('Sarah Wilson', 'Lead UX Designer', 'Design Team', 'sarah.w@office.com', 'Cabin A-04')">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl border-2 border-white shadow-sm overflow-hidden">
+                    <img src="https://ui-avatars.com/api/?name=Sarah+Wilson&background=1a367c&color=fff" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h3 class="font-800 text-sm text-[#1a367c]">Sarah Wilson</h3>
+                    <p class="text-[11px] text-gray-400 font-bold tracking-tight">Lead UX Designer</p>
+                    <span class="team-tag">Design Team</span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <div class="w-10 h-10 bg-blue-50 text-[#1a367c] rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-phone"></i></div>
+            </div>
+        </div>
+
+        <!-- Employee 2 -->
+        <div class="card-base p-4 flex items-center justify-between" onclick="openDetails('Mike Ross', 'Senior Developer', 'Engineering', 'mike.r@office.com', 'Desk B-12')">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl border-2 border-white shadow-sm overflow-hidden">
+                    <img src="https://ui-avatars.com/api/?name=Mike+Ross&background=fdbb2d&color=1a367c" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h3 class="font-800 text-sm text-[#1a367c]">Mike Ross</h3>
+                    <p class="text-[11px] text-gray-400 font-bold tracking-tight">Senior Developer</p>
+                    <span class="team-tag">Engineering</span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <div class="w-10 h-10 bg-blue-50 text-[#1a367c] rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-phone"></i></div>
+            </div>
+        </div>
+
+        <!-- Employee 3 -->
+        <div class="card-base p-4 flex items-center justify-between" onclick="openDetails('Jessica Pearson', 'Managing Director', 'Corporate', 'jessica.p@office.com', 'Executive Cabin 1')">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl border-2 border-white shadow-sm overflow-hidden">
+                    <img src="https://ui-avatars.com/api/?name=Jessica+Pearson&background=16a34a&color=fff" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h3 class="font-800 text-sm text-[#1a367c]">Jessica Pearson</h3>
+                    <p class="text-[11px] text-gray-400 font-bold tracking-tight">Managing Director</p>
+                    <span class="team-tag">Corporate</span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <div class="w-10 h-10 bg-blue-50 text-[#1a367c] rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-phone"></i></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Navigation Pill (Consistent) -->
+<div class="bottom-nav-pill">
+
+<div class="nav-item">
+    <div class="nav-icon nav-inactive">
+        <i class="fa-solid fa-chart-line"></i>
+    </div>
+    <span class="nav-label nav-inactive">Dashboard</span>
+</div>
+
+<div class="nav-item">
+    <div class="nav-icon nav-inactive">
+        <i class="fa-solid fa-calendar-check"></i>
+    </div>
+    <span class="nav-label nav-inactive">Leave</span>
+</div>
+
+<div class="nav-item">
+    <div class="nav-icon nav-active">
+        <i class="fa-solid fa-address-book"></i>
+    </div>
+    <span class="nav-label text-[var(--navy)]">Directory</span>
+</div>
+
+<div class="nav-item">
+    <div class="nav-icon nav-inactive">
+        <i class="fa-solid fa-user"></i>
+    </div>
+    <span class="nav-label nav-inactive">Profile</span>
+</div>
+
+</div>
+</div>
+
+<!-- Modal Overlay -->
+<div class="overlay" onclick="closeDetails()"></div>
+
+<!-- Full Employee Details Drawer -->
+<div id="detail-sheet">
+    <div class="w-12 h-1 bg-gray-100 rounded-full mx-auto mb-8"></div>
+    
+    <div class="flex flex-col items-center mb-8 text-center">
+        <div class="w-24 h-24 rounded-[32px] border-4 border-[#f8fafc] shadow-xl overflow-hidden mb-4">
+            <img id="det-img" src="" class="w-full h-full object-cover">
+        </div>
+        <h2 id="det-name" class="text-2xl font-800 text-[#1a367c]"></h2>
+        <p id="det-role" class="text-[11px] font-800 text-gray-400 uppercase tracking-widest mt-1"></p>
+    </div>
+
+    <div class="space-y-4 mb-10">
+        <div class="bg-[#f8fafc] p-4 rounded-2xl flex items-center gap-4">
+            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#1a367c] shadow-sm"><i class="fa-solid fa-sitemap text-xs"></i></div>
+            <div>
+                <p class="text-[9px] font-800 text-gray-400 uppercase tracking-tighter">Team Classification</p>
+                <p id="det-dept" class="text-sm font-700 text-[#1a367c]"></p>
+            </div>
+        </div>
+
+        <div class="bg-[#f8fafc] p-4 rounded-2xl flex items-center gap-4">
+            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#1a367c] shadow-sm"><i class="fa-solid fa-envelope text-xs"></i></div>
+            <div>
+                <p class="text-[9px] font-800 text-gray-400 uppercase tracking-tighter">Email Address</p>
+                <p id="det-email" class="text-sm font-700 text-[#1a367c]"></p>
+            </div>
+        </div>
+
+        <div class="bg-[#f8fafc] p-4 rounded-2xl flex items-center gap-4">
+            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#1a367c] shadow-sm"><i class="fa-solid fa-location-dot text-xs"></i></div>
+            <div>
+                <p class="text-[9px] font-800 text-gray-400 uppercase tracking-tighter">Current Desk</p>
+                <p id="det-desk" class="text-sm font-700 text-[#1a367c]"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Actions -->
+    <div class="flex gap-4">
+        <button class="flex-1 bg-[#1a367c] text-[#fdbb2d] py-4 rounded-2xl font-800 text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2">
+            <i class="fa-solid fa-phone"></i> Call Employee
+        </button>
+        <button class="flex-1 bg-white border-2 border-[#1a367c] text-[#1a367c] py-4 rounded-2xl font-800 text-xs uppercase tracking-widest flex items-center justify-center gap-2">
+            <i class="fa-solid fa-envelope"></i> Send Email
+        </button>
+    </div>
+</div>
+
+<script>
+    function openDetails(name, role, dept, email, desk) {
+        document.getElementById('det-name').innerText = name;
+        document.getElementById('det-role').innerText = role;
+        document.getElementById('det-dept').innerText = dept;
+        document.getElementById('det-email').innerText = email;
+        document.getElementById('det-desk').innerText = desk;
+        document.getElementById('det-img').src = `https://ui-avatars.com/api/?name=${name.replace(' ','+')}&background=1a367c&color=fff&size=200`;
+        
+        document.getElementById('main-context').classList.add('sheet-active');
+    }
+
+    function closeDetails() {
+        document.getElementById('main-context').classList.remove('sheet-active');
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cygnet.One Login - Dark Edition</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --navy-deep: #0e1e2b;
+            --navy-light: #1a2c3d;
+            --navy-lighter: #243b53;
+            --yellow: #fbad1a;
+            --text-main: #ffffff;
+            --text-muted: #8e99a7;
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            /* Background outside the app shell to make it pop */
+            background-color: #f0f2f5; 
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 420px;
+            background-color: var(--navy-deep);
+            padding: 40px 28px;
+            border-radius: 40px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Ambient light effect in corner */
+        .app-shell::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(251, 173, 26, 0.1) 0%, rgba(14, 30, 43, 0) 70%);
+            pointer-events: none;
+        }
+
+        .input-field {
+            width: 100%;
+            background-color: var(--navy-light);
+            border: 1.5px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 14px 18px;
+            font-size: 14px;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--yellow);
+            background-color: var(--navy-lighter);
+            box-shadow: 0 0 15px rgba(251, 173, 26, 0.1);
+        }
+
+        .input-field::placeholder {
+            color: #4b5563;
+        }
+
+        .login-btn {
+            background: var(--yellow);
+            color: var(--navy-deep);
+            font-weight: 800;
+            border-radius: 18px;
+            padding: 16px;
+            width: 100%;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 20px rgba(251, 173, 26, 0.15);
+        }
+
+        .login-btn:active {
+            transform: scale(0.97);
+            box-shadow: 0 5px 10px rgba(251, 173, 26, 0.1);
+        }
+
+        .label-style {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--yellow);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 8px;
+            margin-left: 4px;
+        }
+
+        /* Custom Checkbox */
+        .custom-checkbox {
+            accent-color: var(--yellow);
+            width: 16px;
+            height: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        
+        <!-- Logo Section -->
+        <div class="flex flex-col items-center mb-12">
+            <div class="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-4 border border-white/10 shadow-inner">
+                 <!-- Using an icon since external images might fail, but kept the img tag structure -->
+                <i class="fa-solid fa-layer-group text-3xl text-yellow-500"></i>
+            </div>
+            <div class="text-center">
+                <h1 class="text-2xl font-800 tracking-tight text-white">Cygnet<span class="text-yellow-500">.One</span></h1>
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">Enterprise Portal</p>
+            </div>
+        </div>
+
+        <!-- Email -->
+        <div class="mb-5">
+            <label class="label-style">Work Email</label>
+            <input type="email" class="input-field" placeholder="name@cygnet.one">
+        </div>
+
+        <!-- Password -->
+        <div class="mb-4 relative">
+            <label class="label-style">Password</label>
+            <div class="relative">
+                <input type="password" class="input-field pr-12" placeholder="••••••••••••">
+                <button class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-yellow-500 transition-colors">
+                    <i class="fa-solid fa-eye-slash"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Remember & Forgot -->
+        <div class="flex items-center justify-between text-sm mb-8">
+            <label class="flex items-center gap-2 text-gray-400 font-medium cursor-pointer select-none">
+                <input type="checkbox" class="custom-checkbox" checked>
+                Remember me
+            </label>
+            <a href="#" class="text-yellow-500/80 hover:text-yellow-500 font-bold transition-colors">Forgot?</a>
+        </div>
+
+        <!-- Login Button -->
+        <button class="login-btn">
+            Sign In
+        </button>
+
+        <!-- Footer -->
+        <div class="mt-12 text-center">
+            <div class="w-10 h-1 bg-white/5 rounded-full mx-auto mb-6"></div>
+            <p class="text-[10px] text-gray-600 font-bold uppercase tracking-widest leading-loose">
+                © Cygnet Infotech Pvt. Ltd.<br>
+                All Rights Reserved 2024
+            </p>
+        </div>
+
+    </div>
+</body>
+</html>

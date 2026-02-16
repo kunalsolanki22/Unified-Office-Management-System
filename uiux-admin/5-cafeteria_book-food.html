@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Management | Cafeteria Lead Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary-dark: #1a367c;
+            --primary-light: #2c4a96;
+            --accent-orange: #f9b012;
+            --text-light: #ccd6f6;
+            --text-muted: #8892b0;
+            --bg-light: #f4f7f6;
+            --white: #ffffff;
+            --sidebar-width: 260px;
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--white);
+            color: var(--primary-dark);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            border-right: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 3rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .logo-text h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .logo-text span {
+            color: var(--accent-orange);
+        }
+
+        .nav-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all var(--transition-speed);
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background-color: var(--primary-dark);
+            color: var(--white);
+            box-shadow: 0 4px 12px rgba(10, 25, 47, 0.15);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+        }
+
+        .exit-portal {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-decoration: none;
+            padding-left: 0.5rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background-color: var(--white);
+            padding: 0 40px;
+        }
+
+        .top-bar {
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            padding-top: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary-dark);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .action-btn {
+            background: var(--primary-dark);
+            color: var(--white);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Tables */
+        .admin-table-container {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            border: 1px solid #f0f0f0;
+        }
+
+        .admin-header-row {
+            display: grid;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .admin-row {
+            display: grid;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #f8f9fa;
+            font-size: 0.85rem;
+            color: var(--primary-dark);
+            font-weight: 500;
+        }
+
+        .admin-row:hover {
+            background-color: #fafbfb;
+        }
+
+        /* Status Badges */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-orange {
+            background: #fff7ed;
+            color: #9a3412;
+        }
+
+        .badge-green {
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        /* View Toggle Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Food Management Styles */
+        .fm-tabs {
+            display: flex;
+            gap: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 24px;
+        }
+
+        .fm-tab {
+            padding: 12px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .fm-tab.active {
+            color: var(--primary-dark);
+            border-bottom-color: var(--accent-orange);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 400px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary-dark);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">C</div>
+            <div class="logo-text">
+                <h2>CYGNET<span style="color: var(--accent-orange);">.ONE</span></h2>
+            </div>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-label">Core Pillars</div>
+            <a class="nav-item" href="5-cafetaria_dashboard.html">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+                </svg>
+                Dashboard
+            </a>
+            <a class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+                User Directory
+            </a>
+            <a class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z" />
+                </svg>
+                Attendance
+            </a>
+            <a class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
+                </svg>
+                Holidays
+            </a>
+            <a class="nav-item active" href="5-cafeteria_book-food.html">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z" />
+                </svg>
+                Food Management
+            </a>
+            <a class="nav-item" href="5-cafeteria_desk-booking.html">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path d="M4 18v3h3v-3h10v3h3v-3h1V9c0-2.21-1.79-4-4-4H7c-2.21 0-4 1.79-4 4v9h1zm3-9h10v3H7V9z" />
+                </svg>
+                Desk Management
+            </a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-label">Access Tools</div>
+            <a class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7v-5z">
+                    </path>
+                </svg>
+                My Attendance
+            </a>
+            <a class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4zm6 6h4v-4h-4zm0 6h4v-4h-4z" />
+                </svg>
+                Services
+            </a>
+        </div>
+
+        <div class="sidebar-footer">
+            <a href="#" class="exit-portal">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                EXIT PORTAL
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="top-bar">
+            <div>
+                <p
+                    style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 2px;">
+                    CAFETERIA LEAD PORTAL</p>
+                <h2 style="font-size: 1.1rem; color: var(--primary-dark); font-weight: 700;">Food Management</h2>
+            </div>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div class="notification-bell" style="position: relative; cursor: pointer;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)"
+                        stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <div
+                        style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background-color: var(--accent-orange); border-radius: 50%; border: 2px solid white;">
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="text-align: right;">
+                        <div class="user-name"
+                            style="font-size: 0.75rem; font-weight: 700; color: var(--primary-dark);">LEAD MANAGER</div>
+                        <div class="user-status"
+                            style="font-size: 0.65rem; color: var(--accent-orange); font-weight: 600;">Cafeteria Ops
+                        </div>
+                    </div>
+                    <div class="user-avatar">M</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- FOOD MANAGEMENT VIEW -->
+        <div id="view-food-management" style="width: 100%; margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h2 style="font-size: 1.5rem; color: var(--primary-dark); font-weight: 800;">Inventory & Orders</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Manage inventory and process incoming
+                        orders.</p>
+                </div>
+                <button class="action-btn" onclick="openAddFoodModal()">+ New Item</button>
+            </div>
+
+            <div class="fm-tabs">
+                <div class="fm-tab active" onclick="switchTab('inventory', this)">Inventory</div>
+                <div class="fm-tab" onclick="switchTab('orders', this)">Incoming Orders</div>
+            </div>
+
+            <!-- Inventory Tab -->
+            <div id="tab-inventory">
+                <div class="admin-table-container">
+                    <div class="admin-header-row" style="grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr;">
+                        <div>Item Name</div>
+                        <div>Category</div>
+                        <div>Price</div>
+                        <div>Status</div>
+                        <div>Actions</div>
+                    </div>
+                    <div id="inventory-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Tab -->
+            <div id="tab-orders" class="hidden">
+                <div class="admin-table-container">
+                    <div class="admin-header-row" style="grid-template-columns: 1fr 1.5fr 2fr 1fr 1fr 1.5fr;">
+                        <div>Order ID</div>
+                        <div>Employee</div>
+                        <div>Items</div>
+                        <div>Total</div>
+                        <div>Status</div>
+                        <div>Actions</div>
+                    </div>
+                    <div id="orders-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Food Modal -->
+    <div class="modal-overlay" id="add-food-modal">
+        <div class="modal-content">
+            <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 20px;">Add New
+                Food Item</h3>
+            <div class="form-group">
+                <label class="form-label">Item Name</label>
+                <input type="text" id="food-name" class="form-input" placeholder="e.g. Chicken Burger">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select id="food-category" class="form-input">
+                    <option value="Main Course">Main Course</option>
+                    <option value="Snacks">Snacks</option>
+                    <option value="Beverages">Beverages</option>
+                    <option value="Dessert">Dessert</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Price ($)</label>
+                <input type="number" id="food-price" class="form-input" placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select id="food-status" class="form-input">
+                    <option value="Available">Available</option>
+                    <option value="Out of Stock">Out of Stock</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="action-btn" style="flex: 1;" onclick="addFoodItem()">Add Item</button>
+                <button class="action-btn"
+                    style="flex: 1; background: transparent; color: var(--text-muted); border: 1px solid #e0e0e0;"
+                    onclick="closeAddFoodModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Handling using localStorage
+        // Initial Mock Data (if not present)
+        const initialInventory = [
+            { id: 1, name: 'Executive Veg Thali', category: 'Main Course', price: 12.00, status: 'Available' },
+            { id: 2, name: 'Chicken Burger', category: 'Snacks', price: 8.50, status: 'Available' },
+            { id: 3, name: 'Cold Coffee', category: 'Beverages', price: 4.00, status: 'Out of Stock' },
+        ];
+
+        // Initialize Inventory
+        if (!localStorage.getItem('cafeteria_inventory')) {
+            localStorage.setItem('cafeteria_inventory', JSON.stringify(initialInventory));
+        }
+
+        // Initialize Orders (if not present)
+        if (!localStorage.getItem('cafeteria_orders')) {
+            const mockOrders = [
+                { id: 'ORD-881', emp: 'Sarah Wilson', items: 'Executive Veg Thali', total: 12.00, status: 'Pending', timestamp: new Date().toISOString() },
+                { id: 'ORD-882', emp: 'Mike Ross', items: 'Chicken Burger (x2)', total: 17.00, status: 'Completed', timestamp: new Date().toISOString() }
+            ];
+            localStorage.setItem('cafeteria_orders', JSON.stringify(mockOrders));
+        }
+
+        // Tab Switching
+        function switchTab(tabName, tabElem) {
+            document.querySelectorAll('.fm-tab').forEach(t => t.classList.remove('active'));
+            tabElem.classList.add('active');
+
+            if (tabName === 'inventory') {
+                document.getElementById('tab-inventory').classList.remove('hidden');
+                document.getElementById('tab-orders').classList.add('hidden');
+                renderInventory();
+            } else {
+                document.getElementById('tab-inventory').classList.add('hidden');
+                document.getElementById('tab-orders').classList.remove('hidden');
+                renderOrders('orders-list');
+            }
+        }
+
+        // Inventory Logic
+        function renderInventory() {
+            const inventory = JSON.parse(localStorage.getItem('cafeteria_inventory'));
+            const container = document.getElementById('inventory-list');
+            container.innerHTML = '';
+
+            inventory.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'admin-row admin-grid-row';
+                row.style = 'grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr;';
+
+                let statusBadge = item.status === 'Available' ? 'badge-green' : 'badge-orange';
+
+                row.innerHTML = `
+                    <div style="font-weight: 700;">${item.name}</div>
+                    <div style="color: var(--text-muted);">${item.category}</div>
+                    <div style="font-weight: 700;">$${item.price.toFixed(2)}</div>
+                    <div><span class="badge ${statusBadge}">${item.status}</span></div>
+                    <div>
+                        <button class="text-red-500 hover:text-red-700 text-xs font-bold" onclick="deleteItem(${item.id})">DELETE</button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function openAddFoodModal() {
+            document.getElementById('add-food-modal').style.display = 'flex';
+        }
+
+        function closeAddFoodModal() {
+            document.getElementById('add-food-modal').style.display = 'none';
+        }
+
+        function addFoodItem() {
+            const name = document.getElementById('food-name').value;
+            const category = document.getElementById('food-category').value;
+            const price = parseFloat(document.getElementById('food-price').value);
+            const status = document.getElementById('food-status').value;
+
+            if (!name || isNaN(price)) {
+                alert("Please enter valid details");
+                return;
+            }
+
+            const inventory = JSON.parse(localStorage.getItem('cafeteria_inventory'));
+            const newItem = {
+                id: Date.now(),
+                name,
+                category,
+                price,
+                status
+            };
+
+            inventory.push(newItem);
+            localStorage.setItem('cafeteria_inventory', JSON.stringify(inventory));
+
+            closeAddFoodModal();
+            renderInventory();
+
+            // Clear inputs
+            document.getElementById('food-name').value = '';
+            document.getElementById('food-price').value = '';
+        }
+
+        function deleteItem(id) {
+            let inventory = JSON.parse(localStorage.getItem('cafeteria_inventory'));
+            inventory = inventory.filter(i => i.id !== id);
+            localStorage.setItem('cafeteria_inventory', JSON.stringify(inventory));
+            renderInventory();
+        }
+
+        // Order Logic
+        function renderOrders(containerId) {
+            const orders = JSON.parse(localStorage.getItem('cafeteria_orders')) || [];
+            // Sort by new
+            orders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            orders.forEach(order => {
+                const row = document.createElement('div');
+                row.className = 'admin-row';
+                row.style = 'grid-template-columns: 1fr 1.5fr 2fr 1fr 1fr 1.5fr;';
+
+                let statusBadge = order.status === 'Completed' ? 'badge-green' : 'badge-orange';
+
+                // Action buttons only for pending/active orders
+                let actions = '';
+                if (order.status !== 'Completed' && order.status !== 'Cancelled') {
+                    actions = `
+                        <div class="flex gap-2">
+                            <button onclick="updateOrderStatus('${order.id}', 'Completed')" class="text-green-600 hover:bg-green-50 p-1 rounded"><i class="fa-solid fa-check"></i> OK</button>
+                            <button onclick="updateOrderStatus('${order.id}', 'Cancelled')" class="text-red-600 hover:bg-red-50 p-1 rounded"><i class="fa-solid fa-xmark"></i> NO</button>
+                        </div>
+                    `;
+                }
+
+                row.innerHTML = `
+                    <div style="color: var(--text-muted); font-size: 0.75rem;">#${order.id}</div>
+                    <div style="font-weight: 700;">${order.emp}</div>
+                    <div>${order.items}</div>
+                    <div style="font-weight: 700;">$${order.total.toFixed(2)}</div>
+                    <div><span class="badge ${statusBadge}">${order.status}</span></div>
+                    <div>${actions}</div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function updateOrderStatus(orderId, newStatus) {
+            let orders = JSON.parse(localStorage.getItem('cafeteria_orders'));
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.status = newStatus;
+                localStorage.setItem('cafeteria_orders', JSON.stringify(orders));
+                renderOrders('orders-list');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderInventory();
+            renderOrders('orders-list');
+        });
+
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+
+</html>

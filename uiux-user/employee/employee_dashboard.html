@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Employee Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        :root {
+            --navy: #0e1e2b;
+            --yellow: #fbad1a;
+            --bg-gray: #f8fafc;
+            --text-muted: #8e99a7;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-gray);
+            color: #111827;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            min-height: 100vh;
+            padding-bottom: 140px;
+        }
+
+        .card-base {
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0,0,0,0.01);
+        }
+
+        .icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .yellow-bar {
+            width: 50px;
+            height: 5px;
+            background-color: var(--yellow);
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .bottom-nav-pill {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85%;
+            max-width: 360px;
+            background: white;
+            border-radius: 100px;
+            height: 90px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 15px;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            width: 80px;
+        }
+
+        .nav-icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .nav-icon-active {
+            background-color: var(--navy);
+            color: white;
+            box-shadow: 0 8px 15px rgba(14, 30, 43, 0.2);
+        }
+
+        .nav-icon-inactive { color: var(--text-muted); }
+
+        .nav-label {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .label-active { color: var(--navy); }
+        .label-inactive { color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+    
+    <!-- Header -->
+    <header class="px-6 pt-12 pb-6 flex justify-between items-center">
+        <div>
+            <p class="text-[10px] font-800 text-gray-400 tracking-[0.2em] uppercase mb-1">Dashboard</p>
+            <h1 class="text-2xl font-800 tracking-tight" style="color:var(--navy);">
+                Good Afternoon, John Developer
+            </h1>
+        </div>
+        <div class="relative">
+            <div class="w-11 h-11 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center font-bold text-lg"
+                 style="color:var(--navy);">
+                A
+            </div>
+            <div class="absolute -top-1 -right-1 w-3.5 h-3.5"
+                 style="background:var(--yellow); border:3px solid white; border-radius:50%;"></div>
+        </div>
+    </header>
+
+    <!-- Attendance Card -->
+    <div class="px-6 mb-8">
+        <div class="card-base p-6">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center"
+                     style="color:var(--navy);">
+                    <i class="fa-regular fa-clock text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="font-800 text-base">Today's Attendance</h2>
+                    <p class="text-xs text-gray-400 font-semibold">Not marked yet</p>
+                </div>
+            </div>
+
+            <!-- Check In / Check Out -->
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="bg-gray-100 rounded-2xl p-6 text-center text-gray-500 font-semibold">
+                    <i class="fa-solid fa-arrow-right-to-bracket text-xl mb-2"></i>
+                    <div class="text-sm">Check In</div>
+                </div>
+                <div class="bg-gray-100 rounded-2xl p-6 text-center text-gray-500 font-semibold">
+                    <i class="fa-solid fa-arrow-right-from-bracket text-xl mb-2"></i>
+                    <div class="text-sm">Check Out</div>
+                </div>
+            </div>
+
+            <!-- Submit + Duration -->
+            <div class="grid grid-cols-2 gap-4 items-center">
+                <button class="py-3 rounded-2xl font-800 text-sm"
+                        style="background:var(--navy); color:white;">
+                    Submit
+                </button>
+                <div class="bg-gray-100 rounded-2xl py-3 px-4 text-right">
+                    <div class="text-[10px] font-800 text-gray-400 uppercase">Duration</div>
+                    <div class="text-sm font-800" style="color:var(--navy);">--h --m</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Services -->
+    <div class="px-6 mb-8">
+        <h3 class="text-[11px] font-800 text-gray-400 tracking-widest uppercase mb-4 ml-1">
+            Quick Services
+        </h3>
+        <div class="grid grid-cols-2 gap-4">
+            
+            <div class="card-base p-5 flex flex-col items-center gap-3">
+                <div class="icon-box bg-orange-50 text-orange-500">
+                    <i class="fa-solid fa-utensils"></i>
+                </div>
+                <span class="text-[10px] font-800 uppercase">Cafeteria</span>
+            </div>
+
+            <div class="card-base p-5 flex flex-col items-center gap-3">
+                <div class="icon-box bg-purple-50 text-purple-500">
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                </div>
+                <span class="text-[10px] font-800 uppercase">IT Support</span>
+            </div>
+
+            <div class="card-base p-5 flex flex-col items-center gap-3">
+                <div class="icon-box bg-indigo-50 text-indigo-400">
+                    <i class="fa-solid fa-square-p"></i>
+                </div>
+                <span class="text-[10px] font-800 uppercase">Parking</span>
+            </div>
+
+            <div class="card-base p-5 flex flex-col items-center gap-3">
+                <div class="icon-box bg-rose-50 text-rose-500">
+                    <i class="fa-solid fa-desktop"></i>
+                </div>
+                <span class="text-[10px] font-800 uppercase">Desk Booking</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+ <!-- Bottom Navigation -->
+<div class="bottom-nav-pill">
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-active">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <span class="nav-label label-active">Dashboard</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <span class="nav-label label-inactive">Leave</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-address-book"></i>
+        </div>
+        <span class="nav-label label-inactive">Directory</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <span class="nav-label label-inactive">Profile</span>
+    </div>
+
+</div>
+
+
+</body>
+</html>

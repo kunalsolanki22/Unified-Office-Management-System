@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manager Dashboard - Dark Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --navy-deep: #0e1e2b;
+            --navy-light: #1a2c3d;
+            --navy-lighter: #243b53;
+            --yellow: #fbad1a;
+            --text-main: #ffffff;
+            --text-muted: #8e99a7;
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f1f5f9; /* Backdrop outside the app shell */
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            min-height: 100vh;
+            background-color: var(--navy-deep);
+            padding-bottom: 130px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .card-base {
+            background: var(--navy-light);
+            border-radius: 28px;
+            border: 1px solid var(--glass-border);
+            position: relative;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            transition: transform 0.2s ease;
+        }
+        
+        .card-base:active {
+            transform: scale(0.98);
+        }
+
+        .yellow-accent {
+            position: absolute;
+            bottom: 0;
+            left: 24px;
+            width: 50px;
+            height: 4px;
+            background: var(--yellow);
+            border-radius: 10px 10px 0 0;
+            box-shadow: 0 -2px 10px rgba(251, 173, 26, 0.3);
+        }
+
+        .action-btn {
+            background: var(--yellow);
+            color: var(--navy-deep);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:active {
+            filter: brightness(0.9);
+        }
+
+        .icon-box {
+            width: 50px;
+            height: 50px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            background: var(--navy-lighter);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav-pill {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 380px;
+            background: rgba(26, 44, 61, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 100px;
+            height: 85px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            width: 70px;
+        }
+
+        .nav-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-icon-active {
+            background-color: var(--yellow);
+            color: var(--navy-deep);
+            box-shadow: 0 8px 20px rgba(251, 173, 26, 0.3);
+        }
+
+        .nav-icon-inactive {
+            color: var(--text-muted);
+        }
+
+        .nav-label {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .label-active { color: var(--yellow); }
+        .label-inactive { color: var(--text-muted); }
+
+    </style>
+</head>
+
+<body>
+
+<div class="app-shell">
+
+    <!-- Header -->
+    <header class="px-6 pt-12 pb-8 flex justify-between items-center relative">
+        <!-- Background Glow -->
+        <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-yellow-500/5 to-transparent pointer-events-none"></div>
+        
+        <div class="relative z-10">
+            <p class="text-[10px] font-800 text-yellow-500 tracking-[0.2em] uppercase mb-1">
+                Management Portal
+            </p>
+            <h1 class="text-2xl font-800 tracking-tight text-white">
+                Good Morning, Manager
+            </h1>
+        </div>
+        <div class="relative z-10">
+            <div class="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center font-bold text-lg text-white">
+                M
+            </div>
+            <div class="absolute -top-1 -right-1 w-4 h-4 rounded-full border-[3px] border-[#0e1e2b]"
+                 style="background:var(--yellow);"></div>
+        </div>
+    </header>
+
+    <!-- Attendance -->
+    <div class="px-6 mb-5">
+        <div class="card-base p-6">
+            <h2 class="font-800 text-lg text-white mb-1">Today's Attendance</h2>
+            <p class="text-sm text-gray-400 font-medium mb-6">Status: <span class="italic">Not marked</span></p>
+
+            <button class="w-full action-btn py-4 rounded-2xl text-xs shadow-lg">
+                Mark Attendance
+            </button>
+            <div class="yellow-accent"></div>
+        </div>
+    </div>
+
+    <!-- Leave Approvals -->
+    <div class="px-6 mb-8">
+        <div class="card-base p-6">
+            <h2 class="font-800 text-lg text-white mb-1">Leave Approvals</h2>
+            <p class="text-sm text-gray-400 mb-6">3 pending leave requests</p>
+
+            <button class="w-full action-btn py-4 rounded-2xl text-xs shadow-lg">
+                Review Requests
+            </button>
+            <div class="yellow-accent"></div>
+        </div>
+    </div>
+
+    <!-- Quick Services -->
+    <div class="px-6 mb-8">
+        <div class="grid grid-cols-2 gap-4">
+            <div class="card-base p-6 flex flex-col items-center text-center">
+                <div class="icon-box text-orange-400">
+                    <i class="fa-solid fa-utensils text-xl"></i>
+                </div>
+                <h3 class="font-800 text-sm text-white">Cafeteria</h3>
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-tighter mt-1">Manage</p>
+            </div>
+
+            <div class="card-base p-6 flex flex-col items-center text-center">
+                <div class="icon-box text-indigo-400">
+                    <i class="fa-solid fa-square-p text-xl"></i>
+                </div>
+                <h3 class="font-800 text-sm text-white">Parking</h3>
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-tighter mt-1">View Slots</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Overview -->
+    <div class="px-6 mb-10">
+        <div class="card-base p-7">
+            <h3 class="font-800 text-base text-white mb-8">Team Overview</h3>
+
+            <div class="flex justify-between items-end">
+                <div class="text-center">
+                    <div class="text-3xl font-800 text-white">18</div>
+                    <div class="h-1 w-10 bg-blue-500 rounded-full mx-auto mt-2 mb-1"></div>
+                    <p class="text-[9px] font-800 text-gray-500 uppercase">Present</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="text-3xl font-800 text-white">3</div>
+                    <div class="h-1 w-10 bg-rose-500 rounded-full mx-auto mt-2 mb-1"></div>
+                    <p class="text-[9px] font-800 text-gray-500 uppercase">On Leave</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="text-3xl font-800 text-white">2</div>
+                    <div class="h-1 w-10 bg-yellow-500 rounded-full mx-auto mt-2 mb-1"></div>
+                    <p class="text-[9px] font-800 text-gray-500 uppercase">Pending</p>
+                </div>
+            </div>
+
+            <div class="yellow-accent"></div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav-pill">
+        <div class="nav-item">
+            <div class="nav-icon-box nav-icon-active">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <span class="nav-label label-active">Dashboard</span>
+        </div>
+
+        <div class="nav-item">
+            <div class="nav-icon-box nav-icon-inactive">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+            <span class="nav-label label-inactive">Leave</span>
+        </div>
+
+        <div class="nav-item">
+            <div class="nav-icon-box nav-icon-inactive">
+                <i class="fa-solid fa-address-book"></i>
+            </div>
+            <span class="nav-label label-inactive">Directory</span>
+        </div>
+
+        <div class="nav-item">
+            <div class="nav-icon-box nav-icon-inactive">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <span class="nav-label label-inactive">Profile</span>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

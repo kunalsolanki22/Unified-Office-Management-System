@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Select Your Seat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --navy: #0e1e2b;
+            --yellow: #fbad1a;
+            --bg-gray: #f8fafc;
+            --text-muted: #8e99a7;
+        }
+
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-gray);
+            color: #111827;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            min-height: 100vh;
+            padding-bottom: 180px;
+            /* Space for booking bar + bottom nav */
+        }
+
+        /* Zone Toggle Tabs */
+        .tab-container {
+            background: #eef2f6;
+            border-radius: 20px;
+            padding: 5px;
+            display: flex;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+
+        .tab-active {
+            background: white;
+            color: var(--navy);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Floor Plan Styling */
+        .office-floor {
+            background: #f1f5f9;
+            border-radius: 32px;
+            padding: 24px;
+            min-height: 450px;
+            border: 2px dashed #cbd5e1;
+            position: relative;
+        }
+
+        /* Pod Structure (Group of 4 desks) */
+        .pod {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: fit-content;
+        }
+
+        .desk {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .desk-available {
+            background: white;
+            color: var(--navy);
+            border: 1.5px solid #e2e8f0;
+        }
+
+        .desk-occupied {
+            background: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            border: none;
+        }
+
+        .desk-selected {
+            background: var(--navy);
+            color: var(--yellow);
+            transform: scale(1.1);
+            box-shadow: 0 8px 15px rgba(26, 54, 124, 0.2);
+            border: none;
+        }
+
+        /* Landmark Visuals */
+        .meeting-room {
+            background: #e2e8f0;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: 800;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .plant-box {
+            color: #22c55e;
+            opacity: 0.4;
+            font-size: 14px;
+        }
+
+        /* Bottom Floating Confirmation Bar */
+        .confirm-drawer {
+            position: fixed;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%) translateY(200px);
+            width: 90%;
+            max-width: 380px;
+            background: var(--navy);
+            border-radius: 26px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 900;
+        }
+
+        .confirm-drawer.active {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Bottom Navigation Pill */
+        .bottom-nav-pill {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85%;
+            max-width: 380px;
+            background: white;
+            border-radius: 100px;
+            height: 90px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 15px;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            width: 80px;
+        }
+
+        .nav-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .nav-icon-active {
+            background-color: var(--navy);
+            color: white;
+            box-shadow: 0 8px 15px rgba(26, 54, 124, 0.2);
+        }
+
+        .nav-label {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 950;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-active {
+            display: flex;
+        }
+
+        .booking-modal {
+            background: white;
+            width: 90%;
+            max-width: 380px;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .form-label {
+            font-size: 10px;
+            font-weight: 800;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .chip-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .chip-radio {
+            display: none;
+        }
+
+        .chip-label {
+            padding: 10px 16px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip-radio:checked+.chip-label {
+            background: var(--navy);
+            color: white;
+            border-color: var(--navy);
+            box-shadow: 0 4px 12px rgba(26, 54, 124, 0.15);
+        }
+
+        .date-input-container {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .date-input {
+            background: transparent;
+            border: none;
+            font-family: inherit;
+            font-weight: 700;
+            color: var(--navy);
+            width: 100%;
+            outline: none;
+        }
+
+        /* Conference Card */
+        .conf-card {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .conf-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: var(--navy);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-shell">
+
+        <!-- Header -->
+        <header class="px-6 pt-12 pb-6 flex items-center gap-4">
+            <button onclick="window.history.back()"
+                class="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-[#1a367c]">
+                <i class="fa-solid fa-chevron-left text-sm"></i>
+            </button>
+            <h1 class="text-xl font-800 tracking-tight text-[#1a367c]">Select Your Seat</h1>
+        </header>
+
+        <!-- Main Tabs: Workstation vs Meeting Room -->
+        <div class="px-6 mb-6">
+            <div class="tab-container">
+                <button class="tab-btn tab-active" onclick="switchMainTab('workstation', this)">Workstation</button>
+                <button class="tab-btn text-slate-400" onclick="switchMainTab('meeting', this)">Meeting Room</button>
+            </div>
+        </div>
+
+        <!-- WORKSTATION VIEW -->
+        <div id="view-workstation">
+            <!-- Wing Selection Dropdown -->
+            <div class="px-6 mb-6">
+                <div class="relative">
+                    <select
+                        class="w-full appearance-none bg-white border border-gray-200 text-[#1a367c] font-800 text-sm rounded-2xl py-3 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        <option>Wing A (Floor 1)</option>
+                        <option>Wing B (Floor 1)</option>
+                        <option>Wing C (Floor 2)</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[#1a367c]">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Realistic Floor Plan Layout -->
+            <div class="px-6">
+                <div class="office-floor shadow-inner">
+                    <!-- Top Section: Meeting Room + Plants -->
+                    <div class="flex justify-between mb-10">
+                        <div class="meeting-room w-32 h-20">Meeting Room 01</div>
+                        <div class="flex flex-col gap-4">
+                            <i class="fa-solid fa-seedling plant-box"></i>
+                            <i class="fa-solid fa-seedling plant-box"></i>
+                        </div>
+                    </div>
+
+                    <!-- Pod Cluster 1 -->
+                    <div class="flex justify-around mb-12">
+                        <div class="pod">
+                            <div class="desk desk-occupied"><i class="fa-solid fa-user-lock text-[8px]"></i></div>
+                            <div class="desk desk-available" onclick="openBookingModal('A-102', 'Workstation')">102
+                            </div>
+                            <div class="desk desk-available" onclick="openBookingModal('A-103', 'Workstation')">103
+                            </div>
+                            <div class="desk desk-available" onclick="openBookingModal('A-104', 'Workstation')">104
+                            </div>
+                        </div>
+
+                        <div class="pod">
+                            <div class="desk desk-available" onclick="openBookingModal('A-105', 'Workstation')">105
+                            </div>
+                            <div class="desk desk-occupied"><i class="fa-solid fa-user-lock text-[8px]"></i></div>
+                            <div class="desk desk-available" onclick="openBookingModal('A-107', 'Workstation')">107
+                            </div>
+                            <div class="desk desk-available" onclick="openBookingModal('A-108', 'Workstation')">108
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hallway / Path Visual -->
+                    <div class="h-10 w-full mb-10 flex items-center justify-center">
+                        <div class="w-full border-t border-dashed border-gray-300"></div>
+                        <span
+                            class="absolute bg-[#f1f5f9] px-4 text-[8px] font-bold text-gray-400 tracking-widest">HALLWAY</span>
+                    </div>
+
+                    <!-- Pod Cluster 2 (Window Side) -->
+                    <div class="flex justify-between items-end">
+                        <div class="pod">
+                            <div class="desk desk-available" onclick="openBookingModal('W-201', 'Workstation')">201
+                            </div>
+                            <div class="desk desk-available" onclick="openBookingModal('W-202', 'Workstation')">202
+                            </div>
+                        </div>
+
+                        <!-- Bottom Meeting Room -->
+                        <div class="meeting-room w-24 h-24">Chill Zone</div>
+
+                        <div class="pod">
+                            <div class="desk desk-occupied"><i class="fa-solid fa-user-lock text-[8px]"></i></div>
+                            <div class="desk desk-available" onclick="openBookingModal('W-204', 'Workstation')">204
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Legend -->
+            <div class="mt-8 flex justify-around px-10 mb-8">
+                <div class="flex flex-col items-center gap-1.5">
+                    <div class="w-3.5 h-3.5 bg-white border border-slate-200 rounded-sm"></div>
+                    <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Free</span>
+                </div>
+                <div class="flex flex-col items-center gap-1.5">
+                    <div class="w-3.5 h-3.5 bg-[#1a367c] rounded-sm"></div>
+                    <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Selected</span>
+                </div>
+                <div class="flex flex-col items-center gap-1.5">
+                    <div class="w-3.5 h-3.5 bg-slate-300 rounded-sm"></div>
+                    <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Occupied</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MEETING ROOM VIEW (Hidden by default) -->
+        <div id="view-meeting" class="hidden px-6">
+            <h3 class="text-[11px] font-800 text-gray-400 tracking-widest uppercase mb-4">Available Halls</h3>
+
+            <!-- Conf Hall 1 -->
+            <div class="conf-card">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <h4 class="text-sm font-800 text-[#1a367c]">Conference Hall A</h4>
+                        <p class="text-[10px] text-gray-400 font-bold">Capacity: 12 People</p>
+                    </div>
+                    <span
+                        class="px-2 py-1 bg-green-100 text-green-600 rounded text-[9px] font-800 uppercase">Available</span>
+                </div>
+                <div class="flex gap-2 mb-4">
+                    <span class="text-[9px] bg-gray-100 text-gray-500 px-2 py-1 rounded">TV Screen</span>
+                    <span class="text-[9px] bg-gray-100 text-gray-500 px-2 py-1 rounded">Whiteboard</span>
+                </div>
+                <button onclick="openBookingModal('Conference Hall A', 'Meeting Room')"
+                    class="w-full bg-[#f8fafc] text-[#1a367c] py-2 rounded-lg text-xs font-800 border border-slate-200 hover:bg-slate-50 transition-colors">
+                    Book This Hall
+                </button>
+            </div>
+
+            <!-- Conf Hall 2 -->
+            <div class="conf-card">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <h4 class="text-sm font-800 text-[#1a367c]">Board Room</h4>
+                        <p class="text-[10px] text-gray-400 font-bold">Capacity: 20 People</p>
+                    </div>
+                    <span class="px-2 py-1 bg-red-100 text-red-500 rounded text-[9px] font-800 uppercase">Booked</span>
+                </div>
+                <div class="flex gap-2 mb-4">
+                    <span class="text-[9px] bg-gray-100 text-gray-500 px-2 py-1 rounded">Projector</span>
+                    <span class="text-[9px] bg-gray-100 text-gray-500 px-2 py-1 rounded">Video Conf</span>
+                </div>
+                <button class="w-full bg-slate-100 text-slate-400 py-2 rounded-lg text-xs font-800 cursor-not-allowed">
+                    Unavailable
+                </button>
+            </div>
+
+            <!-- Conf Hall 3 -->
+            <div class="conf-card">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <h4 class="text-sm font-800 text-[#1a367c]">Thinking Pod</h4>
+                        <p class="text-[10px] text-gray-400 font-bold">Capacity: 4 People</p>
+                    </div>
+                    <span
+                        class="px-2 py-1 bg-green-100 text-green-600 rounded text-[9px] font-800 uppercase">Available</span>
+                </div>
+                <div class="flex gap-2 mb-4">
+                    <span class="text-[9px] bg-gray-100 text-gray-500 px-2 py-1 rounded">Glass Walls</span>
+                    <span class="text-[9px] bg-gray-100 text-gray-500 px-2 py-1 rounded">Power Outlet</span>
+                </div>
+                <button onclick="openBookingModal('Thinking Pod', 'Meeting Room')"
+                    class="w-full bg-[#f8fafc] text-[#1a367c] py-2 rounded-lg text-xs font-800 border border-slate-200 hover:bg-slate-50 transition-colors">
+                    Book This Hall
+                </button>
+            </div>
+        </div>
+
+        <!-- Reserve Workspace Modal (Replaces Confirm Booking Drawer) -->
+        <div class="modal-overlay" id="booking-modal" onclick="closeModal(event)">
+            <div class="booking-modal">
+                <div class="flex items-center gap-3 mb-6">
+                    <i class="fa-solid fa-calendar-plus text-[#1a367c] text-xl"></i>
+                    <h2 class="text-lg font-800 text-[#1a367c]">Reserve Workspace</h2>
+                </div>
+
+                <label class="form-label">Select Date</label>
+                <div class="date-input-container">
+                    <input type="date" class="date-input" value="2023-10-25">
+                    <i class="fa-regular fa-calendar text-[#1a367c]"></i>
+                </div>
+
+                <label class="form-label">Booking Duration</label>
+                <div class="chip-group">
+                    <input type="radio" name="duration" id="dur-full" class="chip-radio" checked>
+                    <label for="dur-full" class="chip-label">Full Day</label>
+
+                    <input type="radio" name="duration" id="dur-am" class="chip-radio">
+                    <label for="dur-am" class="chip-label">Morning</label>
+
+                    <input type="radio" name="duration" id="dur-pm" class="chip-radio">
+                    <label for="dur-pm" class="chip-label">Evening</label>
+                </div>
+
+                <label class="form-label">Preferred Floor</label>
+                <div class="chip-group">
+                    <input type="radio" name="floor" id="floor-4" class="chip-radio" checked>
+                    <label for="floor-4" class="chip-label">Floor 4 (Main)</label>
+
+                    <input type="radio" name="floor" id="floor-2" class="chip-radio">
+                    <label for="floor-2" class="chip-label">Floor 2 (Lounge)</label>
+
+                    <input type="radio" name="floor" id="floor-5" class="chip-radio">
+                    <label for="floor-5" class="chip-label">Floor 5</label>
+                </div>
+
+                <button onclick="confirmBooking()"
+                    class="w-full bg-[#1a367c] text-white py-4 rounded-xl font-800 text-sm shadow-xl shadow-blue-900/10 flex items-center justify-center gap-2 active:scale-95 transition-transform mt-4">
+                    SELECT YOUR SEAT <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation Pill -->
+<!-- Bottom Navigation Pill -->
+<div class="bottom-nav-pill">
+
+    <!-- Dashboard -->
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <span class="nav-label label-inactive">Dashboard</span>
+    </div>
+
+    <!-- Leave -->
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <span class="nav-label label-inactive">Leave</span>
+    </div>
+
+    <!-- Directory -->
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-address-book"></i>
+        </div>
+        <span class="nav-label label-inactive">Directory</span>
+    </div>
+
+    <!-- Profile -->
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-active">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <span class="nav-label label-active">Profile</span>
+    </div>
+
+</div>
+
+
+    </div>
+
+    <script>
+        // Tab Switcher
+        function switchMainTab(viewName, btn) {
+            // Update Tab Styling
+            document.querySelectorAll('.tab-btn').forEach(t => {
+                t.classList.remove('tab-active');
+                t.classList.add('text-slate-400');
+            });
+            btn.classList.add('tab-active');
+            btn.classList.remove('text-slate-400');
+
+            // Switch Views
+            if (viewName === 'workstation') {
+                document.getElementById('view-workstation').classList.remove('hidden');
+                document.getElementById('view-meeting').classList.add('hidden');
+            } else {
+                document.getElementById('view-workstation').classList.add('hidden');
+                document.getElementById('view-meeting').classList.remove('hidden');
+            }
+        }
+
+        // Modal Logic
+        let currentSelection = '';
+        let currentType = '';
+
+        function openBookingModal(itemName, itemType) {
+            currentSelection = itemName;
+            currentType = itemType;
+
+            // In a real app, update UI based on selection (e.g. pre-select specific floor)
+            const modal = document.getElementById('booking-modal');
+            modal.classList.add('modal-active');
+
+            // Optional: Update button text to be more context aware
+            // const btnText = itemType === 'Meeting Room' ? 'RESERVE ROOM' : 'SELECT YOUR SEAT';
+        }
+
+        function closeModal(event) {
+            if (event.target.id === 'booking-modal') {
+                document.getElementById('booking-modal').classList.remove('modal-active');
+            }
+        }
+
+        // Data Persistence
+        function getBookings() {
+            return JSON.parse(localStorage.getItem('cafeteria_desk_bookings')) || [];
+        }
+
+        function saveBooking(booking) {
+            const bookings = getBookings();
+            bookings.push(booking);
+            localStorage.setItem('cafeteria_desk_bookings', JSON.stringify(bookings));
+        }
+
+        function isBooked(deskId) {
+            const bookings = getBookings();
+            // Simple check: is it booked for today/future? 
+            // For this demo, we assume single-day context or just "currently booked"
+            return bookings.some(b => b.id === deskId && b.status === 'Active');
+        }
+
+        function renderDeskStatus() {
+            const bookings = getBookings();
+            document.querySelectorAll('.desk').forEach(d => {
+                // Extract ID from onClick or Text
+                // The current HTML has ID in onclick="openBookingModal('A-102'...)"
+                // We need to parse that or add data-attributes. 
+                // Let's add data-id to desks first for easier selection, 
+                // but since I can't easily rewrite all HTML, I'll try to match by text content or onclick attribute if possible.
+                // Actually, the onClick string has 'A-102'.
+
+                const onClickAttr = d.getAttribute('onclick');
+                if (onClickAttr) {
+                    const match = onClickAttr.match(/'([^']+)'/);
+                    if (match) {
+                        const deskId = match[1];
+                        const booking = bookings.find(b => b.id === deskId && b.status === 'Active');
+
+                        if (booking) {
+                            d.classList.remove('desk-available');
+                            d.classList.add('desk-occupied');
+                            d.innerHTML = '<i class="fa-solid fa-user-lock text-[8px]"></i>';
+                            d.style.pointerEvents = 'none'; // Prevent clicking if booked
+                        } else {
+                            // Reset if needed (though page reload does this)
+                        }
+                    }
+                }
+            });
+        }
+
+        function confirmBooking() {
+            if (!currentSelection) return;
+
+            // Generate Mock User
+            const user = "Current Employee";
+
+            const newBooking = {
+                id: currentSelection,
+                type: currentType,
+                user: user,
+                date: new Date().toISOString().split('T')[0],
+                status: 'Active',
+                timestamp: Date.now()
+            };
+
+            saveBooking(newBooking);
+
+            document.getElementById('booking-modal').classList.remove('modal-active');
+
+            // Show Success
+            alert(`${currentType} '${currentSelection}' Reserved Successfully!`);
+
+            renderDeskStatus();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderDeskStatus();
+        });
+    </script>
+</body>
+
+</html>

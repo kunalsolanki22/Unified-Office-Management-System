@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IT Support - App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        :root {
+            --navy: #0e1e2b; 
+            --yellow: #fbad1a;
+            --bg-gray: #f8fafc;
+            --text-muted: #8e99a7;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-gray);
+            color: #111827;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            min-height: 100vh;
+            padding-bottom: 120px;
+            position: relative;
+        }
+
+        .card-base {
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.01);
+        }
+
+        .navy-btn {
+            background-color: var(--navy);
+            color: var(--yellow);
+            font-weight: 800;
+            transition: all 0.2s;
+        }
+
+        .navy-btn:active {
+            transform: scale(0.97);
+            opacity: 0.9;
+        }
+
+        /* --- Bottom Sheet Styling --- */
+        .sheet-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(17, 38, 60, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 100%;
+            max-width: 430px;
+            background: white;
+            border-radius: 40px 40px 0 0;
+            z-index: 1100;
+            padding: 32px 24px;
+            transition: transform 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .sheet-active .sheet-overlay {
+            display: block;
+            opacity: 1;
+        }
+
+        .sheet-active .bottom-sheet {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .input-style {
+            width: 100%;
+            background: #f1f5f9;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 16px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+            color: var(--navy);
+        }
+
+        .input-label {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: block;
+            margin-left: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pending {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-resolved {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+
+        /* Custom Scrollbar for Textarea */
+        textarea::-webkit-scrollbar {
+            width: 0px;
+        }
+        .bottom-nav-pill {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    max-width: 360px;
+    background: white;
+    border-radius: 100px;
+    height: 90px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 15px;
+    z-index: 1000;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 70px;
+}
+
+.nav-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.nav-icon-active {
+    background-color: var(--navy);
+    color: white;
+    box-shadow: 0 8px 15px rgba(14, 30, 43, 0.2);
+}
+
+.nav-icon-inactive {
+    color: var(--text-muted);
+}
+
+.nav-label {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+    </style>
+</head>
+
+<body id="page-context">
+
+    <div class="app-shell">
+
+        <!-- Header -->
+        <header
+            class="px-6 pt-10 pb-6 flex justify-between items-center sticky top-0 bg-[#f8fafc]/90 backdrop-blur-md z-50">
+            <div class="flex items-center gap-4">
+                <button
+                    class="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-[#1a367c]">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <h1 class="text-xl font-800 tracking-tight text-[#1a367c]">IT Support</h1>
+            </div>
+            <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-[#1a367c] font-bold">A
+            </div>
+        </header>
+
+        <!-- Main Assistance Card -->
+        <div class="px-6 mb-10">
+            <div class="card-base p-8 text-center relative overflow-hidden">
+                <div
+                    class="w-16 h-16 bg-[#f5f3ff] text-[#a855f7] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-headphones-simple text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-800 text-[#1a367c] mb-1">Need Assistance?</h2>
+                <p class="text-sm text-gray-400 font-medium mb-8">Describe your issue to our tech team.</p>
+
+                <div class="space-y-4">
+                    <button onclick="toggleSheet('ticket-sheet')"
+                        class="w-full navy-btn py-5 rounded-2xl text-xs uppercase tracking-widest shadow-lg shadow-blue-900/20">
+                        Raise New Request
+                    </button>
+                    <button onclick="toggleSheet('hardware-sheet')"
+                        class="w-full navy-btn py-5 rounded-2xl text-xs uppercase tracking-widest shadow-lg shadow-blue-900/20">
+                        Request New Hardware
+                    </button>
+                </div>
+
+                <div class="w-14 h-1.5 bg-[#fdbb2d] rounded-full mt-8 mx-auto"></div>
+            </div>
+        </div>
+
+        <!-- Active Requests -->
+        <div class="px-6 mb-10">
+            <h3 class="text-[11px] font-800 text-gray-400 tracking-widest uppercase mb-4 ml-2">My Active Requests</h3>
+            <div class="card-base p-6 border-l-[6px] border-[#1a367c]">
+                <div class="flex justify-between items-start mb-2">
+                    <h4 class="text-base font-800 text-[#1a367c]">Broken Laptop Charger</h4>
+                    <span
+                        class="px-3 py-1 rounded-lg text-[9px] font-900 status-pending uppercase tracking-wider">Pending</span>
+                </div>
+                <p class="text-[10px] text-gray-400 font-800 uppercase mb-3">IT-9012 • Today</p>
+                <p class="text-[12px] text-gray-500 font-medium leading-relaxed">Charger port seems loose and not
+                    drawing power.</p>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div class="px-6">
+            <h3 class="text-[11px] font-800 text-gray-400 tracking-widest uppercase mb-4 ml-2">Request History</h3>
+            <div class="card-base p-5 flex justify-between items-center opacity-60">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400">
+                        <i class="fa-solid fa-wifi text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-800 text-[#1a367c]">VPN Connection Error</h4>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">Resolved • Oct 15</p>
+                    </div>
+                </div>
+                <i class="fa-solid fa-circle-check text-green-500 text-xl"></i>
+            </div>
+        </div>
+
+        <!-- --- BOTTOM SHEETS --- -->
+
+        <!-- 1. Raise Ticket Sheet -->
+        <div id="ticket-sheet-container" class="sheet-context">
+            <div class="sheet-overlay" onclick="toggleSheet('ticket-sheet')"></div>
+            <div class="bottom-sheet" id="ticket-sheet">
+                <div class="w-12 h-1.5 bg-gray-100 rounded-full mx-auto mb-8"></div>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-800 text-[#1a367c]">Create Support Ticket</h2>
+                    <button onclick="toggleSheet('ticket-sheet')" class="text-gray-300 text-2xl"><i
+                            class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="input-label">Select Category</label>
+                        <select class="input-style appearance-none bg-no-repeat bg-[right_1.5rem_center]"
+                            style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27 fill=%27none%27 viewBox=%270%200%2024%2024%27 stroke=%27%231a367c%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27m19%209-7%207-7-7%27%2F%3E%3C%2Fsvg%3E'); background-size: 1.2em;">
+                            <option>Hardware Issue</option>
+                            <option>Software Installation</option>
+                            <option>Access & Security</option>
+                            <option>Internet & WiFi</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="input-label">Short Description</label>
+                        <input type="text" class="input-style" placeholder="e.g. Printer not working">
+                    </div>
+                    <div>
+                        <label class="input-label">Tell us more</label>
+                        <textarea class="input-style h-32 resize-none"
+                            placeholder="Provide more details about the issue..."></textarea>
+                    </div>
+                    <button onclick="toggleSheet('ticket-sheet')"
+                        class="w-full navy-btn py-5 rounded-[24px] text-sm uppercase tracking-widest shadow-xl">
+                        Submit Request
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Request Hardware Sheet -->
+        <div id="hardware-sheet-container" class="sheet-context">
+            <div class="sheet-overlay" onclick="toggleSheet('hardware-sheet')"></div>
+            <div class="bottom-sheet" id="hardware-sheet">
+                <div class="w-12 h-1.5 bg-gray-100 rounded-full mx-auto mb-8"></div>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-800 text-[#1a367c]">Request Hardware</h2>
+                    <button onclick="toggleSheet('hardware-sheet')" class="text-gray-300 text-2xl"><i
+                            class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="input-label">Select Category</label>
+                        <select class="input-style appearance-none bg-no-repeat bg-[right_1.5rem_center]"
+                            style="background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27 fill=%27none%27 viewBox=%270%200%2024%2024%27 stroke=%27%231a367c%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27m19%209-7%207-7-7%27%2F%3E%3C%2Fsvg%3E'); background-size: 1.2em;">
+                            <option>Laptop</option>
+                            <option>Monitor</option>
+                            <option>Keyboard/Mouse</option>
+                            <option>Cables & Adapters</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="input-label">Tell us more</label>
+                        <textarea class="input-style h-48 resize-none"
+                            placeholder="Specify your hardware requirements..."></textarea>
+                    </div>
+                    <button onclick="toggleSheet('hardware-sheet')"
+                        class="w-full navy-btn py-5 rounded-[24px] text-sm uppercase tracking-widest shadow-xl">
+                        Submit Request
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+<!-- Bottom Navigation -->
+<div class="bottom-nav-pill">
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <span class="nav-label text-gray-400">Dashboard</span>
+    </div>
+    
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <span class="nav-label text-gray-400">Leave</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-address-book"></i>
+        </div>
+        <span class="nav-label text-gray-400">Directory</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-active">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <span class="nav-label" style="color:#0e1e2b;">Profile</span>
+    </div>
+
+</div>
+
+    <script>
+        function toggleSheet(id) {
+            const container = document.getElementById(id + '-container');
+            container.classList.toggle('sheet-active');
+
+            // Prevent background scrolling when modal is open
+            if (container.classList.contains('sheet-active')) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = 'auto';
+            }
+        }
+    </script>
+
+</body>
+
+</html>

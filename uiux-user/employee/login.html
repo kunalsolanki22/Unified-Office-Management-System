@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cygnet.One Login</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --navy: #0e1e2b;
+            --yellow: #fbad1a;
+            --bg-gray: #f4f4f4;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 28px;
+            padding: 36px 28px;
+            box-shadow: 0 12px 25px rgba(0,0,0,0.08);
+            border: 1px solid #e5e7eb;
+        }
+
+        .input-field {
+            width: 100%;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 14px;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .input-field:focus {
+            border-color: var(--navy);
+        }
+
+        .login-btn {
+            background: var(--navy);
+            color: white;
+            font-weight: 700;
+            border-radius: 22px;
+            padding: 14px;
+            width: 100%;
+            font-size: 15px;
+            transition: 0.2s;
+        }
+
+        .login-btn:active {
+            transform: scale(0.97);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <div class="login-card">
+
+            <!-- Logo -->
+            <div class="flex items-center gap-3 mb-8 justify-center">
+                <img src="../static/images/logo.png" alt="Cygnet Logo" class="h-10">
+                <h1 class="text-xl font-semibold text-gray-700">Cygnet.One</h1>
+            </div>
+
+            <!-- Email -->
+            <div class="mb-4">
+                <label class="text-sm text-gray-600 block mb-1">Email</label>
+                <input type="email" class="input-field" placeholder="name@cygnet.one">
+            </div>
+
+            <!-- Password -->
+            <div class="mb-3 relative">
+                <label class="text-sm text-gray-600 block mb-1">Password</label>
+                <input type="password" class="input-field pr-10" placeholder="••••••••••••••">
+                <i class="fa-solid fa-eye-slash absolute right-3 top-[38px] text-gray-400"></i>
+            </div>
+
+            <!-- Remember -->
+            <div class="flex items-center justify-between text-sm mb-6">
+                <label class="flex items-center gap-2 text-gray-600">
+                    <input type="checkbox" checked>
+                    Remember Me
+                </label>
+            </div>
+
+            <!-- Login Button -->
+            <button class="login-btn">
+                Login
+            </button>
+
+            <!-- Forgot Password -->
+            <div class="text-right mt-4">
+                <a href="#" class="text-sm text-gray-600 hover:underline">Forgot Password?</a>
+            </div>
+
+            <!-- Footer -->
+            <p class="text-center text-xs text-gray-400 mt-8">
+                © Cygnet Infotech Pvt. Ltd.
+            </p>
+
+        </div>
+    </div>
+</body>
+</html>

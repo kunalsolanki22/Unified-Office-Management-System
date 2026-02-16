@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Leave Management - Employee</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        :root {
+            --navy: #0e1e2b; 
+            --yellow: #fbad1a;
+            --bg-gray: #f8fafc;
+            --text-muted: #8e99a7;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-gray);
+            color: #111827;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            min-height: 100vh;
+            padding-bottom: 140px;
+        }
+
+        .card-base {
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0,0,0,0.01);
+        }
+
+        .input-field {
+            width: 100%;
+            background-color: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 14px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--navy);
+            outline: none;
+            transition: all 0.3s;
+        }
+        .input-field:focus { border-color: var(--navy); background-color: white; }
+
+        .label-style {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-left: 4px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .stat-box {
+            flex: 1;
+            padding: 16px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .navy-btn {
+            background-color: var(--navy);
+            color: var(--yellow);
+            font-weight: 800;
+            transition: transform 0.2s;
+        }
+        .navy-btn:active { transform: scale(0.97); }
+
+        .bottom-nav-pill {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85%;
+            max-width: 360px;
+            background: white;
+            border-radius: 100px;
+            height: 90px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 15px;
+            z-index: 1000;
+        }
+
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 80px; }
+        .nav-icon-box { width: 48px; height: 48px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .nav-icon-active { background-color: var(--navy); color: white; box-shadow: 0 8px 15px rgba(14, 30, 43, 0.2); }
+        .nav-icon-inactive { color: var(--text-muted); }
+        .nav-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+    
+    <!-- Header -->
+    <header class="px-6 pt-12 pb-6 flex justify-between items-center sticky top-0 bg-[#f8fafc]/80 backdrop-blur-md z-50">
+        <div class="flex items-center gap-4">
+            <button onclick="window.history.back()" class="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center" style="color:#0e1e2b;">
+                <i class="fa-solid fa-chevron-left text-sm"></i>
+            </button>
+            <h1 class="text-xl font-800 tracking-tight" style="color:#0e1e2b;">Leave Management</h1>
+        </div>
+        <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center font-bold" style="color:#0e1e2b;">A</div>
+    </header>
+
+    <!-- Leave Balance Widgets -->
+    <div class="px-6 mb-8">
+        <div class="flex gap-3">
+            <div class="stat-box bg-white shadow-sm border border-gray-100">
+                <p class="text-[9px] font-800 text-gray-400 uppercase">Used</p>
+                <h3 class="text-xl font-800 mt-1" style="color:#0e1e2b;">04</h3>
+            </div>
+            <div class="stat-box shadow-lg" style="background:#0e1e2b;">
+                <p class="text-[9px] font-800 uppercase" style="color:#94a3b8;">Remaining</p>
+                <h3 class="text-xl font-800 mt-1" style="color:#fbad1a;">12</h3>
+            </div>
+            <div class="stat-box bg-white shadow-sm border border-gray-100">
+                <p class="text-[9px] font-800 text-gray-400 uppercase">Monthly</p>
+                <h3 class="text-xl font-800 mt-1" style="color:#0e1e2b;">1.5</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Apply for Leave Form -->
+    <div class="px-6 mb-8">
+        <div class="card-base p-6">
+            <h2 class="text-base font-800 mb-6 flex items-center gap-2" style="color:#0e1e2b;">
+                <i class="fa-solid fa-paper-plane text-sm"></i>
+                Apply for Leave
+            </h2>
+
+            <div class="space-y-5">
+                <div>
+                    <label class="label-style">Type of Leave</label>
+                    <select class="input-field">
+                        <option>Annual Leave</option>
+                        <option>Sick Leave</option>
+                        <option>Casual Leave</option>
+                        <option>Maternity/Paternity</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="label-style">From Date</label>
+                        <input type="date" class="input-field">
+                    </div>
+                    <div class="flex-1">
+                        <label class="label-style">To Date</label>
+                        <input type="date" class="input-field">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="label-style">Reason for Leave</label>
+                    <textarea class="input-field h-24 resize-none" placeholder="Enter brief reason here..."></textarea>
+                </div>
+
+                <button class="w-full navy-btn py-4 rounded-2xl text-[11px] uppercase tracking-widest shadow-lg mt-2">
+                    Submit Request
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+<!-- Bottom Navigation -->
+<div class="bottom-nav-pill">
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <span class="nav-label text-gray-400">Dashboard</span>
+    </div>
+    
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-active">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <span class="nav-label" style="color:#0e1e2b;">Leave</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-address-book"></i>
+        </div>
+        <span class="nav-label text-gray-400">Directory</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <span class="nav-label text-gray-400">Profile</span>
+    </div>
+
+</div>
+
+
+</div>
+
+</body>
+</html>

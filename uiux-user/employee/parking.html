@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Parking Slot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --navy: #0e1e2b; 
+            --yellow: #fbad1a;
+            --bg-gray: #f8fafc;
+            --text-muted: #8e99a7;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-gray);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .parking-lot {
+            background: #aeb7bf;
+            border-radius: 30px;
+            padding: 25px 14px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+        }
+
+        .stall-column {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            width: 42%;
+        }
+
+        .parking-stall {
+            height: 64px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .stall-available {
+            background: #f1f5f9;
+            color: var(--navy);
+        }
+
+        .stall-occupied {
+            background: #7f8c97;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        .stall-selected {
+            background: var(--yellow);
+            color: var(--navy);
+        }
+
+        .park-btn {
+            background: var(--navy);
+            color: var(--yellow);
+            font-weight: 800;
+            letter-spacing: 1px;
+            border-radius: 16px;
+            padding: 16px;
+            width: 100%;
+            text-transform: uppercase;
+        }
+
+        .exit-btn {
+            background: #ef4444;
+            color: white;
+            font-weight: 800;
+            letter-spacing: 1px;
+            border-radius: 16px;
+            padding: 16px;
+            width: 100%;
+            text-transform: uppercase;
+        }
+        /* Bottom Navigation */
+.bottom-nav-pill {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    max-width: 360px;
+    background: white;
+    border-radius: 100px;
+    height: 90px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 15px;
+    z-index: 1000;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 70px;
+}
+
+.nav-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.nav-icon-active {
+    background-color: var(--navy);
+    color: white;
+    box-shadow: 0 8px 15px rgba(14, 30, 43, 0.2);
+}
+
+.nav-icon-inactive {
+    color: var(--text-muted);
+}
+
+.nav-label {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+    </style>
+</head>
+
+<body>
+<div class="app-shell">
+
+    <h1 class="text-xl font-800 mb-6" style="color:var(--navy);">Parking Slot</h1>
+
+    <!-- Parking Grid -->
+    <div class="parking-lot">
+        <div class="stall-column">
+            <div class="parking-stall stall-occupied"><i class="fa-solid fa-car"></i></div>
+            <div class="parking-stall stall-available" data-slot="A-02">A-02</div>
+            <div class="parking-stall stall-available" data-slot="A-03">A-03</div>
+            <div class="parking-stall stall-occupied"><i class="fa-solid fa-car"></i></div>
+            <div class="parking-stall stall-available" data-slot="A-05">A-05</div>
+        </div>
+
+        <div class="stall-column">
+            <div class="parking-stall stall-available" data-slot="B-01">B-01</div>
+            <div class="parking-stall stall-occupied"><i class="fa-solid fa-car"></i></div>
+            <div class="parking-stall stall-available" data-slot="B-03">B-03</div>
+            <div class="parking-stall stall-available" data-slot="B-04">B-04</div>
+            <div class="parking-stall stall-occupied"><i class="fa-solid fa-car"></i></div>
+        </div>
+    </div>
+
+    <!-- Button -->
+    <button id="parkBtn" class="park-btn">Tap to Park</button>
+
+    <!-- Assigned Card -->
+    <div id="assignedCard" class="hidden rounded-2xl p-4 mt-4 flex items-center justify-between"
+         style="background:var(--navy); color:white;">
+        <div class="flex items-center gap-4">
+            <div id="slotBadge"
+                 class="w-12 h-12 rounded-xl flex items-center justify-center font-800"
+                 style="background:var(--yellow); color:var(--navy);">
+                A-02
+            </div>
+            <div>
+                <p class="text-xs uppercase font-700" style="color:var(--yellow);">
+                    Your Assigned Slot
+                </p>
+                <p id="slotText" class="text-sm font-800">
+                    Slot A-02 on Level 01
+                </p>
+            </div>
+        </div>
+        <i class="fa-solid fa-location-dot text-xl"></i>
+    </div>
+
+</div>
+
+<script>
+let selectedSlot = null;
+let parked = false;
+
+const stalls = document.querySelectorAll(".stall-available");
+const parkBtn = document.getElementById("parkBtn");
+const card = document.getElementById("assignedCard");
+const badge = document.getElementById("slotBadge");
+const text = document.getElementById("slotText");
+
+stalls.forEach(stall => {
+    stall.addEventListener("click", () => {
+        if (parked) return;
+
+        document.querySelectorAll(".stall-selected").forEach(s => {
+            s.classList.remove("stall-selected");
+            s.classList.add("stall-available");
+        });
+
+        stall.classList.remove("stall-available");
+        stall.classList.add("stall-selected");
+
+        selectedSlot = stall.dataset.slot;
+    });
+});
+
+parkBtn.addEventListener("click", () => {
+    if (!parked && !selectedSlot) {
+        alert("Please select a parking slot first.");
+        return;
+    }
+
+    if (!parked) {
+        parked = true;
+
+        parkBtn.classList.remove("park-btn");
+        parkBtn.classList.add("exit-btn");
+        parkBtn.textContent = "Exit Parking";
+
+        badge.textContent = selectedSlot;
+        text.textContent = `Slot ${selectedSlot} on Level 01`;
+        card.classList.remove("hidden");
+
+    } else {
+        parked = false;
+        selectedSlot = null;
+
+        parkBtn.classList.remove("exit-btn");
+        parkBtn.classList.add("park-btn");
+        parkBtn.textContent = "Tap to Park";
+
+        card.classList.add("hidden");
+
+        document.querySelectorAll(".stall-selected").forEach(s => {
+            s.classList.remove("stall-selected");
+            s.classList.add("stall-available");
+        });
+    }
+});
+</script>
+<!-- Bottom Navigation -->
+<div class="bottom-nav-pill">
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <span class="nav-label text-gray-400">Dashboard</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <span class="nav-label text-gray-400">Leave</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-address-book"></i>
+        </div>
+        <span class="nav-label text-gray-400">Directory</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-active">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <span class="nav-label" style="color:#0e1e2b;">Profile</span>
+    </div>
+
+</div>
+
+</body>
+</html>

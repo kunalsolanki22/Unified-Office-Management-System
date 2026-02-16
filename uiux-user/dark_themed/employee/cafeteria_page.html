@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Booking - Dark Edition</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+
+        :root {
+            --navy-deep: #0e1e2b;
+            --navy-light: #1a2c3d;
+            --navy-lighter: #243b53;
+            --yellow: #fbad1a;
+            --text-main: #ffffff;
+            --text-muted: #8e99a7;
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f0f2f5; /* Area outside the phone */
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            color: var(--text-main);
+        }
+
+        .app {
+            width: 100%;
+            max-width: 430px;
+            min-height: 100vh;
+            background-color: var(--navy-deep);
+            padding-bottom: 160px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        /* Tabs Styling */
+        .tab-box {
+            background: var(--navy-light);
+            padding: 6px;
+            border-radius: 20px;
+            display: flex;
+            border: 1px solid var(--glass-border);
+        }
+        .tab {
+            flex: 1;
+            padding: 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            color: var(--text-muted);
+        }
+        .tab.active {
+            background: var(--navy-lighter);
+            color: var(--yellow);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Card Styling */
+        .card {
+            background: var(--navy-light);
+            border-radius: 24px;
+            padding: 18px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            border: 1px solid var(--glass-border);
+        }
+
+        .icon-square {
+            width: 56px;
+            height: 56px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-add {
+            background: var(--yellow);
+            color: var(--navy-deep);
+            padding: 8px 18px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        /* Desk Grid Styling */
+        .zone {
+            background: var(--navy-light);
+            border-radius: 24px;
+            padding: 20px;
+            border: 1px dashed rgba(255,255,255,0.15);
+        }
+
+        .desk {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .available { 
+            background: var(--navy-lighter); 
+            color: white; 
+            border: 1px solid var(--glass-border); 
+        }
+        .booked { 
+            background: rgba(255,255,255,0.02); 
+            color: rgba(255,255,255,0.1); 
+            cursor: not-allowed; 
+        }
+        .selected { 
+            background: var(--yellow); 
+            color: var(--navy-deep); 
+            box-shadow: 0 0 15px rgba(251, 173, 26, 0.4);
+        }
+
+        /* Floating Cart Bar */
+        .cart-bar {
+            position: fixed;
+            bottom: 125px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85%;
+            max-width: 360px;
+            background: var(--yellow);
+            color: var(--navy-deep);
+            padding: 16px 24px;
+            border-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 800;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 900;
+        }
+
+        /* Bottom Nav */
+        .bottom-nav-pill {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 380px;
+            background: rgba(26, 44, 61, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 35px;
+            height: 85px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            z-index: 1000;
+        }
+
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .nav-icon-box {
+            width: 42px; height: 42px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .nav-icon-active { background: var(--yellow); color: var(--navy-deep); }
+        .nav-icon-inactive { color: var(--text-muted); }
+        .nav-label { font-size: 9px; font-weight: 700; text-transform: uppercase; }
+        .label-active { color: var(--yellow); }
+        .label-inactive { color: var(--text-muted); }
+
+        .hidden { display: none; }
+    </style>
+</head>
+
+<body>
+<div class="app px-6 pt-12">
+
+    <div class="flex items-center justify-between mb-8">
+        <h2 class="text-2xl font-800 text-white tracking-tight">Service Booking</h2>
+        <div class="w-10 h-10 rounded-full bg-navy-light border border-white/10 flex items-center justify-center">
+            <i class="fa-solid fa-bell text-gray-400 text-sm"></i>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-box mb-8">
+        <button id="tab-food" class="tab active" onclick="switchTab('food')">Order Food</button>
+        <button id="tab-desk" class="tab" onclick="switchTab('desk')">Book Desk</button>
+    </div>
+
+    <!-- FOOD SECTION -->
+    <div id="food-section" class="space-y-4">
+        <div class="flex justify-between items-center ml-1 mb-2">
+            <span class="text-[10px] font-800 text-yellow-500 uppercase tracking-widest">Today's Menu</span>
+        </div>
+        
+        <!-- Food Card 1 -->
+        <div class="card">
+            <div class="icon-square text-orange-400">
+                <i class="fa-solid fa-burger text-2xl"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-bold text-white text-sm">Gourmet Veggie Platter</h3>
+                <p class="text-[11px] text-gray-400 mt-0.5">Kitchen • 15-20 mins</p>
+                <div class="flex justify-between items-center mt-3">
+                    <span class="font-800 text-yellow-500">$12.50</span>
+                    <button class="btn-add">ADD</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Food Card 2 -->
+        <div class="card">
+            <div class="icon-square text-green-400">
+                <i class="fa-solid fa-leaf text-2xl"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-bold text-white text-sm">Fresh Quinoa Salad</h3>
+                <p class="text-[11px] text-gray-400 mt-0.5">Healthy • 10 mins</p>
+                <div class="flex justify-between items-center mt-3">
+                    <span class="font-800 text-yellow-500">$9.00</span>
+                    <button class="btn-add">ADD</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DESK SECTION (Hidden by default) -->
+    <div id="desk-section" class="hidden space-y-6">
+        <div class="flex justify-between items-center ml-1">
+            <span class="text-[10px] font-800 text-yellow-500 uppercase tracking-widest">Select Workspace</span>
+            <span class="text-[10px] text-gray-400 font-bold uppercase">Zone A (IT Floor)</span>
+        </div>
+
+        <div class="zone">
+            <div class="grid grid-cols-4 gap-4">
+                <div class="desk booked">A1</div>
+                <div class="desk available">A2</div>
+                <div class="desk available">A3</div>
+                <div class="desk selected">A4</div>
+                <div class="desk available">A5</div>
+                <div class="desk booked">A6</div>
+                <div class="desk available">A7</div>
+                <div class="desk available">A8</div>
+                <div class="desk available">A9</div>
+                <div class="desk available">A10</div>
+                <div class="desk booked">A11</div>
+                <div class="desk available">A12</div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="flex justify-around bg-white/5 py-4 rounded-2xl border border-white/5">
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-navy-lighter border border-white/10"></div>
+                <span class="text-[10px] font-bold text-gray-400">Available</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <span class="text-[10px] font-bold text-gray-400">Selected</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-white/10"></div>
+                <span class="text-[10px] font-bold text-gray-400">Booked</span>
+            </div>
+        </div>
+        
+        <button class="w-100 w-full py-4 rounded-2xl bg-white/5 border border-yellow-500/30 text-yellow-500 font-800 text-xs tracking-widest uppercase mt-4">
+            Confirm Booking
+        </button>
+    </div>
+
+</div>
+
+<!-- Cart Bar -->
+<div id="cart-bar" class="cart-bar">
+    <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-navy-deep rounded-lg flex items-center justify-center text-yellow-500">1</div>
+        <span class="text-sm">Item in cart</span>
+    </div>
+    <div class="flex items-center gap-2 uppercase tracking-tighter">
+        View Cart <i class="fa-solid fa-arrow-right text-xs"></i>
+    </div>
+</div>
+
+<!-- Bottom Navigation -->
+<div class="bottom-nav-pill">
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <span class="nav-label label-inactive">Home</span>
+    </div>
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <span class="nav-label label-inactive">Leave</span>
+    </div>
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-address-book"></i>
+        </div>
+        <span class="nav-label label-inactive">Directory</span>
+    </div>
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <span class="nav-label label-inactive">Profile</span>
+    </div>
+</div>
+
+<script>
+    function switchTab(tab) {
+        const foodSec = document.getElementById("food-section");
+        const deskSec = document.getElementById("desk-section");
+        const foodTab = document.getElementById("tab-food");
+        const deskTab = document.getElementById("tab-desk");
+        const cartBar = document.getElementById("cart-bar");
+
+        if (tab === 'food') {
+            foodSec.classList.remove("hidden");
+            deskSec.classList.add("hidden");
+            foodTab.classList.add("active");
+            deskTab.classList.remove("active");
+            cartBar.classList.remove("hidden");
+        } else {
+            foodSec.classList.add("hidden");
+            deskSec.classList.remove("hidden");
+            foodTab.classList.remove("active");
+            deskTab.classList.add("active");
+            cartBar.classList.add("hidden"); // Hide cart for desk booking
+        }
+    }
+</script>
+
+</body>
+</html>

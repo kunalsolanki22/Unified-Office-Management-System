@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Service Booking</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+
+:root {
+    --navy:#0E1E2B;
+    --yellow:#fbad1a;
+    --bg:#f8fafc;
+    --text-muted:#8e99a7;
+}
+
+body{
+    font-family:'Plus Jakarta Sans',sans-serif;
+    background:var(--bg);
+    display:flex;
+    justify-content:center;
+}
+
+.app{
+    width:100%;
+    max-width:430px;
+    min-height:100vh;
+    padding-bottom:160px;
+}
+
+/* Tabs */
+.tab-box{
+    background:#eef2f6;
+    padding:5px;
+    border-radius:18px;
+    display:flex;
+}
+.tab{
+    flex:1;
+    padding:12px;
+    border-radius:14px;
+    font-size:12px;
+    font-weight:800;
+}
+.active{
+    background:white;
+    color:var(--navy);
+}
+
+/* Food cards */
+.card{
+    background:white;
+    border-radius:20px;
+    padding:16px;
+    display:flex;
+    gap:14px;
+    align-items:center;
+}
+
+.btn-add{
+    background:var(--navy);
+    color:var(--yellow);
+    padding:6px 14px;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:800;
+}
+
+.stepper{
+    background:var(--navy);
+    color:var(--yellow);
+    padding:4px 10px;
+    border-radius:10px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+}
+
+/* Desk layout */
+.zone{
+    background:#f1f5f9;
+    border-radius:20px;
+    padding:18px;
+    border:1px dashed #cbd5e1;
+}
+
+.grid-desk{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+}
+
+.desk{
+    aspect-ratio:1;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:800;
+    font-size:12px;
+    cursor:pointer;
+}
+
+.available{ background:white; color:var(--navy); border:1px solid #e2e8f0; }
+.booked{ background:#e2e8f0; color:#94a3b8; cursor:not-allowed; }
+.selected{ background:var(--navy); color:var(--yellow); }
+
+/* Buttons */
+.btn{
+    width:100%;
+    padding:16px;
+    border-radius:25px;
+    font-weight:800;
+}
+.btn-active{ background:var(--navy); color:var(--yellow); }
+
+/* Legend */
+.legend{
+    display:flex;
+    justify-content:space-around;
+    font-size:12px;
+    color:#6b7280;
+}
+
+/* Cart bar */
+.cart-bar{
+    position:fixed;
+    bottom:120px;
+    left:50%;
+    transform:translateX(-50%);
+    width:90%;
+    max-width:380px;
+    background:var(--navy);
+    color:var(--yellow);
+    padding:14px 20px;
+    border-radius:20px;
+    display:flex;
+    justify-content:space-between;
+    font-weight:800;
+    cursor:pointer;
+    z-index:900;
+}
+
+/* Cart modal */
+.cart-modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.4);
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+}
+
+.cart-box{
+    background:white;
+    width:100%;
+    max-width:430px;
+    border-radius:30px 30px 0 0;
+    padding:20px;
+}
+
+.hidden{ display:none; }
+
+/* Bottom Nav */
+.bottom-nav-pill {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    max-width: 360px;
+    background: white;
+    border-radius: 100px;
+    height: 90px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 15px;
+    z-index: 1000;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 70px;
+}
+
+.nav-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.nav-icon-active {
+    background-color: var(--navy);
+    color: white;
+}
+
+.nav-icon-inactive {
+    color: var(--text-muted);
+}
+
+.nav-label {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.label-active { color: var(--navy); }
+.label-inactive { color: var(--text-muted); }
+</style>
+</head>
+
+<body>
+<div class="app px-6 pt-10">
+
+<h2 class="text-xl font-bold mb-4" style="color:#0E1E2B;">Service Booking</h2>
+
+<!-- Tabs -->
+<div class="tab-box mb-6">
+    <button id="tab-food" class="tab active" onclick="switchTab('food')">Order Food</button>
+    <button id="tab-desk" class="tab" onclick="switchTab('desk')">Book Desk</button>
+</div>
+
+<!-- FOOD SECTION -->
+<div id="food-section" class="space-y-4">
+<div class="card">
+    <div class="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center text-orange-500">
+        <i class="fa-solid fa-burger"></i>
+    </div>
+    <div class="flex-1">
+        <h3 class="font-bold" style="color:#0E1E2B;">Gourmet Veggie Platter</h3>
+        <p class="text-xs text-gray-400">Available for Lunch</p>
+        <div class="flex justify-between items-center mt-2">
+            <span class="font-bold">$12.50</span>
+
+            <button id="btn-platter" class="btn-add" onclick="addItem('platter')">ADD</button>
+
+            <div id="stepper-platter" class="stepper hidden">
+                <button onclick="changeQty('platter',-1)">−</button>
+                <span id="qty-platter">1</span>
+                <button onclick="changeQty('platter',1)">+</button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+</div>
+
+<!-- Bottom Navigation -->
+<div class="bottom-nav-pill">
+
+    <!-- Dashboard -->
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <span class="nav-label label-inactive">Dashboard</span>
+    </div>
+
+    <!-- Leave -->
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <span class="nav-label label-inactive">Leave</span>
+    </div>
+
+    <!-- Directory -->
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-address-book"></i>
+        </div>
+        <span class="nav-label label-inactive">Directory</span>
+    </div>
+
+    <!-- Profile -->
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <span class="nav-label label-inactive">Profile</span>
+    </div>
+
+</div>
+
+<script>
+let cart={platter:0};
+
+function switchTab(tab){
+    document.getElementById("food-section").classList.toggle("hidden",tab!=="food");
+    document.getElementById("desk-section").classList.toggle("hidden",tab!=="desk");
+}
+</script>
+
+</body>
+</html>

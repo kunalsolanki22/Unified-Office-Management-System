@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desk & Conference Manager | Cygnet.One</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary-dark: #1a367c;
+            --primary-light: #2c4a96;
+            --accent-orange: #f9b012;
+            --text-light: #ccd6f6;
+            --text-muted: #8892b0;
+            --bg-light: #f4f7f6;
+            --white: #ffffff;
+            --sidebar-width: 260px;
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--white);
+            color: var(--primary-dark);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            border-right: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 3rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .logo-text h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .logo-text span {
+            color: var(--accent-orange);
+        }
+
+        .nav-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all var(--transition-speed);
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background-color: var(--primary-dark);
+            color: var(--white);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background-color: var(--white);
+        }
+
+        /* Header */
+        .top-bar {
+            padding: 2rem 2.5rem;
+            border-bottom: 1px solid #e0e0e0;
+            background: white;
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        /* Tab Switching */
+        .tab-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-btn {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-dark);
+            border-bottom-color: var(--accent-orange);
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            padding: 1.5rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .stat-card.blue {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-card.green {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .stat-card.orange {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        /* Split Layout */
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            padding: 0 2.5rem 2.5rem;
+        }
+
+        .floor-map-container {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 2rem;
+            border: 2px dashed #cbd5e1;
+        }
+
+        .booking-list-container {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* Desk Styles */
+        .desk {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .desk-available {
+            background: white;
+            color: var(--primary-dark);
+            border: 1.5px solid #e2e8f0;
+        }
+
+        .desk-occupied {
+            background: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .desk-maintenance {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1.5px solid #fecaca;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .action-btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">C</div>
+            <div class="logo-text">
+                <h2>CYGNET<span>.ONE</span></h2>
+            </div>
+        </div>
+
+        <div class="nav-label">Management</div>
+        <a class="nav-item active" onclick="showView('desk-management', this)">
+            <i class="fa-solid fa-chair"></i>
+            Desk Management
+        </a>
+        <a class="nav-item" onclick="showView('conference-management', this)">
+            <i class="fa-solid fa-door-open"></i>
+            Conference Rooms
+        </a>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="top-bar">
+            <h1 style="font-size: 1.8rem; color: var(--primary-dark); font-weight: 700; margin-bottom: 0.5rem;">
+                Workspace Management
+            </h1>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Manage all desk and conference room bookings</p>
+        </header>
+
+        <!-- Desk Management View -->
+        <div id="desk-management" class="view-section active">
+            <!-- Stats -->
+            <div style="padding: 2rem 2.5rem 0;">
+                <div class="stats-grid">
+                    <div class="stat-card blue">
+                        <div class="stat-value" id="desk-booked">0</div>
+                        <div class="stat-label">Booked Desks</div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-value" id="desk-maintenance">0</div>
+                        <div class="stat-label">Under Maintenance</div>
+                    </div>
+                    <div class="stat-card orange">
+                        <div class="stat-value" id="desk-available">0</div>
+                        <div class="stat-label">Available Desks</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Split Layout -->
+            <div class="split-layout">
+                <!-- Floor Map -->
+                <div class="floor-map-container">
+                    <h3 style="font-weight: 700; margin-bottom: 1.5rem; color: var(--primary-dark);">
+                        <i class="fa-solid fa-map"></i> Floor Plan
+                    </h3>
+                    <div id="desk-floor-map">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Booking List -->
+                <div class="booking-list-container">
+                    <h3 style="font-weight: 700; margin-bottom: 1.5rem; color: var(--primary-dark);">
+                        <i class="fa-solid fa-list"></i> All Allocations
+                    </h3>
+                    <div id="desk-booking-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conference Management View -->
+        <div id="conference-management" class="view-section">
+            <!-- Stats -->
+            <div style="padding: 2rem 2.5rem 0;">
+                <div class="stats-grid">
+                    <div class="stat-card blue">
+                        <div class="stat-value" id="conf-booked">0</div>
+                        <div class="stat-label">Booked Rooms</div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-value" id="conf-maintenance">0</div>
+                        <div class="stat-label">Under Maintenance</div>
+                    </div>
+                    <div class="stat-card orange">
+                        <div class="stat-value" id="conf-available">0</div>
+                        <div class="stat-label">Available Rooms</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conference Room List -->
+            <div style="padding: 0 2.5rem 2.5rem;">
+                <div class="booking-list-container" style="max-width: 100%;">
+                    <h3 style="font-weight: 700; margin-bottom: 1.5rem; color: var(--primary-dark);">
+                        <i class="fa-solid fa-door-open"></i> Conference Rooms
+                    </h3>
+                    <div id="conference-booking-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Booking History Modal -->
+    <div class="modal-overlay" id="booking-history-modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h3 id="history-item-id" style="font-size: 1.4rem; font-weight: 800; color: var(--primary-dark);">
+                    </h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">All Bookings</p>
+                </div>
+                <button onclick="closeBookingHistory()"
+                    style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+
+            <div id="booking-history-list" style="margin-bottom: 20px;">
+                <!-- Populated by JS -->
+            </div>
+
+            <button class="action-btn" style="background: var(--primary-dark); color: white; width: 100%;"
+                onclick="closeBookingHistory()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // View Switching
+        function showView(viewId, element) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            document.getElementById(viewId).classList.add('active');
+            element.classList.add('active');
+
+            if (viewId === 'desk-management') {
+                renderDeskView();
+            } else if (viewId === 'conference-management') {
+                renderConferenceView();
+            }
+        }
+
+        // Data Management
+        function getBookings() {
+            return JSON.parse(localStorage.getItem('cafeteria_desk_bookings')) || [];
+        }
+
+        function saveBookings(bookings) {
+            localStorage.setItem('cafeteria_desk_bookings', JSON.stringify(bookings));
+        }
+
+        function getMaintenance() {
+            return JSON.parse(localStorage.getItem('desk_maintenance')) || [];
+        }
+
+        function saveMaintenance(maintenance) {
+            localStorage.setItem('desk_maintenance', JSON.stringify(maintenance));
+        }
+
+        // Desk Management
+        function renderDeskView() {
+            const bookings = getBookings();
+            const maintenance = getMaintenance();
+
+            // Filter desk bookings
+            const deskBookings = bookings.filter(b => b.type !== 'Meeting Room');
+            const activeBookings = deskBookings.filter(b => b.status === 'Active');
+
+            // Update stats
+            const totalDesks = 12;
+            document.getElementById('desk-booked').innerText = activeBookings.length;
+            document.getElementById('desk-maintenance').innerText = maintenance.length;
+            document.getElementById('desk-available').innerText = totalDesks - activeBookings.length - maintenance.length;
+
+            // Render floor map
+            renderDeskFloorMap(deskBookings, maintenance);
+
+            // Render booking list
+            renderDeskBookingList(deskBookings, maintenance);
+        }
+
+        function renderDeskFloorMap(bookings, maintenance) {
+            const container = document.getElementById('desk-floor-map');
+            const deskIds = ['A-101', 'A-102', 'A-103', 'A-104', 'B-201', 'B-202', 'B-203', 'B-204', 'C-301', 'C-302', 'C-303', 'C-304'];
+
+            let html = '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">';
+
+            deskIds.forEach(deskId => {
+                const booking = bookings.find(b => b.id === deskId && b.status === 'Active');
+                const isMainten = maintenance.includes(deskId);
+
+                let className = 'desk desk-available';
+                let icon = deskId.split('-')[1];
+
+                if (isMainten) {
+                    className = 'desk desk-maintenance';
+                    icon = '<i class="fa-solid fa-wrench"></i>';
+                } else if (booking) {
+                    className = 'desk desk-occupied';
+                    icon = '<i class="fa-solid fa-user-lock"></i>';
+                }
+
+                html += `<div class="${className}" onclick="viewDeskDetails('${deskId}')">${icon}</div>`;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderDeskBookingList(bookings, maintenance) {
+            const container = document.getElementById('desk-booking-list');
+            const allAllocations = [];
+
+            // Add active bookings
+            bookings.forEach(b => {
+                if (b.status === 'Active') {
+                    allAllocations.push({
+                        id: b.id,
+                        user: b.user,
+                        date: b.date,
+                        status: 'Booked',
+                        type: 'booking'
+                    });
+                }
+            });
+
+            // Add maintenance
+            maintenance.forEach(deskId => {
+                if (!allAllocations.find(a => a.id === deskId)) {
+                    allAllocations.push({
+                        id: deskId,
+                        user: 'System',
+                        date: new Date().toISOString().split('T')[0],
+                        status: 'Maintenance',
+                        type: 'maintenance'
+                    });
+                }
+            });
+
+            if (allAllocations.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="fa-solid fa-inbox" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i><p>No allocations</p></div>';
+                return;
+            }
+
+            allAllocations.sort((a, b) => a.id.localeCompare(b.id));
+
+            let html = '';
+            allAllocations.forEach(allocation => {
+                const statusBadge = allocation.type === 'booking' ?
+                    '<span style="background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> BOOKED</span>' :
+                    '<span style="background: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;"><i class="fa-solid fa-triangle-exclamation"></i> MAINTENANCE</span>';
+
+                const actions = allocation.type === 'booking' ?
+                    `<button onclick="cancelBookingById('${allocation.id}')" style="flex: 1; background: #fee2e2; color: #dc2626; padding: 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; border: none; cursor: pointer;"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                     <button onclick="viewBookingHistory('${allocation.id}')" style="flex: 1; background: #f1f5f9; color: var(--primary-dark); padding: 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; border: none; cursor: pointer;"><i class="fa-solid fa-history"></i> History</button>` :
+                    `<button onclick="toggleMaintenance('${allocation.id}')" style="flex: 1; background: #dcfce7; color: #16a34a; padding: 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; border: none; cursor: pointer;"><i class="fa-solid fa-check"></i> Clear</button>
+                     <button onclick="viewBookingHistory('${allocation.id}')" style="flex: 1; background: #f1f5f9; color: var(--primary-dark); padding: 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; border: none; cursor: pointer;"><i class="fa-solid fa-history"></i> History</button>`;
+
+                html += `
+                    <div style="background: #fafbfc; border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid #f0f0f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div>
+                                <div style="font-size: 1.1rem; font-weight: 800; color: var(--primary-dark);">Desk ${allocation.id}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+                                    <i class="fa-solid fa-user"></i> ${allocation.user} | <i class="fa-regular fa-calendar"></i> ${allocation.date}
+                                </div>
+                            </div>
+                            ${statusBadge}
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            ${actions}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Conference Management
+        function renderConferenceView() {
+            const bookings = getBookings();
+            const maintenance = getMaintenance();
+
+            // Filter conference bookings
+            const confBookings = bookings.filter(b => b.type === 'Meeting Room');
+            const activeBookings = confBookings.filter(b => b.status === 'Active');
+
+            // Update stats
+            const totalRooms = 3;
+            document.getElementById('conf-booked').innerText = activeBookings.length;
+            document.getElementById('conf-maintenance').innerText = 0;
+            document.getElementById('conf-available').innerText = totalRooms - activeBookings.length;
+
+            // Render conference list
+            renderConferenceList(confBookings);
+        }
+
+        function renderConferenceList(bookings) {
+            const container = document.getElementById('conference-booking-list');
+            const rooms = ['Conference Hall A', 'Board Room', 'Training Pod'];
+
+            let html = '';
+            rooms.forEach(room => {
+                const roomBookings = bookings.filter(b => b.id === room && b.status === 'Active');
+                const isBooked = roomBookings.length > 0;
+
+                const statusBadge = isBooked ?
+                    '<span style="background: #dbeafe; color: #1e40af; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> BOOKED</span>' :
+                    '<span style="background: #dcfce7; color: #16a34a; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> AVAILABLE</span>';
+
+                html += `
+                    <div style="background: white; border-radius: 16px; padding: 24px; margin-bottom: 16px; border: 2px solid ${isBooked ? '#dbeafe' : '#dcfce7'};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <div>
+                                <h4 style="font-size: 1.2rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 4px;">${room}</h4>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Capacity: ${room.includes('Hall') ? '50' : room.includes('Board') ? '20' : '15'} people</p>
+                            </div>
+                            ${statusBadge}
+                        </div>
+                        ${isBooked ? `
+                            <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;"><strong>Booked by:</strong> ${roomBookings[0].user}</p>
+                                <p style="font-size: 0.8rem; color: var(--text-muted);"><strong>Date:</strong> ${roomBookings[0].date}</p>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="cancelBookingById('${room}')" style="flex: 1; background: #fee2e2; color: #dc2626; padding: 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: none; cursor: pointer;"><i class="fa-solid fa-xmark"></i> Cancel Booking</button>
+                                <button onclick="viewBookingHistory('${room}')" style="flex: 1; background: #f1f5f9; color: var(--primary-dark); padding: 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: none; cursor: pointer;"><i class="fa-solid fa-history"></i> View History</button>
+                            </div>
+                        ` : `
+                            <button onclick="viewBookingHistory('${room}')" style="width: 100%; background: #f1f5f9; color: var(--primary-dark); padding: 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: none; cursor: pointer;"><i class="fa-solid fa-history"></i> View Booking History</button>
+                        `}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Actions
+        function cancelBookingById(itemId) {
+            if (!confirm('Are you sure you want to cancel this booking?')) return;
+
+            let bookings = getBookings();
+            bookings = bookings.map(b => {
+                if (b.id === itemId && b.status === 'Active') {
+                    return { ...b, status: 'Cancelled' };
+                }
+                return b;
+            });
+            saveBookings(bookings);
+
+            // Refresh current view
+            const activeView = document.querySelector('.view-section.active').id;
+            if (activeView === 'desk-management') {
+                renderDeskView();
+            } else {
+                renderConferenceView();
+            }
+        }
+
+        function toggleMaintenance(deskId) {
+            let maintenance = getMaintenance();
+            const index = maintenance.indexOf(deskId);
+
+            if (index > -1) {
+                maintenance.splice(index, 1);
+            } else {
+                maintenance.push(deskId);
+                // Cancel any active booking
+                let bookings = getBookings();
+                bookings = bookings.map(b => {
+                    if (b.id === deskId && b.status === 'Active') {
+                        return { ...b, status: 'Cancelled' };
+                    }
+                    return b;
+                });
+                saveBookings(bookings);
+            }
+
+            saveMaintenance(maintenance);
+            renderDeskView();
+        }
+
+        function viewDeskDetails(deskId) {
+            viewBookingHistory(deskId);
+        }
+
+        function viewBookingHistory(itemId) {
+            document.getElementById('history-item-id').innerText = itemId.includes('-') ? `Desk ${itemId}` : itemId;
+
+            const bookings = getBookings();
+            const itemBookings = bookings.filter(b => b.id === itemId);
+
+            const listContainer = document.getElementById('booking-history-list');
+            listContainer.innerHTML = '';
+
+            if (itemBookings.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <i class="fa-solid fa-inbox" style="font-size: 2.5rem; margin-bottom: 12px; opacity: 0.3;"></i>
+                        <p style="font-size: 0.9rem; font-weight: 600;">No bookings found</p>
+                        <p style="font-size: 0.8rem;">This item has no booking history</p>
+                    </div>
+                `;
+            } else {
+                itemBookings.sort((a, b) => b.timestamp - a.timestamp);
+
+                itemBookings.forEach((booking, index) => {
+                    const statusColor = booking.status === 'Active' ? '#10b981' : '#94a3b8';
+                    const statusBg = booking.status === 'Active' ? '#d1fae5' : '#f1f5f9';
+
+                    const card = document.createElement('div');
+                    card.style = 'background: #f8fafc; border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid #e2e8f0;';
+
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div>
+                                <div style="font-size: 0.9rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 4px;">
+                                    <i class="fa-solid fa-user" style="font-size: 0.75rem; color: var(--text-muted);"></i>
+                                    ${booking.user}
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                    <i class="fa-regular fa-calendar"></i> ${booking.date}
+                                </div>
+                            </div>
+                            <span style="background: ${statusBg}; color: ${statusColor}; padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase;">
+                                ${booking.status}
+                            </span>
+                        </div>
+                        ${booking.status === 'Active' ? `
+                            <button onclick="deleteBooking(${index}, '${itemId}')" style="width: 100%; background: #fee2e2; color: #dc2626; padding: 8px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; border: none; cursor: pointer;">
+                                <i class="fa-solid fa-trash"></i> Delete Booking
+                            </button>
+                        ` : `
+                            <div style="text-align: center; padding: 8px; color: var(--text-muted); font-size: 0.75rem;">
+                                <i class="fa-solid fa-check-circle"></i> Booking completed
+                            </div>
+                        `}
+                    `;
+
+                    listContainer.appendChild(card);
+                });
+            }
+
+            document.getElementById('booking-history-modal').style.display = 'flex';
+        }
+
+        function closeBookingHistory() {
+            document.getElementById('booking-history-modal').style.display = 'none';
+        }
+
+        function deleteBooking(bookingIndex, itemId) {
+            if (!confirm('Are you sure you want to delete this booking?')) return;
+
+            let bookings = getBookings();
+            const itemBookings = bookings.filter(b => b.id === itemId);
+            const bookingToDelete = itemBookings[bookingIndex];
+
+            bookings = bookings.filter(b => b.timestamp !== bookingToDelete.timestamp);
+            saveBookings(bookings);
+
+            // Refresh views
+            const activeView = document.querySelector('.view-section.active').id;
+            if (activeView === 'desk-management') {
+                renderDeskView();
+            } else {
+                renderConferenceView();
+            }
+            viewBookingHistory(itemId);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderDeskView();
+        });
+    </script>
+</body>
+
+</html>

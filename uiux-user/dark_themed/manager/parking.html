@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Parking Slot - Dark Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --navy-deep: #0e1e2b;
+            --navy-light: #1a2c3d;
+            --navy-lighter: #243b53;
+            --yellow: #fbad1a;
+            --text-main: #ffffff;
+            --text-muted: #8e99a7;
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #f0f2f5; /* Backdrop outside the app shell */
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            color: var(--text-main);
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            min-height: 100vh;
+            background-color: var(--navy-deep);
+            padding: 0 0 140px 0;
+            position: relative;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+        }
+
+        /* Parking Lot - Blueprint Style */
+        .parking-lot {
+            background: var(--navy-light);
+            border-radius: 32px;
+            padding: 30px 20px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            position: relative;
+            box-shadow: inset 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        /* Center Dashed Line for Driving Lane */
+        .driving-lane {
+            position: absolute;
+            left: 50%;
+            top: 20px;
+            bottom: 20px;
+            width: 0px;
+            border-left: 2px dashed rgba(255, 255, 255, 0.08);
+            transform: translateX(-50%);
+        }
+
+        .stall-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 42%;
+            z-index: 10;
+        }
+
+        .parking-stall {
+            height: 64px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 1px;
+        }
+
+        /* State Classes (Used by JS) */
+        .stall-available {
+            background: var(--navy-lighter);
+            color: white;
+            border: 1px solid var(--glass-border);
+        }
+
+        .stall-available:hover {
+            border-color: rgba(251, 173, 26, 0.5);
+            background: #2a445e;
+        }
+
+        .stall-occupied {
+            background: rgba(255, 255, 255, 0.02);
+            color: rgba(255, 255, 255, 0.08);
+            cursor: not-allowed;
+            border: 1px solid transparent;
+        }
+
+        .stall-selected {
+            background: var(--yellow);
+            color: var(--navy-deep);
+            box-shadow: 0 0 20px rgba(251, 173, 26, 0.4);
+            transform: scale(1.05);
+            border: none;
+        }
+
+        /* Button Classes (Used by JS) */
+        .park-btn {
+            background: var(--yellow);
+            color: var(--navy-deep);
+            font-weight: 800;
+            letter-spacing: 1px;
+            border-radius: 20px;
+            padding: 18px;
+            width: 100%;
+            text-transform: uppercase;
+            box-shadow: 0 10px 30px rgba(251, 173, 26, 0.2);
+            transition: all 0.3s;
+            border: none;
+        }
+
+        .park-btn:active {
+            transform: scale(0.96);
+        }
+
+        .exit-btn {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1.5px solid #ef4444;
+            color: #ef4444;
+            font-weight: 800;
+            letter-spacing: 1px;
+            border-radius: 20px;
+            padding: 18px;
+            width: 100%;
+            text-transform: uppercase;
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.15);
+            transition: all 0.3s;
+        }
+
+        .exit-btn:active {
+            transform: scale(0.96);
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        /* Assigned Card styling */
+        #assignedCard {
+            background: var(--navy-light);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+
+        /* Bottom Navigation Pill */
+        .bottom-nav-pill {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 380px;
+            background: rgba(26, 44, 61, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 35px;
+            height: 85px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 10px;
+            z-index: 1000;
+        }
+
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 70px; }
+        .nav-icon-box {
+            width: 42px; height: 42px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+            transition: all 0.3s;
+        }
+        .nav-icon-active { background-color: var(--yellow); color: var(--navy-deep); box-shadow: 0 0 15px rgba(251, 173, 26, 0.3); }
+        .nav-icon-inactive { color: var(--text-muted); }
+        .nav-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .label-active { color: var(--yellow); }
+        .label-inactive { color: var(--text-muted); }
+
+    </style>
+</head>
+
+<body>
+<div class="app-shell">
+
+    <!-- Premium Header -->
+    <header class="px-6 pt-12 pb-8 flex justify-between items-center sticky top-0 bg-navy-deep/80 backdrop-blur-md z-50">
+        <div class="flex items-center gap-4">
+            <button onclick="window.history.back()" class="w-11 h-11 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center text-white">
+                <i class="fa-solid fa-chevron-left text-sm"></i>
+            </button>
+            <h1 class="text-2xl font-800 tracking-tight text-white">Parking Slot</h1>
+        </div>
+        <div class="w-11 h-11 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center font-bold text-white">
+            <i class="fa-solid fa-car"></i>
+        </div>
+    </header>
+
+    <div class="px-6">
+        <div class="flex justify-between items-center mb-4 ml-1">
+            <h3 class="text-[11px] font-800 text-yellow-500 tracking-widest uppercase">Basement Level 01</h3>
+            <span class="text-[10px] bg-white/5 border border-white/10 px-3 py-1 rounded-full text-gray-400 font-bold">Zone A & B</span>
+        </div>
+
+        <!-- Parking Grid -->
+        <div class="parking-lot">
+            <!-- Driving Lane Visual -->
+            <div class="driving-lane"></div>
+
+            <div class="stall-column">
+                <div class="parking-stall stall-occupied"><i class="fa-solid fa-car text-xl"></i></div>
+                <div class="parking-stall stall-available" data-slot="A-02">A-02</div>
+                <div class="parking-stall stall-available" data-slot="A-03">A-03</div>
+                <div class="parking-stall stall-occupied"><i class="fa-solid fa-car text-xl"></i></div>
+                <div class="parking-stall stall-available" data-slot="A-05">A-05</div>
+            </div>
+
+            <div class="stall-column">
+                <div class="parking-stall stall-available" data-slot="B-01">B-01</div>
+                <div class="parking-stall stall-occupied"><i class="fa-solid fa-car text-xl"></i></div>
+                <div class="parking-stall stall-available" data-slot="B-03">B-03</div>
+                <div class="parking-stall stall-available" data-slot="B-04">B-04</div>
+                <div class="parking-stall stall-occupied"><i class="fa-solid fa-car text-xl"></i></div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="flex justify-around bg-white/5 py-4 rounded-2xl border border-white/5 mb-8">
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-navy-lighter border border-white/10"></div>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Free</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_rgba(251,173,26,0.5)]"></div>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Selected</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-white/5"></div>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Taken</span>
+            </div>
+        </div>
+
+        <!-- Button -->
+        <button id="parkBtn" class="park-btn">Select a Slot</button>
+
+        <!-- Assigned Card -->
+        <div id="assignedCard" class="hidden rounded-3xl p-5 mt-6 flex items-center justify-between transition-all duration-300">
+            <div class="flex items-center gap-5">
+                <div id="slotBadge" class="w-14 h-14 rounded-2xl flex items-center justify-center font-800 text-lg border border-yellow-500/30 shadow-inner" style="background: rgba(251, 173, 26, 0.1); color: var(--yellow);">
+                    A-02
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase font-800 tracking-widest text-gray-400 mb-1">
+                        Active Booking
+                    </p>
+                    <p id="slotText" class="text-sm font-800 text-white">
+                        Slot A-02 on Level 01
+                    </p>
+                </div>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-navy-deep shadow-lg">
+                <i class="fa-solid fa-location-dot"></i>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- JavaScript Logic (Preserved entirely) -->
+<script>
+let selectedSlot = null;
+let parked = false;
+
+const stalls = document.querySelectorAll(".stall-available");
+const parkBtn = document.getElementById("parkBtn");
+const card = document.getElementById("assignedCard");
+const badge = document.getElementById("slotBadge");
+const text = document.getElementById("slotText");
+
+stalls.forEach(stall => {
+    stall.addEventListener("click", () => {
+        if (parked) return;
+
+        document.querySelectorAll(".stall-selected").forEach(s => {
+            s.classList.remove("stall-selected");
+            s.classList.add("stall-available");
+        });
+
+        stall.classList.remove("stall-available");
+        stall.classList.add("stall-selected");
+
+        selectedSlot = stall.dataset.slot;
+        
+        // Minor UX addition for the dark mode button
+        if(selectedSlot) {
+            parkBtn.textContent = "Confirm Parking";
+        }
+    });
+});
+
+parkBtn.addEventListener("click", () => {
+    if (!parked && !selectedSlot) {
+        alert("Please select a parking slot first.");
+        return;
+    }
+
+    if (!parked) {
+        parked = true;
+
+        parkBtn.classList.remove("park-btn");
+        parkBtn.classList.add("exit-btn");
+        parkBtn.textContent = "Exit Parking";
+
+        badge.textContent = selectedSlot;
+        text.textContent = `Slot ${selectedSlot} on Level 01`;
+        card.classList.remove("hidden");
+
+    } else {
+        parked = false;
+        selectedSlot = null;
+
+        parkBtn.classList.remove("exit-btn");
+        parkBtn.classList.add("park-btn");
+        parkBtn.textContent = "Select a Slot";
+
+        card.classList.add("hidden");
+
+        document.querySelectorAll(".stall-selected").forEach(s => {
+            s.classList.remove("stall-selected");
+            s.classList.add("stall-available");
+        });
+    }
+});
+</script>
+
+<!-- Bottom Navigation -->
+<div class="bottom-nav-pill">
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <span class="nav-label label-inactive">Dashboard</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <span class="nav-label label-inactive">Leave</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-inactive">
+            <i class="fa-solid fa-address-book"></i>
+        </div>
+        <span class="nav-label label-inactive">Directory</span>
+    </div>
+
+    <div class="nav-item">
+        <div class="nav-icon-box nav-icon-active">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <span class="nav-label label-active">Profile</span>
+    </div>
+</div>
+
+</body>
+</html>

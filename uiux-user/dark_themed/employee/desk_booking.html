@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Select Your Seat - Dark Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --navy-deep: #0e1e2b;
+            --navy-light: #1a2c3d;
+            --navy-lighter: #243b53;
+            --yellow: #fbad1a;
+            --text-main: #ffffff;
+            --text-muted: #8e99a7;
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f0f2f5; /* Background outside the app */
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            min-height: 100vh;
+            background-color: var(--navy-deep);
+            padding-bottom: 180px;
+            position: relative;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+        }
+
+        /* Tabs */
+        .tab-container {
+            background: var(--navy-light);
+            border-radius: 20px;
+            padding: 5px;
+            display: flex;
+            border: 1px solid var(--glass-border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            transition: 0.3s;
+            color: var(--text-muted);
+        }
+
+        .tab-active {
+            background: var(--navy-lighter);
+            color: var(--yellow);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Floor Plan Styling */
+        .office-floor {
+            background: var(--navy-light);
+            border-radius: 32px;
+            padding: 24px;
+            min-height: 450px;
+            border: 1px dashed rgba(255,255,255,0.1);
+            position: relative;
+        }
+
+        .pod {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: fit-content;
+        }
+
+        .desk {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .desk-available {
+            background: var(--navy-lighter);
+            color: white;
+            border: 1px solid var(--glass-border);
+        }
+
+        .desk-occupied {
+            background: rgba(255,255,255,0.03);
+            color: rgba(255,255,255,0.1);
+            cursor: not-allowed;
+            border: none;
+        }
+
+        .desk-selected {
+            background: var(--yellow);
+            color: var(--navy-deep);
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(251, 173, 26, 0.4);
+            border: none;
+        }
+
+        /* Landmarks */
+        .meeting-room {
+            background: var(--navy-lighter);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            border: 1px solid var(--glass-border);
+        }
+
+        .plant-box {
+            color: #22c55e;
+            opacity: 0.6;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 950;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-active { display: flex; }
+
+        .booking-modal {
+            background: var(--navy-light);
+            width: 90%;
+            max-width: 380px;
+            border-radius: 30px;
+            padding: 28px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .form-label {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--yellow);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .chip-radio { display: none; }
+        .chip-label {
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 1px solid var(--glass-border);
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            background: rgba(255,255,255,0.02);
+            transition: all 0.2s;
+        }
+
+        .chip-radio:checked + .chip-label {
+            background: var(--yellow);
+            color: var(--navy-deep);
+            border-color: var(--yellow);
+        }
+
+        .date-input-container {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .date-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-weight: 700;
+            outline: none;
+            width: 100%;
+        }
+
+        /* Conference Card */
+        .conf-card {
+            background: var(--navy-light);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+        .conf-card::before {
+            content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px; background: var(--yellow);
+        }
+
+        /* Navigation */
+        .bottom-nav-pill {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 380px;
+            background: rgba(26, 44, 61, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 35px;
+            height: 85px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            z-index: 1000;
+        }
+
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .nav-icon-box {
+            width: 42px; height: 42px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .nav-icon-active { background: var(--yellow); color: var(--navy-deep); }
+        .nav-icon-inactive { color: var(--text-muted); }
+        .nav-label { font-size: 9px; font-weight: 700; text-transform: uppercase; }
+        .label-active { color: var(--yellow); }
+        .label-inactive { color: var(--text-muted); }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-shell">
+
+        <!-- Header -->
+        <header class="px-6 pt-12 pb-8 flex items-center gap-4">
+            <button onclick="window.history.back()"
+                class="w-11 h-11 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center text-white">
+                <i class="fa-solid fa-chevron-left text-sm"></i>
+            </button>
+            <h1 class="text-2xl font-800 tracking-tight text-white">Select Your Seat</h1>
+        </header>
+
+        <!-- Main Tabs -->
+        <div class="px-6 mb-8">
+            <div class="tab-container">
+                <button class="tab-btn tab-active" onclick="switchMainTab('workstation', this)">Workstation</button>
+                <button class="tab-btn" onclick="switchMainTab('meeting', this)">Meeting Room</button>
+            </div>
+        </div>
+
+        <!-- WORKSTATION VIEW -->
+        <div id="view-workstation">
+            <div class="px-6 mb-6">
+                <div class="relative">
+                    <select
+                        class="w-full appearance-none bg-white/5 border border-white/10 text-white font-700 text-sm rounded-2xl py-4 px-5 focus:outline-none focus:ring-1 focus:ring-yellow-500/50">
+                        <option class="bg-navy-deep">Wing A (Floor 1)</option>
+                        <option class="bg-navy-deep">Wing B (Floor 1)</option>
+                        <option class="bg-navy-deep">Wing C (Floor 2)</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-yellow-500">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6">
+                <div class="office-floor shadow-2xl">
+                    <!-- Top section -->
+                    <div class="flex justify-between mb-10">
+                        <div class="meeting-room w-32 h-20">Meeting Room 01</div>
+                        <div class="flex flex-col gap-4">
+                            <i class="fa-solid fa-seedling plant-box"></i>
+                            <i class="fa-solid fa-seedling plant-box"></i>
+                        </div>
+                    </div>
+
+                    <!-- Pod 1 -->
+                    <div class="flex justify-around mb-12">
+                        <div class="pod">
+                            <div class="desk desk-occupied"><i class="fa-solid fa-user-lock text-[8px]"></i></div>
+                            <div class="desk desk-available" onclick="openBookingModal('A-102', 'Workstation')">102</div>
+                            <div class="desk desk-available" onclick="openBookingModal('A-103', 'Workstation')">103</div>
+                            <div class="desk desk-available" onclick="openBookingModal('A-104', 'Workstation')">104</div>
+                        </div>
+
+                        <div class="pod">
+                            <div class="desk desk-available" onclick="openBookingModal('A-105', 'Workstation')">105</div>
+                            <div class="desk desk-occupied"><i class="fa-solid fa-user-lock text-[8px]"></i></div>
+                            <div class="desk desk-available" onclick="openBookingModal('A-107', 'Workstation')">107</div>
+                            <div class="desk desk-available" onclick="openBookingModal('A-108', 'Workstation')">108</div>
+                        </div>
+                    </div>
+
+                    <div class="h-10 w-full mb-10 flex items-center justify-center relative">
+                        <div class="w-full border-t border-dashed border-white/10"></div>
+                        <span class="absolute bg-[#1a2c3d] px-4 text-[8px] font-bold text-gray-500 tracking-widest uppercase">Hallway</span>
+                    </div>
+
+                    <!-- Pod 2 -->
+                    <div class="flex justify-between items-end">
+                        <div class="pod">
+                            <div class="desk desk-available" onclick="openBookingModal('W-201', 'Workstation')">201</div>
+                            <div class="desk desk-available" onclick="openBookingModal('W-202', 'Workstation')">202</div>
+                        </div>
+                        <div class="meeting-room w-24 h-24 text-center">Chill<br>Zone</div>
+                        <div class="pod">
+                            <div class="desk desk-occupied"><i class="fa-solid fa-user-lock text-[8px]"></i></div>
+                            <div class="desk desk-available" onclick="openBookingModal('W-204', 'Workstation')">204</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="mt-8 flex justify-around px-10 mb-8">
+                <div class="flex flex-col items-center gap-1.5">
+                    <div class="w-3.5 h-3.5 bg-navy-lighter border border-white/10 rounded-sm"></div>
+                    <span class="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Free</span>
+                </div>
+                <div class="flex flex-col items-center gap-1.5">
+                    <div class="w-3.5 h-3.5 bg-yellow-500 rounded-sm"></div>
+                    <span class="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Selected</span>
+                </div>
+                <div class="flex flex-col items-center gap-1.5">
+                    <div class="w-3.5 h-3.5 bg-white/5 rounded-sm"></div>
+                    <span class="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Taken</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MEETING ROOM VIEW -->
+        <div id="view-meeting" class="hidden px-6">
+            <h3 class="text-[10px] font-800 text-yellow-500 tracking-widest uppercase mb-5 ml-1">Available Halls</h3>
+
+            <div class="conf-card">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h4 class="text-base font-800 text-white">Conference Hall A</h4>
+                        <p class="text-[11px] text-gray-400 font-bold mt-1">Capacity: 12 People</p>
+                    </div>
+                    <span class="px-2.5 py-1 bg-green-500/10 text-green-400 rounded-lg text-[9px] font-800 uppercase border border-green-500/10">Available</span>
+                </div>
+                <div class="flex gap-2 mb-6">
+                    <span class="text-[9px] bg-white/5 text-gray-400 px-3 py-1.5 rounded-full border border-white/5">TV Screen</span>
+                    <span class="text-[9px] bg-white/5 text-gray-400 px-3 py-1.5 rounded-full border border-white/5">Whiteboard</span>
+                </div>
+                <button onclick="openBookingModal('Conference Hall A', 'Meeting Room')"
+                    class="w-full bg-yellow-500 text-navy-deep py-3.5 rounded-xl text-xs font-800 uppercase tracking-wider transition-transform active:scale-95">
+                    Book This Hall
+                </button>
+            </div>
+
+            <div class="conf-card opacity-60">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h4 class="text-base font-800 text-white">Board Room</h4>
+                        <p class="text-[11px] text-gray-400 font-bold mt-1">Capacity: 20 People</p>
+                    </div>
+                    <span class="px-2.5 py-1 bg-red-500/10 text-red-400 rounded-lg text-[9px] font-800 uppercase border border-red-500/10">Full</span>
+                </div>
+                <button class="w-full bg-white/5 text-gray-500 py-3.5 rounded-xl text-xs font-800 uppercase cursor-not-allowed">
+                    Unavailable
+                </button>
+            </div>
+        </div>
+
+        <!-- Reserve Modal -->
+        <div class="modal-overlay" id="booking-modal" onclick="closeModal(event)">
+            <div class="booking-modal">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 bg-yellow-500/10 rounded-2xl flex items-center justify-center text-yellow-500">
+                        <i class="fa-solid fa-calendar-plus text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-800 text-white">Reserve</h2>
+                        <p class="text-xs text-gray-400">Secure your workspace</p>
+                    </div>
+                </div>
+
+                <label class="form-label">Select Date</label>
+                <div class="date-input-container">
+                    <input type="date" class="date-input" value="2026-02-15">
+                    <i class="fa-regular fa-calendar text-yellow-500"></i>
+                </div>
+
+                <label class="form-label">Duration</label>
+                <div class="flex gap-3 mb-8">
+                    <div class="flex-1">
+                        <input type="radio" name="duration" id="dur-full" class="chip-radio" checked>
+                        <label for="dur-full" class="chip-label block text-center">Full Day</label>
+                    </div>
+                    <div class="flex-1">
+                        <input type="radio" name="duration" id="dur-am" class="chip-radio">
+                        <label for="dur-am" class="chip-label block text-center">AM</label>
+                    </div>
+                    <div class="flex-1">
+                        <input type="radio" name="duration" id="dur-pm" class="chip-radio">
+                        <label for="dur-pm" class="chip-label block text-center">PM</label>
+                    </div>
+                </div>
+
+                <button onclick="confirmBooking()"
+                    class="w-full bg-yellow-500 text-navy-deep py-4 rounded-2xl font-800 text-sm shadow-xl shadow-yellow-500/10 flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                    CONFIRM BOOKING <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Nav -->
+        <div class="bottom-nav-pill">
+            <div class="nav-item">
+                <div class="nav-icon-box nav-icon-inactive">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <span class="nav-label label-inactive">Home</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon-box nav-icon-inactive">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <span class="nav-label label-inactive">Leave</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon-box nav-icon-inactive">
+                    <i class="fa-solid fa-address-book"></i>
+                </div>
+                <span class="nav-label label-inactive">Directory</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon-box nav-icon-active">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <span class="nav-label label-active">Profile</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Tab Logic
+        function switchMainTab(viewName, btn) {
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('tab-active'));
+            btn.classList.add('tab-active');
+
+            if (viewName === 'workstation') {
+                document.getElementById('view-workstation').classList.remove('hidden');
+                document.getElementById('view-meeting').classList.add('hidden');
+            } else {
+                document.getElementById('view-workstation').classList.add('hidden');
+                document.getElementById('view-meeting').classList.remove('hidden');
+            }
+        }
+
+        // Modal Logic
+        let currentSelection = '';
+        let currentType = '';
+
+        function openBookingModal(itemName, itemType) {
+            currentSelection = itemName;
+            currentType = itemType;
+            const modal = document.getElementById('booking-modal');
+            modal.classList.add('modal-active');
+        }
+
+        function closeModal(event) {
+            if (event.target.id === 'booking-modal') {
+                document.getElementById('booking-modal').classList.remove('modal-active');
+            }
+        }
+
+        // Functional Logic
+        function getBookings() {
+            return JSON.parse(localStorage.getItem('cafeteria_desk_bookings')) || [];
+        }
+
+        function saveBooking(booking) {
+            const bookings = getBookings();
+            bookings.push(booking);
+            localStorage.setItem('cafeteria_desk_bookings', JSON.stringify(bookings));
+        }
+
+        function renderDeskStatus() {
+            const bookings = getBookings();
+            document.querySelectorAll('.desk').forEach(d => {
+                const onClickAttr = d.getAttribute('onclick');
+                if (onClickAttr) {
+                    const match = onClickAttr.match(/'([^']+)'/);
+                    if (match) {
+                        const deskId = match[1];
+                        const isBooked = bookings.some(b => b.id === deskId && b.status === 'Active');
+
+                        if (isBooked) {
+                            d.classList.remove('desk-available');
+                            d.classList.add('desk-occupied');
+                            d.innerHTML = '<i class="fa-solid fa-user-lock text-[8px]"></i>';
+                            d.onclick = null;
+                        }
+                    }
+                }
+            });
+        }
+
+        function confirmBooking() {
+            if (!currentSelection) return;
+
+            const newBooking = {
+                id: currentSelection,
+                type: currentType,
+                user: "Current User",
+                date: new Date().toISOString().split('T')[0],
+                status: 'Active',
+                timestamp: Date.now()
+            };
+
+            saveBooking(newBooking);
+            document.getElementById('booking-modal').classList.remove('modal-active');
+            alert(`${currentType} '${currentSelection}' Reserved Successfully!`);
+            renderDeskStatus();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderDeskStatus();
+        });
+    </script>
+</body>
+
+</html>

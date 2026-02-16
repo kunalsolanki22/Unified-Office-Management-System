@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IT Support - Dark Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        :root {
+            --navy-deep: #0e1e2b;
+            --navy-light: #1a2c3d;
+            --navy-lighter: #243b53;
+            --yellow: #fbad1a;
+            --text-main: #ffffff;
+            --text-muted: #8e99a7;
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f0f2f5; /* Backdrop outside the app shell */
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            min-height: 100vh;
+            background-color: var(--navy-deep);
+            padding-bottom: 140px;
+            position: relative;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+        }
+
+        .card-base {
+            background: var(--navy-light);
+            border-radius: 32px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+
+        .action-btn {
+            background-color: var(--yellow);
+            color: var(--navy-deep);
+            font-weight: 800;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .action-btn:active {
+            transform: scale(0.96);
+            filter: brightness(0.9);
+        }
+
+        /* --- Bottom Sheet Styling --- */
+        .sheet-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 100%;
+            max-width: 430px;
+            background: var(--navy-light);
+            border-radius: 40px 40px 0 0;
+            border-top: 1px solid var(--glass-border);
+            z-index: 1100;
+            padding: 32px 24px;
+            transition: transform 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .sheet-active .sheet-overlay { display: block; opacity: 1; }
+        .sheet-active .bottom-sheet { transform: translateX(-50%) translateY(0); }
+
+        .input-style {
+            width: 100%;
+            background: var(--navy-lighter);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 16px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+            color: white;
+            transition: border-color 0.3s;
+        }
+        .input-style:focus { border-color: var(--yellow); }
+
+        .input-label {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--yellow);
+            margin-bottom: 8px;
+            display: block;
+            margin-left: 8px;
+            letter-spacing: 1px;
+        }
+
+        .status-pending { background-color: rgba(251, 173, 26, 0.15); color: var(--yellow); }
+        .status-resolved { background-color: rgba(34, 197, 94, 0.15); color: #4ade80; }
+
+        /* Custom Scrollbar */
+        textarea::-webkit-scrollbar { width: 0px; }
+
+        .bottom-nav-pill {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 380px;
+            background: rgba(26, 44, 61, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 35px;
+            height: 85px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            z-index: 1000;
+        }
+
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .nav-icon-box {
+            width: 42px; height: 42px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .nav-icon-active { background: var(--yellow); color: var(--navy-deep); }
+        .nav-icon-inactive { color: var(--text-muted); }
+        .nav-label { font-size: 9px; font-weight: 700; text-transform: uppercase; }
+        .label-active { color: var(--yellow); }
+        .label-inactive { color: var(--text-muted); }
+
+    </style>
+</head>
+
+<body id="page-context">
+
+    <div class="app-shell">
+
+        <!-- Header -->
+        <header class="px-6 pt-10 pb-6 flex justify-between items-center sticky top-0 bg-navy-deep/80 backdrop-blur-md z-50">
+            <div class="flex items-center gap-4">
+                <button class="w-11 h-11 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center text-white">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <h1 class="text-2xl font-800 tracking-tight text-white">IT Support</h1>
+            </div>
+            <div class="w-11 h-11 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white font-bold">JD</div>
+        </header>
+
+        <!-- Main Assistance Card -->
+        <div class="px-6 mb-10">
+            <div class="card-base p-8 text-center relative overflow-hidden bg-gradient-to-b from-navy-light to-navy-deep">
+                <div class="w-16 h-16 bg-yellow-500/10 text-yellow-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <i class="fa-solid fa-headphones-simple text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-800 text-white mb-2">Need Assistance?</h2>
+                <p class="text-sm text-gray-400 font-medium mb-8">Tell us what's wrong, we'll fix it.</p>
+
+                <div class="space-y-4">
+                    <button onclick="toggleSheet('ticket-sheet')"
+                        class="w-full action-btn py-5 rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-yellow-500/10">
+                        Raise New Request
+                    </button>
+                    <button onclick="toggleSheet('hardware-sheet')"
+                        class="w-full bg-white/5 border border-white/10 text-white py-5 rounded-2xl text-xs font-800 uppercase tracking-widest hover:bg-white/10 transition-all">
+                        Request Hardware
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Requests -->
+        <div class="px-6 mb-10">
+            <h3 class="text-[10px] font-800 text-yellow-500 tracking-widest uppercase mb-5 ml-2">Active Requests</h3>
+            <div class="card-base p-6 border-l-[6px] border-yellow-500 bg-navy-light">
+                <div class="flex justify-between items-start mb-3">
+                    <h4 class="text-base font-800 text-white">Broken Laptop Charger</h4>
+                    <span class="px-3 py-1 rounded-lg text-[9px] font-900 status-pending uppercase tracking-wider">Pending</span>
+                </div>
+                <p class="text-[10px] text-gray-500 font-800 uppercase mb-3">Ticket ID: IT-9012 • 2h ago</p>
+                <p class="text-[13px] text-gray-400 font-medium leading-relaxed">Charger port seems loose and not drawing power.</p>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div class="px-6">
+            <h3 class="text-[10px] font-800 text-gray-500 tracking-widest uppercase mb-5 ml-2">Request History</h3>
+            <div class="card-base p-5 flex justify-between items-center bg-white/5 border-none">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-gray-400">
+                        <i class="fa-solid fa-wifi text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-800 text-white">VPN Connection Error</h4>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase">Resolved • Oct 15</p>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <i class="fa-solid fa-check text-green-500 text-xs"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- BOTTOM SHEETS --- -->
+
+        <!-- 1. Raise Ticket Sheet -->
+        <div id="ticket-sheet-container">
+            <div class="sheet-overlay" onclick="toggleSheet('ticket-sheet')"></div>
+            <div class="bottom-sheet" id="ticket-sheet">
+                <div class="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8"></div>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-800 text-white">Support Ticket</h2>
+                    <button onclick="toggleSheet('ticket-sheet')" class="text-gray-500 text-xl"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="input-label">Select Category</label>
+                        <select class="input-style appearance-none bg-no-repeat bg-[right_1.5rem_center]">
+                            <option class="bg-navy-light">Hardware Issue</option>
+                            <option class="bg-navy-light">Software Installation</option>
+                            <option class="bg-navy-light">Access & Security</option>
+                            <option class="bg-navy-light">Internet & WiFi</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="input-label">Short Description</label>
+                        <input type="text" class="input-style" placeholder="e.g. Printer not working">
+                    </div>
+                    <div>
+                        <label class="input-label">Details</label>
+                        <textarea class="input-style h-32 resize-none pt-4" placeholder="Provide more details..."></textarea>
+                    </div>
+                    <button onclick="toggleSheet('ticket-sheet')" class="w-full action-btn py-5 rounded-[24px] text-sm uppercase tracking-widest shadow-xl">
+                        Submit Request
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Request Hardware Sheet -->
+        <div id="hardware-sheet-container">
+            <div class="sheet-overlay" onclick="toggleSheet('hardware-sheet')"></div>
+            <div class="bottom-sheet" id="hardware-sheet">
+                <div class="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8"></div>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-800 text-white">Request Hardware</h2>
+                    <button onclick="toggleSheet('hardware-sheet')" class="text-gray-500 text-xl"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="input-label">Hardware Type</label>
+                        <select class="input-style appearance-none">
+                            <option class="bg-navy-light">Laptop</option>
+                            <option class="bg-navy-light">Monitor</option>
+                            <option class="bg-navy-light">Keyboard/Mouse</option>
+                            <option class="bg-navy-light">Cables & Adapters</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="input-label">Requirements</label>
+                        <textarea class="input-style h-48 resize-none pt-4" placeholder="Specify model or brand requirements..."></textarea>
+                    </div>
+                    <button onclick="toggleSheet('hardware-sheet')" class="w-full action-btn py-5 rounded-[24px] text-sm uppercase tracking-widest shadow-xl">
+                        Submit Request
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav-pill">
+            <div class="nav-item">
+                <div class="nav-icon-box nav-icon-inactive">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <span class="nav-label label-inactive">Home</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon-box nav-icon-inactive">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <span class="nav-label label-inactive">Leave</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon-box nav-icon-inactive">
+                    <i class="fa-solid fa-address-book"></i>
+                </div>
+                <span class="nav-label label-inactive">Directory</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon-box nav-icon-active">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <span class="nav-label label-active">Profile</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function toggleSheet(id) {
+            const container = document.getElementById(id + '-container');
+            container.classList.toggle('sheet-active');
+
+            // Prevent background scrolling when modal is open
+            if (container.classList.contains('sheet-active')) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = 'auto';
+            }
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cygnet AI Assistant</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --navy-deep: #0e1e2b;
+            --navy-light: #1a2c3d;
+            --yellow: #fbad1a;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #f0f2f5; /* Light outer background to make app pop */
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            height: 100vh;
+            background: var(--navy-deep);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.4);
+        }
+
+        /* Custom Scrollbar */
+        .chat-area::-webkit-scrollbar {
+            width: 4px;
+        }
+        .chat-area::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 10px;
+        }
+
+        /* Welcome Section Animation */
+        #welcomeBox {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .hidden-ui {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+            position: absolute;
+        }
+
+        /* Message Bubbles */
+        .message {
+            max-width: 85%;
+            margin-bottom: 16px;
+            line-height: 1.5;
+            position: relative;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .bot-bubble {
+            background: var(--navy-light);
+            color: #e2e8f0;
+            border-radius: 4px 18px 18px 18px;
+            border: 1px solid var(--glass-border);
+            padding: 14px 16px;
+        }
+
+        .user-bubble {
+            background: var(--yellow);
+            color: var(--navy-deep);
+            border-radius: 18px 18px 4px 18px;
+            padding: 12px 16px;
+            font-weight: 500;
+            margin-left: auto;
+            box-shadow: 0 4px 15px rgba(251, 173, 26, 0.2);
+        }
+
+        /* Action Chips */
+        .chip {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: #cbd5e1;
+            padding: 10px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chip:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--yellow);
+            color: white;
+        }
+
+        /* Typing Indicator */
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background: #94a3b8;
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+    <!-- Header -->
+    <div class="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-navy-deep/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <a href="employee_dashboard.html" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-arrow-left text-sm"></i>
+            </a>
+            <div>
+                <h2 class="text-white font-bold text-base leading-tight">AI Assistant</h2>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                    <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Online</span>
+                </div>
+            </div>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center text-yellow-500 border border-yellow-500/20">
+            <i class="fas fa-robot"></i>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 overflow-y-auto px-6 py-6 chat-area" id="scrollArea">
+        
+        <!-- Welcome Screen -->
+        <div id="welcomeBox" class="flex flex-col items-center justify-center h-full text-center space-y-6">
+            <div class="w-20 h-20 bg-white/5 rounded-[30px] flex items-center justify-center border border-white/10 shadow-inner">
+                <i class="fas fa-sparkles text-3xl text-yellow-500"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-800 text-white mb-2">Hello, John Developer</h1>
+                <p class="text-gray-400 text-sm max-w-[250px] mx-auto">I can help you with leave, desk booking, or IT support.</p>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-1 gap-3 w-full max-w-[280px]">
+                <div class="chip" onclick="quickAction('How many leaves do I have left?')">
+                    <i class="far fa-calendar-check text-yellow-500"></i>
+                    Check Leave Balance
+                </div>
+                <div class="chip" onclick="quickAction('Book a desk for tomorrow')">
+                    <i class="far fa-building text-yellow-500"></i>
+                    Book a Workspace
+                </div>
+                <div class="chip" onclick="quickAction('How do I reset my VPN password?')">
+                    <i class="fas fa-key text-yellow-500"></i>
+                    IT Troubleshooting
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Messages Container -->
+        <div id="chatArea" class="hidden space-y-4">
+            <!-- Messages will appear here -->
+        </div>
+
+        <!-- Typing Indicator (hidden by default) -->
+        <div id="typingIndicator" class="hidden">
+            <div class="bot-bubble w-fit py-3">
+                <div class="typing-dots flex gap-1">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="p-6 bg-gradient-to-t from-navy-deep via-navy-deep to-transparent">
+        <div class="relative flex items-center gap-2 bg-white/5 border border-white/10 p-2 rounded-2xl backdrop-blur-md focus-within:border-yellow-500/50 transition-all">
+            <input 
+                type="text" 
+                id="chatInput" 
+                placeholder="Ask me anything..."
+                class="flex-1 bg-transparent border-none outline-none text-white text-sm px-3 py-2 placeholder:text-gray-600"
+                onkeypress="if(event.key==='Enter') sendMessage()"
+            >
+            <button onclick="sendMessage()" class="w-10 h-10 bg-yellow-500 text-navy-deep rounded-xl flex items-center justify-center font-bold active:scale-90 transition-transform">
+                <i class="fas fa-paper-plane text-sm"></i>
+            </button>
+        </div>
+        <p class="text-[9px] text-center text-gray-600 mt-4 uppercase tracking-[0.2em]">Cygnet.One Intelligence</p>
+    </div>
+
+</div>
+
+<script>
+const welcomeBox = document.getElementById("welcomeBox");
+const chatArea = document.getElementById("chatArea");
+const scrollArea = document.getElementById("scrollArea");
+const typingIndicator = document.getElementById("typingIndicator");
+
+function quickAction(text) {
+    document.getElementById("chatInput").value = text;
+    sendMessage();
+}
+
+function sendMessage() {
+    const input = document.getElementById("chatInput");
+    const text = input.value.trim();
+
+    if (text === "") return;
+
+    // Transition UI
+    welcomeBox.classList.add("hidden-ui");
+    setTimeout(() => welcomeBox.style.display = 'none', 400);
+    chatArea.classList.remove("hidden");
+
+    // Add User Message
+    addMessage(text, 'user');
+    input.value = "";
+
+    // Show Typing Indicator
+    showTyping(true);
+
+    // Simulate Bot Response
+    setTimeout(() => {
+        showTyping(false);
+        addMessage("I've looked that up for you. As of today, you have 12 days of annual leave remaining. Would you like to apply for leave?", 'bot');
+    }, 1500);
+}
+
+function addMessage(text, sender) {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `message ${sender === 'user' ? 'user-bubble' : 'bot-bubble'}`;
+    msgDiv.textContent = text;
+    
+    chatArea.appendChild(msgDiv);
+    autoScroll();
+}
+
+function showTyping(show) {
+    if(show) {
+        typingIndicator.classList.remove("hidden");
+        chatArea.appendChild(typingIndicator);
+    } else {
+        typingIndicator.classList.add("hidden");
+    }
+    autoScroll();
+}
+
+function autoScroll() {
+    scrollArea.scrollTo({
+        top: scrollArea.scrollHeight,
+        behavior: 'smooth'
+    });
+}
+</script>
+
+</body>
+</html>
