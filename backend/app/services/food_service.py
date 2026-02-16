@@ -7,10 +7,10 @@ from datetime import datetime, timezone
 from decimal import Decimal
 import uuid as uuid_lib
 
-from ..models.food import FoodItem, FoodOrder, FoodOrderItem
+from ..models.food import FoodItem, FoodOrder, FoodOrderItem, FoodCategory
 from ..models.user import User
 from ..models.enums import OrderStatus
-from ..schemas.food import FoodItemCreate, FoodItemUpdate, FoodOrderCreate
+from ..schemas.food import FoodItemCreate, FoodItemUpdate, FoodOrderCreate, FoodCategoryCreate, FoodCategoryUpdate
 from .embedding_service import EmbeddingService
 
 
@@ -20,6 +20,98 @@ class FoodService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.embedding_service = EmbeddingService()
+    
+    # ==================== Food Category Management ====================
+    
+    async def get_category_by_id(self, category_id: UUID) -> Optional[FoodCategory]:
+        """Get food category by ID."""
+        result = await self.db.execute(
+            select(FoodCategory).where(FoodCategory.id == category_id)
+        )
+        return result.scalar_one_or_none()
+    
+    async def get_category_by_name(self, name: str) -> Optional[FoodCategory]:
+        """Get food category by name."""
+        result = await self.db.execute(
+            select(FoodCategory).where(FoodCategory.name == name)
+        )
+        return result.scalar_one_or_none()
+    
+    async def list_categories(
+        self,
+        is_active: Optional[bool] = True
+    ) -> List[FoodCategory]:
+        """List all food categories."""
+        query = select(FoodCategory)
+        if is_active is not None:
+            query = query.where(FoodCategory.is_active == is_active)
+        query = query.order_by(FoodCategory.display_order, FoodCategory.name)
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+    
+    async def create_category(
+        self,
+        category_data: FoodCategoryCreate
+    ) -> Tuple[Optional[FoodCategory], Optional[str]]:
+        """Create a new food category."""
+        # Check if category with same name exists
+        existing = await self.get_category_by_name(category_data.name)
+        if existing:
+            return None, f"Food category '{category_data.name}' already exists"
+        
+        category = FoodCategory(
+            name=category_data.name,
+            description=category_data.description,
+            display_order=category_data.display_order
+        )
+        
+        self.db.add(category)
+        await self.db.commit()
+        await self.db.refresh(category)
+        
+        return category, None
+    
+    async def update_category(
+        self,
+        category_id: UUID,
+        category_data: FoodCategoryUpdate
+    ) -> Tuple[Optional[FoodCategory], Optional[str]]:
+        """Update a food category."""
+        category = await self.get_category_by_id(category_id)
+        if not category:
+            return None, "Food category not found"
+        
+        update_data = category_data.model_dump(exclude_unset=True)
+        
+        # Check if new name conflicts with existing category
+        if 'name' in update_data and update_data['name'] != category.name:
+            existing = await self.get_category_by_name(update_data['name'])
+            if existing:
+                return None, f"Food category '{update_data['name']}' already exists"
+        
+        for field, value in update_data.items():
+            setattr(category, field, value)
+        
+        await self.db.commit()
+        await self.db.refresh(category)
+        
+        return category, None
+    
+    async def delete_category(
+        self,
+        category_id: UUID
+    ) -> Tuple[bool, Optional[str]]:
+        """Soft delete a food category by setting is_active to False."""
+        category = await self.get_category_by_id(category_id)
+        if not category:
+            return False, "Food category not found"
+        
+        category.is_active = False
+        await self.db.commit()
+        
+        return True, None
+    
+    # ==================== Food Item Management ====================
     
     async def get_food_item_by_id(
         self,
@@ -40,13 +132,22 @@ class FoodService:
         created_by: User
     ) -> Tuple[Optional[FoodItem], Optional[str]]:
         """Create a new food item with embedding."""
+        # Validate category_id if provided
+        category_name = item_data.category_name or "Uncategorized"
+        if item_data.category_id:
+            category = await self.get_category_by_id(item_data.category_id)
+            if not category:
+                return None, f"Food category with ID '{item_data.category_id}' not found. Please provide a valid category ID or create the category first."
+            # Use the category name from the database
+            category_name = category.name
+        
         # Generate embedding
         text_for_embedding = self.embedding_service.prepare_food_text(
             name=item_data.name,
             description=item_data.description,
             ingredients=item_data.ingredients,
             tags=item_data.tags,
-            category=item_data.category_name
+            category=category_name
         )
         embedding = await self.embedding_service.generate_embedding(text_for_embedding)
         
@@ -54,7 +155,7 @@ class FoodService:
             name=item_data.name,
             description=item_data.description,
             category_id=item_data.category_id,
-            category_name=item_data.category_name or "Uncategorized",
+            category_name=category_name,
             price=item_data.price,
             ingredients=item_data.ingredients,
             tags=item_data.tags,
@@ -82,6 +183,16 @@ class FoodService:
             return None, "Food item not found"
         
         update_data = item_data.model_dump(exclude_unset=True)
+        
+        # Validate category_id if it's being updated
+        if 'category_id' in update_data and update_data['category_id'] is not None:
+            category = await self.get_category_by_id(update_data['category_id'])
+            if not category:
+                return None, f"Food category with ID '{update_data['category_id']}' not found. Please provide a valid category ID."
+            # Also update the category_name if not explicitly provided
+            if 'category_name' not in update_data:
+                update_data['category_name'] = category.name
+        
         for field, value in update_data.items():
             setattr(food_item, field, value)
         
