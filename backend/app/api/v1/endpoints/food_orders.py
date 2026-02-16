@@ -4,7 +4,7 @@ from typing import Optional, List
 from uuid import UUID
 
 from ....core.database import get_db
-from ....core.dependencies import get_current_active_user, require_admin_or_above
+from ....core.dependencies import get_current_active_user, require_cafeteria_manager
 from ....models.user import User
 from ....models.enums import OrderStatus, UserRole, ManagerType
 from ....schemas.food import (
@@ -18,29 +18,14 @@ from ....utils.response import create_response, create_paginated_response
 router = APIRouter()
 
 
-def require_cafeteria_manager(user: User) -> None:
-    """Check if user is Cafeteria Manager, Admin, or Super Admin."""
-    if user.role == UserRole.SUPER_ADMIN:
-        return
-    if user.role == UserRole.ADMIN:
-        return
-    if user.role == UserRole.MANAGER and user.manager_type == ManagerType.CAFETERIA:
-        return
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Only Cafeteria Manager can perform this action"
-    )
-
-
 # Food Items
 @router.post("/items", response_model=APIResponse[FoodItemResponse])
 async def create_food_item(
     item_data: FoodItemCreate,
-    current_user: User = Depends(require_admin_or_above),
+    current_user: User = Depends(require_cafeteria_manager),
     db: AsyncSession = Depends(get_db)
 ):
-    """Create a new food item. Cafeteria Admin only."""
-    require_cafeteria_manager(current_user)
+    """Create a new food item. Cafeteria Manager, Admin, or Super Admin only."""
     food_service = FoodService(db)
     item, error = await food_service.create_food_item(item_data, current_user)
     
@@ -109,11 +94,10 @@ async def get_food_item(
 async def update_food_item(
     item_id: UUID,
     item_data: FoodItemUpdate,
-    current_user: User = Depends(require_admin_or_above),
+    current_user: User = Depends(require_cafeteria_manager),
     db: AsyncSession = Depends(get_db)
 ):
-    """Update a food item. Cafeteria Admin only."""
-    require_cafeteria_manager(current_user)
+    """Update a food item. Cafeteria Manager, Admin, or Super Admin only."""
     food_service = FoodService(db)
     item, error = await food_service.update_food_item(item_id, item_data)
     
@@ -303,12 +287,10 @@ async def cancel_my_order(
 async def update_order_status(
     order_id: UUID,
     status_data: FoodOrderStatusUpdate,
-    current_user: User = Depends(require_admin_or_above),
+    current_user: User = Depends(require_cafeteria_manager),
     db: AsyncSession = Depends(get_db)
 ):
-    """Update food order status. Cafeteria Admin only."""
-    require_cafeteria_manager(current_user)
-    
+    """Update food order status. Cafeteria Manager, Admin, or Super Admin only."""
     food_service = FoodService(db)
     order, error = await food_service.update_order_status(
         order_id,
@@ -330,12 +312,10 @@ async def update_order_status(
 
 @router.get("/dashboard/stats", response_model=APIResponse[dict])
 async def get_cafeteria_stats(
-    current_user: User = Depends(require_admin_or_above),
+    current_user: User = Depends(require_cafeteria_manager),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get cafeteria dashboard statistics. Cafeteria Admin only."""
-    require_cafeteria_manager(current_user)
-    
+    """Get cafeteria dashboard statistics. Cafeteria Manager, Admin, or Super Admin only."""
     food_service = FoodService(db)
     stats = await food_service.get_dashboard_stats()
     
