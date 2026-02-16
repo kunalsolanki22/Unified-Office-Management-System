@@ -1,0 +1,3083 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        Parking Manager </title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #20323c;
+            --primary-light: #2c4a96;
+            --accent-orange: #ffb012;
+            --text-light: #ccd6f6;
+            --text-muted: #8892b0;
+            --bg-light: #f4f7f6;
+            /* Main content bg */
+            --white: #ffffff;
+            --sidebar-width: 260px;
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--white);
+            color: var(--primary-dark);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            border-right: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 3rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            /* Placeholder for fingerprint logo */
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .logo-text h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .logo-text span {
+            color: var(--accent-orange);
+        }
+
+        .logo-subtitle {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .nav-group {
+            margin-bottom: 2rem;
+        }
+
+        .nav-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all var(--transition-speed);
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background-color: var(--primary-dark);
+            color: var(--white);
+            box-shadow: 0 4px 12px rgba(10, 25, 47, 0.15);
+        }
+
+        /* SVG Icons Placeholder */
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Bottom Section */
+        .sidebar-footer {
+            margin-top: auto;
+        }
+
+        .encrypted-tunnel {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 3px solid var(--accent-orange);
+            margin-bottom: 1.5rem;
+        }
+
+        .encrypted-tunnel h4 {
+            font-size: 0.75rem;
+            color: var(--primary-dark);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .encrypted-tunnel p {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .exit-portal {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-decoration: none;
+            padding-left: 0.5rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background-color: var(--white);
+            padding: 0 40px;
+        }
+
+        /* Header */
+        .top-bar {
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            border-bottom: 1px solid transparent;
+            padding-top: 20px;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            border-radius: 50px;
+            padding: 0.8rem 1.5rem;
+            width: 350px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .search-bar input {
+            border: none;
+            background: transparent;
+            outline: none;
+            margin-left: 10px;
+            width: 100%;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            color: var(--primary-dark);
+        }
+
+        .search-bar input::placeholder {
+            color: #b0b0b0;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+        }
+
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .notification-bell {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .notification-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-orange);
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-name {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .user-status {
+            font-size: 0.65rem;
+            color: var(--accent-orange);
+            font-weight: 600;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary-dark);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        /* Section Container */
+        .content-section {
+            display: none;
+            /* Hidden by default */
+            padding: 2 0 0 0;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1.section-title {
+            font-size: 1.8rem;
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        h1.section-title span {
+            color: var(--accent-orange);
+        }
+
+        p.section-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">C</div>
+            <div class="logo-text">
+                <h2>CYGNET<span style="color: var(--accent-orange);">.ONE</span></h2>
+                <!-- <div class="logo-seubtitle">Super Admin Protocol</div> -->
+            </div>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-label">Core Pillars</div>
+            <a class="nav-item active" onclick="showSection('dashboard', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+                </svg>
+                Dashboard
+            </a>
+            <a class="nav-item" onclick="showSection('admin', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+                User Directory
+            </a>
+
+            <a class="nav-item" onclick="showSection('parking-slots', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M2 10h20"></path>
+                    <path d="M6 15h.01"></path>
+                    <path d="M10 15h.01"></path>
+                    <path d="M14 15h.01"></path>
+                    <path d="M18 15h.01"></path>
+                </svg>
+                Parking Slots
+            </a>
+            <a class="nav-item" onclick="showSection('user-logs', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                User Logs
+            </a>
+            <a class="nav-item" onclick="showSection('holidays', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
+                </svg>
+                Holidays
+            </a>
+
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-label">Access Tools</div>
+            <a class="nav-item" onclick="showSection('my-attendance', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7v-5z">
+                    </path>
+                </svg>
+                My Attendance
+            </a>
+            <a class="nav-item" onclick="showSection('action-hub', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4zm6 6h4v-4h-4zm0 6h4v-4h-4z" />
+                </svg>
+                Services
+            </a>
+
+
+        </div>
+
+        <div class="sidebar-footer">
+
+            <a href="#" class="exit-portal">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                EXIT PORTAL
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="top-bar">
+
+            <div>
+                <p
+                    style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 2px;">
+                    Parking manager Portal</p>
+                <h2 style="font-size: 1.1rem; color: var(--primary-dark); font-weight: 700;">Have a good day 😊</h2>
+            </div>
+
+            <div class="user-actions">
+                <div class="notification-bell">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a192f" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <div class="notification-dot"></div>
+                </div>
+
+                <div class="user-profile">
+                    <div class="user-info">
+                        <div class="user-name">xyz Bhai</div>
+                        <div class="user-status">Parking Manager</div>
+                    </div>
+                    <div class="user-avatar">PM</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sections -->
+        <section id="dashboard" class="content-section active">
+            <div style="margin-bottom: 20px;"></div>
+
+            <style>
+                /* Dashboard Specifc Styles */
+                .dashboard-top-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 24px;
+                    margin-bottom: 24px;
+                }
+
+                .dashboard-card {
+                    background: var(--white);
+                    padding: 32px;
+                    border-radius: 20px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    min-height: 300px;
+                    /* Increased height */
+                }
+
+                .card-title {
+                    font-size: 0.9rem;
+                    color: var(--primary-dark);
+                    font-weight: 700;
+                    margin-bottom: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+
+                .card-description {
+                    font-size: 0.9rem;
+                    color: #666;
+                    /* Darker gray for better readability */
+                    margin-bottom: 32px;
+                    line-height: 1.5;
+                }
+
+                .action-btn {
+                    background: var(--primary-dark);
+                    color: white;
+                    border: none;
+                    padding: 14px 20px;
+                    border-radius: 6px;
+                    /* Slightly sharper corners */
+                    font-weight: 700;
+                    font-size: 0.75rem;
+                    letter-spacing: 1px;
+                    cursor: pointer;
+                    text-transform: uppercase;
+                    width: 100%;
+                    transition: background 0.3s;
+                    box-shadow: 0 4px 10px rgba(10, 25, 47, 0.2);
+                }
+
+                .action-btn:hover {
+                    background: var(--primary-light);
+                }
+
+                .analytics-card {
+                    background: var(--white);
+                    padding: 32px;
+                    border-radius: 20px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    margin-bottom: 40px;
+                }
+
+                .analytics-stats-row {
+                    display: flex;
+                    justify-content: space-around;
+                    align-items: center;
+                    margin-top: 30px;
+                }
+
+                .stat-item {
+                    text-align: center;
+                }
+
+                .stat-value {
+                    font-size: 2.5rem;
+                    color: var(--primary-dark);
+                    font-weight: 700;
+                    margin-bottom: 8px;
+                }
+
+                .stat-label {
+                    font-size: 0.7rem;
+                    color: #b0b0b0;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+
+                .stat-indicator {
+                    width: 40px;
+                    height: 4px;
+                    background: #eee;
+                    border-radius: 2px;
+                    margin: 12px auto 0;
+                }
+
+                .module-section-title {
+                    font-size: 0.8rem;
+                    color: var(--primary-dark);
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    margin-bottom: 20px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .view-link {
+                    color: var(--accent-orange);
+                    font-size: 0.7rem;
+                    text-decoration: none;
+                    cursor: pointer;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                }
+
+                .module-proxies-grid {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 20px;
+                }
+
+                .proxy-card {
+                    background: var(--white);
+                    padding: 20px;
+                    border-radius: 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    transition: transform 0.2s;
+                    cursor: pointer;
+                    flex: 1 1 200px;
+                    min-width: 200px;
+                }
+
+
+
+                .proxy-card:hover {
+                    transform: translateY(-3px);
+                }
+
+                .proxy-icon {
+                    width: 48px;
+                    height: 48px;
+                    background: #f8f9fa;
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--primary-dark);
+                }
+
+                .proxy-icon svg {
+                    width: 20px;
+                    height: 20px;
+                    stroke-width: 1.8;
+                }
+
+                .proxy-info h4 {
+                    font-size: 0.9rem;
+                    color: var(--primary-dark);
+                    font-weight: 700;
+                    margin-bottom: 4px;
+                    text-transform: uppercase;
+                }
+
+                .proxy-info p {
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                }
+            </style>
+
+            <style>
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                @keyframes pulse-orange {
+                    0% {
+                        box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.4);
+                    }
+
+                    70% {
+                        box-shadow: 0 0 0 10px rgba(255, 107, 0, 0);
+                    }
+
+                    100% {
+                        box-shadow: 0 0 0 0 rgba(255, 107, 0, 0);
+                    }
+                }
+
+                .dashboard-card {
+                    background: var(--white);
+                    padding: 40px;
+                    border-radius: 24px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    min-height: 320px;
+                    position: relative;
+                    overflow: hidden;
+                    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    animation: fadeInUp 0.6s ease-out forwards;
+                    border: 1px solid rgba(0, 0, 0, 0.03);
+                }
+
+                /* Staggered animation delay */
+                .dashboard-card:nth-child(1) {
+                    animation-delay: 0.1s;
+                }
+
+                .dashboard-card:nth-child(2) {
+                    animation-delay: 0.2s;
+                }
+
+                .dashboard-card:hover {
+                    transform: translateY(-8px);
+                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+                    border-color: rgba(255, 107, 0, 0.3);
+                }
+
+                .dashboard-card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    width: 150px;
+                    height: 150px;
+                    background: radial-gradient(circle, rgba(255, 107, 0, 0.05) 0%, rgba(255, 255, 255, 0) 70%);
+                    border-radius: 0 0 0 100%;
+                    transition: transform 0.5s ease;
+                }
+
+                .dashboard-card:hover::before {
+                    transform: scale(1.5);
+                }
+
+                .card-title {
+                    font-size: 0.9rem;
+                    font-weight: 700;
+                    color: var(--text-muted);
+                    letter-spacing: 1px;
+                    margin-bottom: 15px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .card-title svg {
+                    color: var(--accent-orange);
+                    opacity: 0.8;
+                }
+
+                .card-highlight {
+                    font-size: 2.2rem;
+                    font-weight: 800;
+                    color: var(--primary-dark);
+                    margin-bottom: 10px;
+                    line-height: 1.2;
+                    background: linear-gradient(45deg, var(--primary-dark), #2d3436);
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                }
+
+                .card-description {
+                    font-size: 0.95rem;
+                    color: var(--text-muted);
+                    line-height: 1.5;
+                    max-width: 90%;
+                }
+
+                .action-btn {
+                    background: var(--primary-dark);
+                    color: var(--white);
+                    border: 1px solid var(--primary-dark);
+                    padding: 14px 28px;
+                    border-radius: 12px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    letter-spacing: 0.5px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    width: fit-content;
+                    position: relative;
+                    z-index: 1;
+                    overflow: hidden;
+                }
+
+                .action-btn::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+                    transform: translateX(-100%);
+                    transition: transform 0.5s ease;
+                }
+
+                .action-btn:hover {
+                    background: var(--white);
+                    color: var(--primary-dark);
+                    box-shadow: 0 8px 20px rgba(10, 25, 47, 0.2);
+                    transform: translateY(-2px);
+                }
+
+                .action-btn:hover::after {
+                    transform: translateX(100%);
+                }
+
+                .status-line {
+                    width: 40px;
+                    height: 4px;
+                    background: var(--accent-orange);
+                    border-radius: 2px;
+                    margin-top: 25px;
+                    transition: width 0.3s ease;
+                }
+
+                .dashboard-card:hover .status-line {
+                    width: 80px;
+                }
+            </style>
+
+            <div class="dashboard-top-grid">
+                <!-- Project Requests Card -->
+                <div class="dashboard-card">
+                    <div>
+                        <div class="card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                            LEAVE REQUESTS
+                        </div>
+                        <div class="card-highlight">3 Pending<br>Approvals</div>
+
+
+                        <div style="margin-top: 20px; display: flex; gap: 10px; align-items: center;">
+
+
+                        </div>
+                    </div>
+                    <div>
+                        <button class="action-btn"
+                            onclick="showSection('approvals', document.querySelector('.nav-item[onclick*=\'approvals\']'))">
+                            REVIEW REQUESTS
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                        <div class="status-line"></div>
+                    </div>
+                </div>
+
+                <!-- Announcements Card -->
+                <div class="dashboard-card">
+                    <div>
+                        <div class="card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                            ORGANIZATION ANNOUNCEMENTS
+                        </div>
+                        <style>
+                            .announcement-item {
+                                display: flex;
+                                gap: 12px;
+                                margin-bottom: 12px;
+                                padding-bottom: 12px;
+                                border-bottom: 1px solid #eee;
+                            }
+
+                            .announcement-item:last-child {
+                                margin-bottom: 0;
+                                padding-bottom: 0;
+                                border-bottom: none;
+                            }
+
+                            .ann-date {
+                                font-size: 0.7rem;
+                                color: var(--accent-orange);
+                                font-weight: 700;
+                                min-width: 40px;
+                            }
+
+                            .ann-content {
+                                font-size: 0.85rem;
+                                color: var(--primary-dark);
+                                line-height: 1.4;
+                            }
+                        </style>
+                        <div style="margin-top: 15px;">
+                            <div class="announcement-item">
+                                <div class="ann-date">FEB 10</div>
+                                <div class="ann-content">
+                                    <strong>Town Hall Meeting</strong><br>
+                                    <span style="font-size: 0.75rem; color: var(--text-muted);">Quadrimester updates
+                                        with CEO. 4:00 PM IST.</span>
+                                </div>
+                            </div>
+                            <div class="announcement-item">
+                                <div class="ann-date">FEB 08</div>
+                                <div class="ann-content">
+                                    <strong>Policy Update: Remote Work</strong><br>
+                                    <span style="font-size: 0.75rem; color: var(--text-muted);">Revised guidelines
+                                        available in HR Registry.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Upcoming Holidays Card -->
+                <div class="dashboard-card">
+                    <div>
+                        <div class="card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            UPCOMING HOLIDAYS
+                        </div>
+
+                        <div style="margin-top: 15px;">
+                            <div class="announcement-item"
+                                style="border-bottom: 1px solid #eee; padding-bottom: 12px; margin-bottom: 12px;">
+                                <div class="ann-date" style="color: var(--accent-orange); font-weight: 700;">FEB 26
+                                </div>
+                                <div class="ann-content">
+                                    <strong>Maha Shivratri</strong><br>
+                                    <span style="font-size: 0.75rem; color: var(--text-muted);">Public Holiday</span>
+                                </div>
+                            </div>
+                            <div class="announcement-item"
+                                style="padding-bottom: 0; margin-bottom: 0; border-bottom: none;">
+                                <div class="ann-date" style="color: var(--accent-orange); font-weight: 700;">MAR 14
+                                </div>
+                                <div class="ann-content">
+                                    <strong>Holi</strong><br>
+                                    <span style="font-size: 0.75rem; color: var(--text-muted);">Festival of
+                                        Colors</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="action-btn"
+                            onclick="showSection('holidays', document.querySelector('.nav-item[onclick*=\'holidays\']'))">
+                            VIEW CALENDAR
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                        <div class="status-line"></div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <style>
+                .dashboard-action-grid {
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    gap: 30px;
+                }
+
+                .dashboard-action-card {
+                    background: var(--white);
+                    border-radius: 24px;
+                    padding: 30px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    text-align: center;
+                    position: relative;
+                    overflow: hidden;
+                    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 250px;
+                    flex: 0 1 calc(33.333% - 40px);
+                    min-width: 250px;
+                    opacity: 0;
+                    animation: fadeInUp 0.6s ease-out forwards;
+                }
+
+                /* Staggered animation for grid items */
+                .dashboard-action-card:nth-child(1) {
+                    animation-delay: 0.3s;
+                }
+
+                .dashboard-action-card:nth-child(2) {
+                    animation-delay: 0.4s;
+                }
+
+                .dashboard-action-card:nth-child(3) {
+                    animation-delay: 0.5s;
+                }
+
+                .dashboard-action-card:nth-child(4) {
+                    animation-delay: 0.6s;
+                }
+
+                .dashboard-action-card:nth-child(5) {
+                    animation-delay: 0.7s;
+                }
+
+                .dashboard-action-card:hover {
+                    transform: translateY(-8px);
+                    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+                }
+
+                .dashboard-action-card::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: radial-gradient(circle at center, rgba(255, 107, 0, 0.03) 0%, transparent 70%);
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+
+                .dashboard-action-card:hover::after {
+                    opacity: 1;
+                }
+
+                .dashboard-action-icon-circle {
+                    width: 60px;
+                    height: 60px;
+                    background: #f8f9fa;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-bottom: 24px;
+                    color: var(--primary-dark);
+                }
+
+                .dashboard-action-card h3 {
+                    font-size: 1rem;
+                    color: var(--primary-dark);
+                    font-weight: 700;
+                    margin-bottom: 8px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+
+                .dashboard-action-card p {
+                    font-size: 0.7rem;
+                    color: var(--text-muted);
+                    font-weight: 500;
+                }
+
+                .dashboard-action-indicator {
+                    position: absolute;
+                    bottom: 0;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 40px;
+                    height: 4px;
+                    background: var(--accent-orange);
+                    border-radius: 4px 4px 0 0;
+                    transition: width 0.3s ease, border-radius 0.3s ease;
+                }
+
+                .dashboard-action-card:hover .dashboard-action-indicator {
+                    width: 100%;
+                    border-radius: 0;
+                }
+            </style>
+
+            <div class="module-section-title">
+                PARKING OVERVIEW
+            </div>
+
+            <div class="stats-grid">
+                <!-- Total Slots -->
+                <div class="stat-card">
+                    <div class="stat-content-wrapper">
+                        <div class="stat-label-card">Total Slots</div>
+                        <div class="stat-value-card">37</div>
+                    </div>
+                    <div class="stat-icon-right" style="background: #FFF9E6; color: #FFB012;">
+                        <span style="font-weight: 700; font-size: 1.2rem;">P</span>
+                    </div>
+                </div>
+
+                <!-- Available Slots -->
+                <div class="stat-card">
+                    <div class="stat-content-wrapper">
+                        <div class="stat-label-card">Available</div>
+                        <div class="stat-value-card">24</div>
+                    </div>
+                    <div class="stat-icon-right" style="background: #E8F5E9; color: #22C55E;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Occupied Slots -->
+                <div class="stat-card">
+                    <div class="stat-content-wrapper">
+                        <div class="stat-label-card">Occupied</div>
+                        <div class="stat-value-card">11</div>
+                    </div>
+                    <div class="stat-icon-right" style="background: #FFF9E6; color: #FFB012;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Disabled Slots -->
+                <div class="stat-card">
+                    <div class="stat-content-wrapper">
+                        <div class="stat-label-card">Disabled</div>
+                        <div class="stat-value-card">2</div>
+                    </div>
+                    <div class="stat-icon-right" style="background: #FFEBEE; color: #EF4444;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                .stats-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 24px;
+                    margin-bottom: 40px;
+                }
+
+                .stat-card {
+                    background: white;
+                    padding: 24px 30px;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 20px;
+                    transition: transform 0.2s;
+                    border: 1px solid rgba(0, 0, 0, 0.03);
+                }
+
+                .stat-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+                }
+
+                .stat-content-wrapper {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .stat-icon-right {
+                    width: 54px;
+                    height: 54px;
+                    border-radius: 14px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                }
+
+                .stat-value-card {
+                    font-size: 2.2rem;
+                    font-weight: 800;
+                    color: var(--primary-dark);
+                    line-height: 1.1;
+                }
+
+                .stat-label-card {
+                    font-size: 0.8rem;
+                    color: var(--text-muted);
+                    font-weight: 600;
+                    margin-bottom: 8px;
+                }
+            </style>
+
+
+
+
+        </section>
+
+        <section id="admin" class="content-section">
+            <h1 class="section-title">USER DIRECTORY <span>LIFECYCLE MANAGEMENT</span></h1>
+            <p class="section-subtitle">Onboard, Modify, and Offboard Organizational Talent</p>
+
+            <style>
+                .directory-tabs {
+                    display: flex;
+                    gap: 0;
+                    margin-bottom: 24px;
+                    border-bottom: 2px solid #eee;
+                }
+
+                .directory-tab {
+                    padding: 12px 24px;
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    color: var(--text-muted);
+                    cursor: pointer;
+                    border-bottom: 2px solid transparent;
+                    margin-bottom: -2px;
+                    transition: all 0.2s;
+                    letter-spacing: 1px;
+                }
+
+                .directory-tab.active {
+                    color: var(--primary-dark);
+                    border-bottom-color: var(--accent-orange);
+                }
+
+                .directory-tab:hover {
+                    color: var(--primary-dark);
+                }
+            </style>
+
+            <div class="directory-tabs">
+                <div class="directory-tab active" onclick="switchDirectoryTab('all-employees')">ALL EMPLOYEES</div>
+                <div class="directory-tab" onclick="switchDirectoryTab('my-team')">MY TEAM</div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                <button onclick="toggleUserForm()"
+                    style="background: var(--primary-dark); box-shadow: 0 4px 15px rgba(10, 25, 47, 0.3); padding: 12px 24px; font-size: 0.75rem; border: none; color: white; border-radius: 50px; font-weight: 700; cursor: pointer; letter-spacing: 1px;">
+                    + NEW PROVISION
+                </button>
+            </div>
+
+            <div id="user-form-container" class="admin-form-card" style="display: none;">
+                <h3 class="subsection-title" style="margin-bottom: 24px;">ONBOARDING WORKFLOW</h3>
+                <!-- ENTITY TYPE SELECTOR -->
+                <div style="margin-bottom: 20px; display: flex; gap: 20px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="radio" name="entityType" value="manager" checked onclick="toggleEntityFields()">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary-dark);">Manager
+                            Account</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="radio" name="entityType" value="employee" onclick="toggleEntityFields()">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary-dark);">Employee
+                            Account</span>
+                    </label>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label class="form-label">FULL NAME</label>
+                        <input type="text" class="form-input" placeholder="e.g. John Smith">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">EMPLOYEE ID</label>
+                        <input type="text" class="form-input" placeholder="e.g. CYG-2026-889">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label class="form-label">PERSONAL EMAIL ADDRESS</label>
+                        <input type="email" class="form-input" placeholder="e.g. j.smith@gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CONTACT NUMBER</label>
+                        <input type="tel" class="form-input" placeholder="e.g. +91 98765 43210">
+                    </div>
+                </div>
+
+                <!-- Specific Fields -->
+                <div id="manager-fields">
+                    <div class="form-group">
+                        <label class="form-label">DOMAIN RESPONSIBILITY</label>
+                        <select class="form-input">
+                            <option>Cafeteria Operations</option>
+                            <option>Parking Management</option>
+                            <option>Desk Allocation</option>
+                            <option>Conference Scheduling</option>
+                            <option>Hardware Registry</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="employee-fields" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">ASSIGNED MANAGER</label>
+                        <select class="form-input">
+                            <option>Select Manager...</option>
+                            <option>Sarah Miller (Regional)</option>
+                            <option>David Chen (Infrastructure)</option>
+                            <option>Elena Vance (Security)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button class="action-btn"
+                        style="width: auto; background: #fff; color: #e74c3c; border: 1px solid #fee2e2;"
+                        onclick="toggleUserForm()">CANCEL</button>
+                    <button class="action-btn" style="width: auto;">INITIATE ONBOARDING</button>
+                </div>
+            </div>
+
+            <style>
+                .admin-form-card {
+                    background: var(--white);
+                    border-radius: 16px;
+                    padding: 30px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    margin-bottom: 24px;
+                    animation: fadeIn 0.3s ease-out;
+                    border: 1px solid var(--accent-orange);
+                }
+            </style>
+
+            <style>
+                .admin-table-container {
+                    background: var(--white);
+                    border-radius: 16px;
+                    padding: 24px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                }
+
+                .admin-header-row {
+                    display: grid;
+                    grid-template-columns: 0.5fr 2fr 2fr 2fr 0.5fr;
+                    padding-bottom: 16px;
+                    border-bottom: 1px solid #f0f0f0;
+                    color: var(--text-muted);
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    letter-spacing: 1px;
+                    text-transform: uppercase;
+                }
+
+                .admin-row {
+                    display: grid;
+                    grid-template-columns: 0.5fr 2fr 2fr 2fr 0.5fr;
+                    align-items: center;
+                    padding: 20px 0;
+                    border-bottom: 1px solid #f8f9fa;
+                    transition: background 0.2s;
+                }
+
+                .admin-row:hover {
+                    background-color: #fafbfb;
+                }
+
+                .avatar-initial {
+                    width: 36px;
+                    height: 36px;
+                    background: var(--primary-dark);
+                    color: white;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                }
+
+                .avatar-blue {
+                    background: #1a4d8c;
+                }
+
+                .avatar-orange {
+                    background: #d35400;
+                }
+
+                .admin-name {
+                    font-weight: 600;
+                    color: var(--primary-dark);
+                    font-size: 0.9rem;
+                }
+
+                .admin-meta {
+                    font-size: 0.7rem;
+                    color: var(--text-muted);
+                    margin-top: 2px;
+                }
+
+                .role-badge {
+                    background: #e8f4fc;
+                    color: #2c3e50;
+                    padding: 6px 12px;
+                    border-radius: 20px;
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                    display: inline-block;
+                }
+
+                .domain-badge {
+                    background: #fff7ed;
+                    color: #9a3412;
+                    padding: 6px 12px;
+                    border-radius: 20px;
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                    display: inline-block;
+                }
+
+                .manager-badge {
+                    background: #f0fdf4;
+                    color: #166534;
+                    padding: 6px 12px;
+                    border-radius: 20px;
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                    display: inline-block;
+                }
+
+                .email-link {
+                    color: #555;
+                    font-size: 0.85rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .delete-action {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    background: #fde8e8;
+                    color: #e74c3c;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                }
+
+                .edit-action {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    background: #f0f9ff;
+                    color: #0288d1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    margin-right: 8px;
+                }
+            </style>
+
+            <div class="admin-table-container">
+                <div class="admin-header-row">
+                    <div></div>
+                    <div>IDENTITY NODE</div>
+                    <div>ROLE / ASSIGNMENT</div>
+                    <div>CONTACT PROTOCOL</div>
+                    <div></div>
+                </div>
+
+                <!-- All Employees List (Combined) -->
+                <div id="all-employees-list">
+                    <div class="admin-row">
+                        <div class="avatar-initial avatar-blue">S</div>
+                        <div>
+                            <div class="admin-name">Sarah Miller</div>
+                            <div class="admin-meta">ID: CYG-M-001 • JOINED: JAN 2026</div>
+                        </div>
+                        <div>
+                            <span class="domain-badge">CAFETERIA OPS</span>
+                        </div>
+                        <div class="email-link">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                                </path>
+                            </svg>
+                            +91 98765 43210
+                        </div>
+                        <div style="display: flex;">
+                            <div class="edit-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg></div>
+                            <div class="delete-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path
+                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                    </path>
+                                </svg></div>
+                        </div>
+                    </div>
+
+                    <div class="admin-row">
+                        <div class="avatar-initial">D</div>
+                        <div>
+                            <div class="admin-name">David Chen</div>
+                            <div class="admin-meta">ID: CYG-M-004 • JOINED: FEB 2026</div>
+                        </div>
+                        <div>
+                            <span class="domain-badge">INFRASTRUCTURE</span>
+                        </div>
+                        <div class="email-link">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                                </path>
+                            </svg>
+                            +91 91234 56789
+                        </div>
+                        <div style="display: flex;">
+                            <div class="edit-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg></div>
+                            <div class="delete-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path
+                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                    </path>
+                                </svg></div>
+                        </div>
+                    </div>
+
+                    <div class="admin-row">
+                        <div class="avatar-initial avatar-orange">M</div>
+                        <div>
+                            <div class="admin-name">Michael Ross</div>
+                            <div class="admin-meta">ID: CYG-E-092 • JOINED: FEB 2026</div>
+                        </div>
+                        <div>
+                            <span class="manager-badge">Mgr: Sarah Miller</span>
+                        </div>
+                        <div class="email-link">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                                </path>
+                            </svg>
+                            +91 99887 76655
+                        </div>
+                        <div style="display: flex;">
+                            <div class="edit-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg></div>
+                            <div class="delete-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path
+                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                    </path>
+                                </svg></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Team (Direct Reports) -->
+                <div id="my-team-list" style="display: none;">
+                    <div class="admin-row">
+                        <div class="avatar-initial avatar-blue">S</div>
+                        <div>
+                            <div class="admin-name">Sarah Miller</div>
+                            <div class="admin-meta">ID: CYG-M-001 • JOINED: JAN 2026</div>
+                        </div>
+                        <div>
+                            <span class="domain-badge">CAFETERIA OPS</span>
+                        </div>
+                        <div class="email-link">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                                </path>
+                            </svg>
+                            +91 98765 43210
+                        </div>
+                        <div style="display: flex;">
+                            <div class="edit-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg></div>
+                            <div class="delete-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path
+                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                    </path>
+                                </svg></div>
+                        </div>
+                    </div>
+
+                    <div class="admin-row">
+                        <div class="avatar-initial">D</div>
+                        <div>
+                            <div class="admin-name">David Chen</div>
+                            <div class="admin-meta">ID: CYG-M-004 • JOINED: FEB 2026</div>
+                        </div>
+                        <div>
+                            <span class="domain-badge">INFRASTRUCTURE</span>
+                        </div>
+                        <div class="email-link">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                                </path>
+                            </svg>
+                            +91 91234 56789
+                        </div>
+                        <div style="display: flex;">
+                            <div class="edit-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg></div>
+                            <div class="delete-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path
+                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                    </path>
+                                </svg></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <script>
+                function toggleUserForm() {
+                    const form = document.getElementById('user-form-container');
+                    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+                }
+
+                function toggleEntityFields() {
+                    const type = document.querySelector('input[name="entityType"]:checked').value;
+                    if (type === 'manager') {
+                        document.getElementById('manager-fields').style.display = 'block';
+                        document.getElementById('employee-fields').style.display = 'none';
+                    } else {
+                        document.getElementById('manager-fields').style.display = 'none';
+                        document.getElementById('employee-fields').style.display = 'block';
+                    }
+                }
+
+                function switchDirectoryTab(tabName) {
+                    // Update tabs
+                    document.querySelectorAll('.directory-tab').forEach(tab => {
+                        tab.classList.remove('active');
+                        if (tabName === 'all-employees' && tab.innerText === 'ALL EMPLOYEES') {
+                            tab.classList.add('active');
+                        } else if (tabName === 'my-team' && tab.innerText === 'MY TEAM') {
+                            tab.classList.add('active');
+                        }
+                    });
+
+                    // Update Lists
+                    if (tabName === 'all-employees') {
+                        document.getElementById('all-employees-list').style.display = 'block';
+                        document.getElementById('my-team-list').style.display = 'none';
+                    } else {
+                        document.getElementById('all-employees-list').style.display = 'none';
+                        document.getElementById('my-team-list').style.display = 'block';
+                    }
+                }
+            </script>
+        </section>
+
+        <section id="parking-slots" class="content-section">
+            <h1 class="section-title">PARKING <span>SLOTS</span></h1>
+            <p class="section-subtitle">Real-time Parking Slot Availability</p>
+
+            <style>
+                .slots-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                    gap: 16px;
+                    margin-top: 24px;
+                }
+
+                .slot-card {
+                    background: white;
+                    border: 1px solid #eee;
+                    border-radius: 12px;
+                    padding: 20px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+                }
+
+                .slot-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+                }
+
+                .slot-card.occupied {
+                    background: #fee2e2;
+                    border-color: #fecaca;
+                    color: #ef4444;
+                }
+
+                .slot-card.available {
+                    background: #dcfce7;
+                    border-color: #bbf7d0;
+                    color: #166534;
+                }
+
+                .slot-number {
+                    font-size: 1.4rem;
+                    font-weight: 800;
+                    margin-bottom: 8px;
+                    letter-spacing: -0.5px;
+                }
+
+                .slot-status {
+                    font-size: 0.7rem;
+                    text-transform: uppercase;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                }
+            </style>
+
+            <div class="slots-grid">
+                <div class="slot-card available">
+                    <div class="slot-number">A-01</div>
+                    <div class="slot-status">Available</div>
+                </div>
+                <div class="slot-card occupied">
+                    <div class="slot-number">A-02</div>
+                    <div class="slot-status">Occupied</div>
+                </div>
+                <div class="slot-card available">
+                    <div class="slot-number">A-03</div>
+                    <div class="slot-status">Available</div>
+                </div>
+                <div class="slot-card available">
+                    <div class="slot-number">A-04</div>
+                    <div class="slot-status">Available</div>
+                </div>
+                <div class="slot-card occupied">
+                    <div class="slot-number">A-05</div>
+                    <div class="slot-status">Occupied</div>
+                </div>
+                <div class="slot-card available">
+                    <div class="slot-number">A-06</div>
+                    <div class="slot-status">Available</div>
+                </div>
+                <div class="slot-card occupied">
+                    <div class="slot-number">B-01</div>
+                    <div class="slot-status">Occupied</div>
+                </div>
+                <div class="slot-card available">
+                    <div class="slot-number">B-02</div>
+                    <div class="slot-status">Available</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="user-logs" class="content-section">
+            <h1 class="section-title">USER <span>LOGS</span></h1>
+            <p class="section-subtitle">Track User Activities and Access Logs</p>
+
+            <style>
+                .log-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                    background: white;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                }
+
+                .log-table th,
+                .log-table td {
+                    padding: 16px;
+                    text-align: left;
+                    border-bottom: 1px solid #f0f2f5;
+                }
+
+                .log-table th {
+                    background: #f8f9fa;
+                    font-weight: 600;
+                    color: var(--text-muted);
+                    font-size: 0.75rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+
+                .log-table td {
+                    font-size: 0.9rem;
+                    color: var(--primary-dark);
+                }
+
+                .log-action {
+                    display: inline-block;
+                    padding: 4px 10px;
+                    border-radius: 6px;
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                }
+
+                .action-entry {
+                    background: #e0f2fe;
+                    color: #0284c7;
+                }
+
+                .action-exit {
+                    background: #fef3c7;
+                    color: #d97706;
+                }
+
+                .user-cell {
+                    font-weight: 600;
+                }
+
+                .time-cell {
+                    color: var(--text-muted);
+                    font-family: monospace;
+                }
+            </style>
+
+            <div style="overflow-x: auto;">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="time-cell">10:05 AM</td>
+                            <td class="user-cell">Sarah Miller</td>
+                            <td><span class="log-action action-entry">ENTRY</span></td>
+                            <td>Gate A - Card Swipe</td>
+                        </tr>
+                        <tr>
+                            <td class="time-cell">09:55 AM</td>
+                            <td class="user-cell">David Chen</td>
+                            <td><span class="log-action action-exit">EXIT</span></td>
+                            <td>Gate B - Manual Release</td>
+                        </tr>
+                        <tr>
+                            <td class="time-cell">09:42 AM</td>
+                            <td class="user-cell">Elena Vance</td>
+                            <td><span class="log-action action-entry">ENTRY</span></td>
+                            <td>Gate A - App Scan</td>
+                        </tr>
+                        <tr>
+                            <td class="time-cell">09:15 AM</td>
+                            <td class="user-cell">Marcus Bell</td>
+                            <td><span class="log-action action-entry">ENTRY</span></td>
+                            <td>Gate A - License Plate Rec.</td>
+                        </tr>
+                        <tr>
+                            <td class="time-cell">08:58 AM</td>
+                            <td class="user-cell">Priya Verma</td>
+                            <td><span class="log-action action-entry">ENTRY</span></td>
+                            <td>Gate B - Card Swipe</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+
+
+
+
+        <section id="projects" class="content-section">
+            <h1 class="section-title">PROJECT <span>PROPOSAL</span></h1>
+            <p class="section-subtitle">Request New Projects & Monitor Team Initiatives</p>
+
+            <div class="projects-container">
+                <!-- Create Project Form -->
+                <div class="project-form-card">
+                    <h3 class="subsection-title" style="margin-bottom: 24px;">PROPOSE NEW INITIATIVE</h3>
+                    <form>
+                        <div class="form-group">
+                            <label class="form-label">PROJECT TITLE</label>
+                            <input type="text" class="form-input" placeholder="e.g. Q1 Marketing Campaign">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">DESCRIPTION</label>
+                            <textarea class="form-input" rows="4"
+                                style="resize: none; font-family: 'Inter', sans-serif;"
+                                placeholder="Outline project goals and scope..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">ASSIGN TEAM MEMBERS</label>
+                            <div class="team-selection-grid">
+                                <label class="team-checkbox">
+                                    <input type="checkbox" checked>
+                                    <span class="checkmark"></span>
+                                    <span class="member-name">Sarah Miller</span>
+                                </label>
+                                <label class="team-checkbox">
+                                    <input type="checkbox">
+                                    <span class="checkmark"></span>
+                                    <span class="member-name">David Chen</span>
+                                </label>
+                                <label class="team-checkbox">
+                                    <input type="checkbox">
+                                    <span class="checkmark"></span>
+                                    <span class="member-name">Elena Vance</span>
+                                </label>
+                                <label class="team-checkbox">
+                                    <input type="checkbox">
+                                    <span class="checkmark"></span>
+                                    <span class="member-name">Marcus Bell</span>
+                                </label>
+                                <label class="team-checkbox">
+                                    <input type="checkbox">
+                                    <span class="checkmark"></span>
+                                    <span class="member-name">Priya Verma</span>
+                                </label>
+                                <label class="team-checkbox">
+                                    <input type="checkbox">
+                                    <span class="checkmark"></span>
+                                    <span class="member-name">James Carter</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">DEADLINE</label>
+                            <input type="date" class="form-input">
+                        </div>
+
+                        <button type="button" class="auth-btn">SUBMIT PROPOSAL</button>
+                    </form>
+                </div>
+            </div>
+
+            <style>
+                .projects-container {
+                    display: grid;
+                    grid-template-columns: 1.2fr 1.8fr;
+                    gap: 40px;
+                }
+
+                .project-form-card {
+                    background: var(--white);
+                    padding: 30px;
+                    border-radius: 20px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    height: fit-content;
+                }
+
+                .team-selection-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 12px;
+                    margin-top: 10px;
+                }
+
+                .team-checkbox {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    cursor: pointer;
+                    padding: 8px;
+                    border-radius: 8px;
+                    transition: background 0.2s;
+                }
+
+                .team-checkbox:hover {
+                    background: #f8f9fa;
+                }
+
+                .team-checkbox input {
+                    display: none;
+                }
+
+                .checkmark {
+                    width: 18px;
+                    height: 18px;
+                    border: 2px solid #ddd;
+                    border-radius: 4px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                }
+
+                .team-checkbox input:checked+.checkmark {
+                    background: var(--primary-dark);
+                    border-color: var(--primary-dark);
+                }
+
+                .checkmark::after {
+                    content: '✔';
+                    color: white;
+                    font-size: 10px;
+                    display: none;
+                }
+
+                .team-checkbox input:checked+.checkmark::after {
+                    display: block;
+                }
+
+                .member-name {
+                    font-size: 0.85rem;
+                    color: var(--primary-dark);
+                    font-weight: 500;
+                }
+
+                .project-list-card {
+                    background: var(--white);
+                    padding: 24px;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    margin-bottom: 20px;
+                    border: 1px solid rgba(0, 0, 0, 0.03);
+                    transition: transform 0.2s;
+                }
+
+                .project-list-card:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+                }
+
+                .project-list-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    margin-bottom: 12px;
+                }
+
+                .project-members {
+                    display: flex;
+                    margin-bottom: 16px;
+                }
+
+                .member-avatar {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    border: 2px solid white;
+                    margin-right: -10px;
+                }
+
+                .progress-bar-container {
+                    width: 100%;
+                    height: 6px;
+                    background: #f0f2f5;
+                    border-radius: 3px;
+                    overflow: hidden;
+                }
+
+                .progress-bar-fill {
+                    height: 100%;
+                    background: var(--primary-dark);
+                    border-radius: 3px;
+                }
+            </style>
+        </section>
+
+        <section id="holidays" class="content-section">
+            <h1 class="section-title">HOLIDAY <span>REGISTRY</span></h1>
+            <p class="section-subtitle">Manage Global Off-Days for the Administrative Force</p>
+
+            <style>
+                .holiday-container {
+                    display: grid;
+                    grid-template-columns: 2fr 1fr;
+                    gap: 30px;
+                }
+
+                .calendar-card {
+                    background: var(--white);
+                    border-radius: 20px;
+                    padding: 30px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                }
+
+                .calendar-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 24px;
+                }
+
+                .view-month {
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    color: var(--primary-dark);
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .calendar-nav {
+                    display: flex;
+                    gap: 8px;
+                }
+
+                .nav-btn {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 8px;
+                    background: #f8f9fa;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                }
+
+                .calendar-grid {
+                    display: grid;
+                    grid-template-columns: repeat(7, 1fr);
+                    text-align: center;
+                }
+
+                .day-label {
+                    color: var(--text-muted);
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    margin-bottom: 16px;
+                }
+
+                .calendar-day {
+                    height: 50px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.85rem;
+                    color: var(--primary-dark);
+                    font-weight: 600;
+                    cursor: pointer;
+                    border-radius: 8px;
+                    margin-bottom: 8px;
+                }
+
+                .calendar-day:hover {
+                    background: #f0f2f5;
+                }
+
+                .day-selected {
+                    background: var(--accent-orange);
+                    color: white;
+                    transform: scale(1.1);
+                    box-shadow: 0 4px 10px rgba(255, 107, 0, 0.3);
+                }
+
+                .day-selected:hover {
+                    background: var(--accent-orange);
+                }
+
+                .proclaim-card {
+                    background: var(--white);
+                    border-radius: 20px;
+                    padding: 30px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .proclaim-title {
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    color: var(--primary-dark);
+                    margin-bottom: 24px;
+                }
+
+                .form-group {
+                    margin-bottom: 20px;
+                }
+
+                .form-label {
+                    font-size: 0.7rem;
+                    color: var(--text-muted);
+                    font-weight: 700;
+                    margin-bottom: 8px;
+                    display: block;
+                    letter-spacing: 1px;
+                }
+
+                .form-input {
+                    width: 100%;
+                    background: #f8f9fa;
+                    border: none;
+                    padding: 16px;
+                    border-radius: 8px;
+                    font-size: 0.85rem;
+                    color: var(--primary-dark);
+                    outline: none;
+                }
+
+                .commit-btn {
+                    margin-top: auto;
+                    width: 100%;
+                    background: var(--primary-dark);
+                    color: white;
+                    padding: 16px;
+                    border-radius: 50px;
+                    border: none;
+                    font-weight: 700;
+                    font-size: 0.8rem;
+                    letter-spacing: 1px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                }
+            </style>
+
+            <div class="holiday-container">
+                <div class="calendar-card">
+                    <div class="calendar-header">
+                        <div class="view-month">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff6b00"
+                                stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            February 2026
+                        </div>
+                        <div class="calendar-nav">
+                            <div class="nav-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="#333" stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg></div>
+                            <div class="nav-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                    stroke="#333" stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg></div>
+                        </div>
+                    </div>
+
+                    <div class="calendar-grid">
+                        <div class="day-label">SUN</div>
+                        <div class="day-label">MON</div>
+                        <div class="day-label">TUE</div>
+                        <div class="day-label">WED</div>
+                        <div class="day-label">THU</div>
+                        <div class="day-label">FRI</div>
+                        <div class="day-label">SAT</div>
+
+                        <!-- Row 1 -->
+                        <div class="calendar-day">1</div>
+                        <div class="calendar-day">2</div>
+                        <div class="calendar-day">3</div>
+                        <div class="calendar-day">4</div>
+                        <div class="calendar-day">5</div>
+                        <div class="calendar-day">6</div>
+                        <div class="calendar-day">7</div>
+
+                        <!-- Row 2 -->
+                        <div class="calendar-day">8</div>
+                        <div class="calendar-day">9</div>
+                        <div class="calendar-day">10</div>
+                        <div class="calendar-day">11</div>
+                        <div class="calendar-day">12</div>
+                        <div class="calendar-day">13</div>
+                        <div class="calendar-day">14</div>
+
+                        <!-- Row 3 -->
+                        <div class="calendar-day">15</div>
+                        <div class="calendar-day">16</div>
+                        <div class="calendar-day">17</div>
+                        <div class="calendar-day">18</div>
+                        <div class="calendar-day">19</div>
+                        <div class="calendar-day">20</div>
+                        <div class="calendar-day">21</div>
+
+                        <!-- Row 4 -->
+                        <div class="calendar-day">22</div>
+                        <div class="calendar-day">23</div>
+                        <div class="calendar-day">24</div>
+                        <div class="calendar-day">25</div>
+                        <div class="calendar-day day-selected">26</div>
+                        <div class="calendar-day">27</div>
+                        <div class="calendar-day">28</div>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <style>
+                .holiday-list-section {
+                    margin-top: 40px;
+                }
+
+                .subsection-title {
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    color: var(--primary-dark);
+                    margin-bottom: 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .holiday-list-card {
+                    background: var(--white);
+                    border-radius: 20px;
+                    padding: 0;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    overflow: hidden;
+                }
+
+                .holiday-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+
+                .holiday-table th {
+                    background: #f8f9fa;
+                    padding: 16px 24px;
+                    text-align: left;
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+
+                .holiday-table td {
+                    padding: 16px 24px;
+                    border-bottom: 1px solid #f0f0f0;
+                    font-size: 0.9rem;
+                    color: var(--primary-dark);
+                }
+
+                .holiday-table tr:last-child td {
+                    border-bottom: none;
+                }
+
+                .holiday-table tr:hover {
+                    background: #fbfbfb;
+                }
+
+                .holiday-date {
+                    font-weight: 600;
+                }
+
+                .holiday-day {
+                    color: var(--text-muted);
+                    font-size: 0.85rem;
+                }
+
+                .holiday-tag {
+                    display: inline-block;
+                    padding: 4px 12px;
+                    border-radius: 20px;
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    background: rgba(249, 176, 18, 0.1);
+                    color: var(--accent-orange);
+                    letter-spacing: 0.5px;
+                }
+            </style>
+
+            <div class="holiday-list-section">
+                <div class="subsection-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    ANNOUNCED HOLIDAYS
+                </div>
+                <div class="holiday-list-card">
+                    <table class="holiday-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Event Name</th>
+                                <th>Day</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="holiday-date">Jan 26, 2026</td>
+                                <td>Republic Day</td>
+                                <td class="holiday-day">Monday</td>
+                                <td><span class="holiday-tag">NATIONAL</span></td>
+                                <td style="color: #2ecc71; font-weight: 600; font-size: 0.8rem;">COMPLETED</td>
+                            </tr>
+                            <tr>
+                                <td class="holiday-date">Feb 26, 2026</td>
+                                <td>Maha Shivratri</td>
+                                <td class="holiday-day">Thursday</td>
+                                <td><span class="holiday-tag">RELIGIOUS</span></td>
+                                <td style="color: var(--accent-orange); font-weight: 600; font-size: 0.8rem;">UPCOMING
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="holiday-date">Mar 14, 2026</td>
+                                <td>Holi</td>
+                                <td class="holiday-day">Saturday</td>
+                                <td><span class="holiday-tag">FESTIVAL</span></td>
+                                <td style="color: #95a5a6; font-weight: 600; font-size: 0.8rem;">SCHEDULED</td>
+                            </tr>
+                            <tr>
+                                <td class="holiday-date">Mar 29, 2026</td>
+                                <td>Ram Navami</td>
+                                <td class="holiday-day">Sunday</td>
+                                <td><span class="holiday-tag">RELIGIOUS</span></td>
+                                <td style="color: #95a5a6; font-weight: 600; font-size: 0.8rem;">SCHEDULED</td>
+                            </tr>
+                            <tr>
+                                <td class="holiday-date">Apr 10, 2026</td>
+                                <td>Good Friday</td>
+                                <td class="holiday-day">Friday</td>
+                                <td><span class="holiday-tag">RELIGIOUS</span></td>
+                                <td style="color: #95a5a6; font-weight: 600; font-size: 0.8rem;">SCHEDULED</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="action-hub" class="content-section">
+            <h1 class="section-title">ACTION <span>HUB</span></h1>
+            <p class="section-subtitle">Centralized Controls for Operational Modules</p>
+
+            <style>
+                .action-grid {
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    gap: 30px;
+                }
+
+                .action-card {
+                    background: var(--white);
+                    border-radius: 24px;
+                    padding: 30px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                    text-align: center;
+                    position: relative;
+                    overflow: hidden;
+                    transition: all 0.3s ease;
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 250px;
+                    flex: 0 1 calc(33.333% - 40px);
+                    min-width: 250px;
+                }
+
+                .action-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+                }
+
+                .action-icon-circle {
+                    width: 60px;
+                    height: 60px;
+                    background: #f8f9fa;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-bottom: 24px;
+                    color: var(--primary-dark);
+                }
+
+                .action-card h3 {
+                    font-size: 1rem;
+                    color: var(--primary-dark);
+                    font-weight: 700;
+                    margin-bottom: 8px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+
+                .action-card p {
+                    font-size: 0.7rem;
+                    color: var(--text-muted);
+                    font-weight: 500;
+                }
+
+                .action-indicator {
+                    position: absolute;
+                    bottom: 0;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 40px;
+                    height: 4px;
+                    background: var(--accent-orange);
+                    border-radius: 4px 4px 0 0;
+                    transition: width 0.3s ease, border-radius 0.3s ease;
+                }
+
+                .action-card:hover .action-indicator {
+                    width: 100%;
+                    border-radius: 0;
+                }
+            </style>
+
+            <div class="action-grid">
+                <div class="action-card">
+                    <div class="action-icon-circle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="1" y="3" width="15" height="13"></rect>
+                            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                        </svg>
+                    </div>
+                    <h3>PARKING<br>MANAGER</h3>
+                    <p>Slot & Capacity Controls</p>
+                    <div class="action-indicator"></div>
+                </div>
+
+                <div class="action-card">
+                    <div class="action-icon-circle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+                            <path d="M7 2v20"></path>
+                            <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
+                        </svg>
+                    </div>
+                    <h3>CAFETERIA OPS</h3>
+                    <p>Food Provisioning Oversight</p>
+                    <div class="action-indicator"></div>
+                </div>
+
+                <div class="action-card">
+                    <div class="action-icon-circle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg>
+                    </div>
+                    <h3>DESK<br>MANAGEMENT</h3>
+                    <p>Workspace Allocation</p>
+                    <div class="action-indicator"></div>
+                </div>
+
+                <div class="action-card">
+                    <div class="action-icon-circle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <h3>CONFERENCE<br>MANAGEMENT</h3>
+                    <p>Room Booking & Scheduling</p>
+                    <div class="action-indicator"></div>
+                </div>
+
+                <div class="action-card">
+                    <div class="action-icon-circle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                    </div>
+                    <h3>HARDWARE<br>REGISTRY</h3>
+                    <p>Inventory Assignment</p>
+                    <div class="action-indicator"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="my-attendance" class="content-section">
+            <h1 class="section-title">MY ATTENDANCE & LOGS <span>PERSONAL REGISTRY</span></h1>
+            <p class="section-subtitle">Track Daily Work Hours & Manage Leave Requests</p>
+
+            <style>
+                .attendance-layout {
+                    display: grid;
+                    grid-template-columns: 1.5fr 1fr;
+                    gap: 24px;
+                    margin-bottom: 24px;
+                }
+
+                .attendance-card {
+                    background: var(--white);
+                    border-radius: 20px;
+                    padding: 30px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+                }
+
+                .attendance-form-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 20px;
+                }
+
+                .attendance-calendar-widget {
+                    background: #f8f9fa;
+                    border-radius: 16px;
+                    padding: 20px;
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+
+                .cal-grid {
+                    display: grid;
+                    grid-template-columns: repeat(7, 1fr);
+                    gap: 8px;
+                    margin-top: 10px;
+                }
+
+                .cal-day {
+                    font-size: 0.8rem;
+                    padding: 8px;
+                    border-radius: 8px;
+                    color: var(--text-muted);
+                }
+
+                .cal-day.active {
+                    background: var(--primary-dark);
+                    color: white;
+                    font-weight: bold;
+                }
+
+                .cal-day.today {
+                    border: 1px solid var(--accent-orange);
+                    color: var(--accent-orange);
+                    font-weight: bold;
+                }
+
+                .logs-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                }
+
+                .logs-table th {
+                    text-align: left;
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                    padding-bottom: 12px;
+                    border-bottom: 2px solid #eee;
+                }
+
+                .logs-table td {
+                    padding: 12px 0;
+                    border-bottom: 1px solid #f5f5f5;
+                    font-size: 0.9rem;
+                    color: var(--primary-dark);
+                }
+
+                .leave-btn {
+                    width: 100%;
+                    padding: 12px;
+                    background: #fff0f0;
+                    color: #d32f2f;
+                    border: 1px solid #d32f2f;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    margin-top: 10px;
+                    transition: all 0.2s;
+                }
+
+                .leave-btn:hover {
+                    background: #d32f2f;
+                    color: white;
+                }
+            </style>
+
+            <div class="attendance-layout">
+                <!-- Left: Form -->
+                <div class="attendance-card">
+                    <h3 class="subsection-title" style="margin-bottom: 20px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" style="margin-right: 10px;">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        LOG DAILY ACTIVITY
+                    </h3>
+
+                    <div class="attendance-form-grid">
+                        <div class="form-group">
+                            <label class="form-label">DATE</label>
+                            <input type="date" id="att-date" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">STATUS</label>
+                            <select class="form-input">
+                                <option>Present</option>
+                                <option>Remote</option>
+                                <option>Half-Day</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="attendance-form-grid" style="margin-top: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">CHECK IN TIME</label>
+                            <button type="button" class="checkin-btn" onclick="handleCheckIn()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M12 2v20M2 12h20"></path>
+                                </svg>
+                                <span id="checkin-time">Check In</span>
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">CHECK OUT TIME</label>
+                            <button type="button" class="checkout-btn" onclick="handleCheckOut()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M18 6L6 18M6 6l12 12"></path>
+                                </svg>
+                                <span id="checkout-time">Check Out</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <style>
+                        .checkin-btn,
+                        .checkout-btn {
+                            width: 100%;
+                            padding: 14px 20px;
+                            border-radius: 12px;
+                            border: 2px solid;
+                            font-size: 0.95rem;
+                            font-weight: 700;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 12px;
+                            transition: all 0.3s;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+
+                        .checkin-btn {
+                            background: linear-gradient(135deg, #1a367c 0%, #0f1f47 100%);
+                            color: white;
+                            border-color: #1a367c;
+                        }
+
+                        .checkin-btn:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 8px 20px rgba(26, 54, 124, 0.4);
+                        }
+
+                        .checkout-btn {
+                            background: linear-gradient(135deg, #1a367c 0%, #0f1f47 100%);
+                            color: white;
+                            border-color: #1a367c;
+                        }
+
+                        .checkout-btn:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 8px 20px rgba(26, 54, 124, 0.4);
+                        }
+
+                        .checkin-btn:disabled,
+                        .checkout-btn:disabled {
+                            opacity: 0.5;
+                            cursor: not-allowed;
+                            transform: none;
+                        }
+                    </style>
+
+                    <script>
+                        function handleCheckIn() {
+                            const now = new Date();
+                            const timeString = now.toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                            });
+                            document.getElementById('checkin-time').textContent = timeString;
+                            document.querySelector('.checkin-btn').disabled = true;
+                            document.querySelector('.checkout-btn').disabled = false;
+                        }
+
+                        function handleCheckOut() {
+                            const now = new Date();
+                            const timeString = now.toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                            });
+                            document.getElementById('checkout-time').textContent = timeString;
+                            document.querySelector('.checkout-btn').disabled = true;
+                        }
+                    </script>
+
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label class="form-label">WORK DONE</label>
+                        <textarea id="att-work" class="form-input" rows="3"
+                            placeholder="Brief summary of tasks completed..."></textarea>
+                    </div>
+
+                    <div style="text-align: right; margin-top: 20px;">
+                        <button class="action-btn" onclick="submitAttendance()"
+                            style="background: var(--primary-dark); color: white; border: none;">
+                            SUBMIT ENTRY
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Stats & Calendar -->
+                <div class="attendance-card">
+                    <h3 class="subsection-title" style="margin-bottom: 20px;">OVERVIEW</h3>
+
+                    <div class="attendance-calendar-widget">
+                        <div style="font-weight: 700; color: var(--primary-dark); margin-bottom: 10px;">FEBRUARY 2026
+                        </div>
+                        <div class="cal-grid">
+                            <div class="cal-day">M</div>
+                            <div class="cal-day">T</div>
+                            <div class="cal-day">W</div>
+                            <div class="cal-day">T</div>
+                            <div class="cal-day">F</div>
+                            <div class="cal-day">S</div>
+                            <div class="cal-day">S</div>
+                            <div class="cal-day"></div>
+                            <div class="cal-day"></div>
+                            <div class="cal-day"></div>
+                            <div class="cal-day">1</div>
+                            <div class="cal-day">2</div>
+                            <div class="cal-day">3</div>
+                            <div class="cal-day">4</div>
+                            <div class="cal-day">5</div>
+                            <div class="cal-day">6</div>
+                            <div class="cal-day">7</div>
+                            <div class="cal-day">8</div>
+                            <div class="cal-day">9</div>
+                            <div class="cal-day today">10</div>
+                            <div class="cal-day">11</div>
+                            <div class="cal-day">12</div>
+                            <div class="cal-day">13</div>
+                            <div class="cal-day">14</div>
+                            <div class="cal-day">15</div>
+                            <div class="cal-day">16</div>
+                            <div class="cal-day">17</div>
+                            <div class="cal-day">18</div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.8rem; color: var(--text-muted);">
+                        <span>Days Present: <b>18</b></span>
+                        <span>Pending Logs: <b>0</b></span>
+                    </div>
+
+                    <button class="leave-btn" onclick="toggleLeaveForm()">
+                        + APPLY FOR LEAVE
+                    </button>
+
+                    <!-- Hidden Leave Form -->
+                    <div id="leave-form"
+                        style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee;">
+                        <div class="form-group">
+                            <label class="form-label">LEAVE DATE</label>
+                            <input type="date" class="form-input">
+                        </div>
+                        <div class="form-group" style="margin-top: 10px;">
+                            <label class="form-label">REASON</label>
+                            <input type="text" class="form-input" placeholder="Reason for leave...">
+                        </div>
+                        <button class="action-btn"
+                            onclick="alert('Leave Request Submitted to HR Registry'); toggleLeaveForm();"
+                            style="width: 100%; margin-top: 10px; background: var(--text-muted); color: white; border: none;">CONFIRM
+                            REQUEST</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Table -->
+            <div class="attendance-card">
+                <h3 class="subsection-title">SUBMITTED LOGS</h3>
+                <table class="logs-table" id="attendance-log-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>In</th>
+                            <th>Out</th>
+                            <th>Work Summary</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Feb 10, 2026</td>
+                            <td>09:00 AM</td>
+                            <td>--:--</td>
+                            <td>Portal Development (In Progress)</td>
+                            <td><span style="color: var(--accent-orange);">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td>Feb 09, 2026</td>
+                            <td>09:15 AM</td>
+                            <td>06:30 PM</td>
+                            <td>User Directory Implementation</td>
+                            <td>Verified</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+
+
+    </main>
+
+    <script>
+
+
+        function toggleLeaveForm() {
+            const form = document.getElementById('leave-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function submitAttendance() {
+            const date = document.getElementById('att-date').value;
+            const login = document.getElementById('att-login').value;
+            const logout = document.getElementById('att-logout').value || '--:--';
+            const work = document.getElementById('att-work').value;
+
+            if (!date || !login || !work) {
+                alert('Please fill in Date, Login Time, and Work Summary');
+                return;
+            }
+
+            const table = document.getElementById('attendance-log-table').getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow(0);
+
+            // Format Date (Simple)
+            const dateObj = new Date(date);
+            const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+            newRow.innerHTML = `
+                <td>${dateStr}</td>
+                <td>${login}</td>
+                <td>${logout}</td>
+                <td>${work}</td>
+                <td><span style="color: var(--accent-orange);">Pending</span></td>
+            `;
+
+            // Reset Form
+            document.getElementById('att-date').value = '';
+            document.getElementById('att-login').value = '';
+            document.getElementById('att-logout').value = '';
+            document.getElementById('att-work').value = '';
+
+            alert('Attendance Logged Successfully');
+        }
+
+        function showSection(sectionId, element) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Show target section
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+
+            // Update sidebar active state
+            if (element) {
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(item => {
+                    item.classList.remove('active');
+                });
+                element.classList.add('active');
+            }
+        }
+    </script>
+    <!-- Rejection Reason Modal (Global) -->
+    <div id="rejectionModal" class="modal-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="modal-content"
+            style="background: white; padding: 30px; border-radius: 16px; width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <h3 style="margin-bottom: 15px; color: var(--primary-dark); font-size: 1.1rem;">Reason for
+                Rejection</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Please provide a
+                reason for rejecting this request. This will be sent to the employee.</p>
+            <textarea id="rejectionReason" rows="4"
+                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px; font-family: 'Inter', sans-serif; resize: none;"
+                placeholder="Type reason here..."></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="closeRejectModal()"
+                    style="padding: 10px 20px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; color: #666; font-weight: 600; font-size: 0.85rem;">Cancel</button>
+                <button onclick="confirmRejection()"
+                    style="padding: 10px 20px; border: none; background: #e74c3c; border-radius: 8px; cursor: pointer; color: white; font-weight: 600; font-size: 0.85rem;">Confirm
+                    Rejection</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRejectTarget = null;
+
+        function openRejectModal(element) {
+            currentRejectTarget = element.closest('.audit-item') || element.closest('.leave-item') || element.closest('.project-item');
+            document.getElementById('rejectionModal').style.display = 'flex';
+            document.getElementById('rejectionReason').value = '';
+            document.getElementById('rejectionReason').focus();
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectionModal').style.display = 'none';
+            currentRejectTarget = null;
+        }
+
+        function confirmRejection() {
+            const reason = document.getElementById('rejectionReason').value;
+            if (!reason.trim()) {
+                alert('Please enter a reason.');
+                return;
+            }
+
+            // Simulate rejection
+            if (currentRejectTarget) {
+                currentRejectTarget.style.opacity = '0.5';
+                currentRejectTarget.style.pointerEvents = 'none';
+            }
+
+            closeRejectModal();
+        }
+
+        function approveAudit(element) {
+            const target = element.closest('.audit-item') || element.closest('.leave-item') || element.closest('.project-item');
+            if (target) {
+                // Check if it's a project item
+                if (target.classList.contains('project-item')) {
+                    // Find the action buttons and replace with approved
+                    const actionsDiv = target.querySelector('.project-actions');
+                    if (actionsDiv) actionsDiv.innerHTML = '<span style="font-size: 0.75rem; color: var(--primary-dark); font-weight: 700;">APPROVED</span>';
+                    return;
+                }
+
+                // Visual feedback for approval
+                const statusDiv = target.querySelector('.audit-status');
+                if (statusDiv) {
+                    statusDiv.className = 'audit-status status-verified';
+                    statusDiv.innerText = 'VERIFIED';
+                }
+
+                // Remove actions
+                const actionsDiv = target.querySelector('.leave-actions');
+                if (actionsDiv) actionsDiv.innerHTML = '<span style="font-size: 0.75rem; color: var(--primary-dark); font-weight: 700;">APPROVED</span>';
+            }
+        }
+    </script>
+</body>
+
+</html>
