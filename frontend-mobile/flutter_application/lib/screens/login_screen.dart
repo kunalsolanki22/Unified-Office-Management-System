@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'manager/manager_dashboard.dart';
-import 'forgot_password_screen.dart';
+import 'change_password_screen.dart';
 import 'employee/employee_dashboard.dart';
 import '../services/auth_service.dart';
 import '../utils/snackbar_helper.dart';
@@ -48,7 +48,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 24),
                 _buildLoginButton(),
                 const SizedBox(height: 16),
-                _buildForgotPassword(),
+                _buildChangePassword(),
                 const SizedBox(height: 48),
                 _buildFooter(),
               ],
@@ -269,14 +269,14 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildForgotPassword() {
+  Widget _buildChangePassword() {
     return Align(
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+            MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
           );
         },
         style: TextButton.styleFrom(
@@ -285,7 +285,7 @@ class _LoginPageState extends State<LoginPage> {
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         child: const Text(
-          'Forgot Password?',
+          'Change Password',
           style: TextStyle(
             fontSize: 14,
             color: Color(0xFF4A6CF7),
