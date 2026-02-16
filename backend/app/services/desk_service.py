@@ -528,11 +528,13 @@ class DeskService:
         exclude_booking_id: Optional[UUID] = None
     ) -> bool:
         """Check if there's an overlapping room booking."""
+        # Only CONFIRMED bookings should block new bookings. Pending requests
+        # are allowed to coexist (multiple pending requests for the same slot).
         query = select(ConferenceRoomBooking).where(
             and_(
                 ConferenceRoomBooking.room_id == room_id,
                 ConferenceRoomBooking.booking_date == booking_date,
-                ConferenceRoomBooking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+                ConferenceRoomBooking.status == BookingStatus.CONFIRMED,
                 or_(
                     and_(
                         ConferenceRoomBooking.start_time <= start_time,

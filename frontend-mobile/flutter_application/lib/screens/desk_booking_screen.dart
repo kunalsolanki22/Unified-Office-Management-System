@@ -41,6 +41,8 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
   List<Map<String, dynamic>> _meetingRooms = [];
   List<Map<String, dynamic>> _myRoomBookings = [];
   List<Map<String, dynamic>> _myDeskBookings = [];
+  // Rooms that currently have pending requests (room_id strings)
+  final Set<String> _pendingRoomIds = {};
 
   @override
   void initState() {
@@ -52,11 +54,12 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Load desks and meeting rooms in parallel
+      // Load desks, rooms and bookings in parallel (include today's room bookings)
       final results = await Future.wait([
         _deskService.getDesks(pageSize: 100),
         _deskService.getTodaysBookings(),
         _deskService.getConferenceRooms(pageSize: 50),
+        _deskService.getTodaysRoomBookings(),
         _deskService.getMyRoomBookings(),
         _deskService.getMyBookings(),
       ]);
@@ -64,8 +67,9 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
       final desksResult = results[0];
       final bookingsResult = results[1];
       final roomsResult = results[2];
-      final myRoomBookingsResult = results[3];
-      final myDeskBookingsResult = results[4];
+      final todaysRoomBookingsResult = results[3];
+      final myRoomBookingsResult = results[4];
+      final myDeskBookingsResult = results[5];
 
       if (!mounted) return;
 
@@ -121,10 +125,28 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
           'amenities': List<String>.from(room['amenities'] ?? ['Whiteboard']),
         }).toList();
 
-        // Process my room bookings
+        // Process today's room bookings to find pending requests for rooms
+        _pendingRoomIds.clear();
+        if (todaysRoomBookingsResult['success'] == true) {
+          final rawRoomBookings = List<Map<String, dynamic>>.from(todaysRoomBookingsResult['data'] ?? []);
+          for (final b in rawRoomBookings) {
+            final status = (b['status'] ?? '').toString().toLowerCase();
+            final roomId = (b['room_id'] ?? '').toString();
+            if (status.contains('pend') && roomId.isNotEmpty) {
+              _pendingRoomIds.add(roomId);
+            }
+          }
+        }
+
+        // Process my room bookings - only keep pending requests
         if (myRoomBookingsResult['success'] == true) {
+          final raw = List<Map<String, dynamic>>.from(myRoomBookingsResult['data'] ?? []);
+          final pending = raw.where((b) {
+            final s = (b['status'] ?? '').toString().toLowerCase();
+            return s.contains('pend');
+          }).toList();
           setState(() {
-            _myRoomBookings = List<Map<String, dynamic>>.from(myRoomBookingsResult['data'] ?? []);
+            _myRoomBookings = pending;
           });
         }
 
@@ -132,10 +154,15 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
           _meetingRooms = List<Map<String, dynamic>>.from(roomList);
         });
       }
-      // Process my desk bookings
+      // Process my desk bookings - only keep pending requests
       if (myDeskBookingsResult['success'] == true) {
+        final raw = List<Map<String, dynamic>>.from(myDeskBookingsResult['data'] ?? []);
+        final pending = raw.where((b) {
+          final s = (b['status'] ?? '').toString().toLowerCase();
+          return s.contains('pend');
+        }).toList();
         setState(() {
-          _myDeskBookings = List<Map<String, dynamic>>.from(myDeskBookingsResult['data'] ?? []);
+          _myDeskBookings = pending;
         });
       }
     } catch (e) {
@@ -227,6 +254,13 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
         setState(() {
           _deskAvailability[_currentBookingItem] = false;
           _selectedDesk = null;
+        });
+      }
+
+      // If booking a meeting room, mark the room as having a pending request locally
+      if (_currentBookingType == 'Meeting Room' && _currentBookingItemId.isNotEmpty) {
+        setState(() {
+          _pendingRoomIds.add(_currentBookingItemId);
         });
       }
 
@@ -1028,9 +1062,10 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     final List<String> amenities = room['amenities'] as List<String>;
     final String roomId = room['id'] as String;
     final String roomName = room['name'] as String;
+    final bool hasPending = _pendingRoomIds.contains(roomId);
 
     return GestureDetector(
-      onTap: isAvailable 
+      onTap: (isAvailable || hasPending)
           ? () => _openBookingModal(roomName, 'Meeting Room', itemId: roomId)
           : null,
       child: Container(
@@ -1104,19 +1139,19 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: isAvailable
-                              ? const Color(0xFFDCFCE7)
-                              : const Color(0xFFFEE2E2),
+                          color: hasPending
+                              ? const Color(0xFFFFF7ED)
+                              : (isAvailable ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2)),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          isAvailable ? 'AVAILABLE' : 'BOOKED',
+                          hasPending ? 'PENDING' : (isAvailable ? 'AVAILABLE' : 'BOOKED'),
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
-                            color: isAvailable
-                                ? const Color(0xFF16A34A)
-                                : const Color(0xFFEF4444),
+                            color: hasPending
+                                ? const Color(0xFFB45309)
+                                : (isAvailable ? const Color(0xFF16A34A) : const Color(0xFFEF4444)),
                           ),
                         ),
                       ),
