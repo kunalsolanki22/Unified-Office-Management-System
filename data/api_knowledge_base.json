@@ -1,0 +1,1060 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "description": "API Knowledge Base for Employee Self-Service Operations (Excluding Parking & Admin APIs)",
+    "last_updated": "2026-02-13",
+    "base_url": "/api/v1"
+  },
+  "apis": {
+    "AUTH_LOGIN": {
+      "api_id": "AUTH_LOGIN",
+      "name": "Login",
+      "description": "Authenticate user with email and password to get access token",
+      "short_description": "Login to system",
+      "endpoint": "/auth/login",
+      "method": "POST",
+      "auth_required": false,
+      "user_accessible": true,
+      "category": "authentication",
+      "request_body": {
+        "email": {
+          "type": "string",
+          "required": true,
+          "description": "User email address",
+          "example": "john.doe@company.com"
+        },
+        "password": {
+          "type": "string",
+          "required": true,
+          "description": "User password",
+          "example": "SecurePass@123"
+        }
+      },
+      "response_fields": ["access_token", "refresh_token", "token_type", "expires_in", "user_id", "role"],
+      "usage_example": "I want to login to the system"
+    },
+    "AUTH_ME": {
+      "api_id": "AUTH_ME",
+      "name": "Get Current User",
+      "description": "Get current authenticated user's profile information including name, email, role, department",
+      "short_description": "Get my profile info",
+      "endpoint": "/auth/me",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "authentication",
+      "request_body": {},
+      "response_fields": ["id", "user_code", "email", "first_name", "last_name", "role", "department", "team_lead_code"],
+      "usage_example": "Show my profile details"
+    },
+    "AUTH_CHANGE_PASSWORD": {
+      "api_id": "AUTH_CHANGE_PASSWORD",
+      "name": "Change Password",
+      "description": "Change current user's own password",
+      "short_description": "Change my password",
+      "endpoint": "/auth/change-password",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "authentication",
+      "request_body": {
+        "current_password": {
+          "type": "string",
+          "required": true,
+          "description": "Current password"
+        },
+        "new_password": {
+          "type": "string",
+          "required": true,
+          "description": "New password (min 8 characters)"
+        }
+      },
+      "response_fields": ["message"],
+      "usage_example": "I want to change my password"
+    },
+    "AUTH_REFRESH": {
+      "api_id": "AUTH_REFRESH",
+      "name": "Refresh Token",
+      "description": "Get new access token using refresh token",
+      "short_description": "Refresh access token",
+      "endpoint": "/auth/refresh",
+      "method": "POST",
+      "auth_required": false,
+      "user_accessible": true,
+      "category": "authentication",
+      "request_body": {
+        "refresh_token": {
+          "type": "string",
+          "required": true,
+          "description": "Refresh token from login"
+        }
+      },
+      "response_fields": ["access_token", "refresh_token", "token_type", "expires_in"],
+      "usage_example": "Refresh my session token"
+    },
+    "ATTENDANCE_CHECK_IN": {
+      "api_id": "ATTENDANCE_CHECK_IN",
+      "name": "Check In",
+      "description": "Record check-in for attendance. No input required - just click to check in. Creates attendance record for today automatically.",
+      "short_description": "Check in to office",
+      "endpoint": "/attendance/check-in",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "attendance",
+      "request_body": {},
+      "response_fields": ["id", "user_code", "date", "status", "first_check_in", "entries"],
+      "usage_example": "I want to check in"
+    },
+    "ATTENDANCE_CHECK_OUT": {
+      "api_id": "ATTENDANCE_CHECK_OUT",
+      "name": "Check Out",
+      "description": "Record check-out for attendance. No input required - auto finds your open check-in and records check-out time.",
+      "short_description": "Check out from office",
+      "endpoint": "/attendance/check-out",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "attendance",
+      "request_body": {},
+      "response_fields": ["id", "user_code", "date", "status", "last_check_out", "total_hours", "entries"],
+      "usage_example": "I want to check out"
+    },
+    "ATTENDANCE_MY": {
+      "api_id": "ATTENDANCE_MY",
+      "name": "My Attendance",
+      "description": "Get current user's attendance records with optional date filtering",
+      "short_description": "View my attendance records",
+      "endpoint": "/attendance/my",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "attendance",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1,
+          "description": "Page number"
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 20,
+          "description": "Results per page"
+        },
+        "start_date": {
+          "type": "date",
+          "required": false,
+          "description": "Filter from date (YYYY-MM-DD)"
+        },
+        "end_date": {
+          "type": "date",
+          "required": false,
+          "description": "Filter to date (YYYY-MM-DD)"
+        }
+      },
+      "response_fields": ["data", "total", "page", "page_size"],
+      "usage_example": "Show my attendance history"
+    },
+    "ATTENDANCE_SUBMIT": {
+      "api_id": "ATTENDANCE_SUBMIT",
+      "name": "Submit Attendance",
+      "description": "Submit attendance record for approval. Changes status from draft to pending_approval.",
+      "short_description": "Submit attendance for approval",
+      "endpoint": "/attendance/{attendance_id}/submit",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "attendance",
+      "path_params": {
+        "attendance_id": {
+          "type": "uuid",
+          "required": true,
+          "description": "Attendance record ID to submit"
+        }
+      },
+      "request_body": {},
+      "response_fields": ["id", "status", "submitted_at"],
+      "usage_example": "Submit my today's attendance for approval",
+      "requires_data_from": ["ATTENDANCE_MY"]
+    },
+    "LEAVE_CREATE": {
+      "api_id": "LEAVE_CREATE",
+      "name": "Create Leave Request",
+      "description": "Create a new leave request for approval. Supports casual, sick, annual, unpaid, maternity, paternity, bereavement leave types.",
+      "short_description": "Apply for leave",
+      "endpoint": "/leave/requests",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "leave",
+      "request_body": {
+        "leave_type": {
+          "type": "enum",
+          "required": true,
+          "enum_values": ["casual", "sick", "annual", "unpaid", "maternity", "paternity", "bereavement"],
+          "description": "Type of leave"
+        },
+        "start_date": {
+          "type": "date",
+          "required": true,
+          "description": "Leave start date (YYYY-MM-DD, cannot be past)"
+        },
+        "end_date": {
+          "type": "date",
+          "required": true,
+          "description": "Leave end date (YYYY-MM-DD, must be >= start_date)"
+        },
+        "reason": {
+          "type": "string",
+          "required": false,
+          "description": "Reason for leave (auto-filled based on leave type if not provided)",
+          "auto_fill": true
+        },
+        "is_half_day": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Whether it's a half day leave",
+          "auto_fill": true
+        },
+        "half_day_type": {
+          "type": "enum",
+          "required": false,
+          "enum_values": ["first_half", "second_half"],
+          "description": "Required if is_half_day is true"
+        }
+      },
+      "response_fields": ["id", "leave_type", "start_date", "end_date", "total_days", "status"],
+      "usage_example": "I want to apply for 2 days casual leave from tomorrow"
+    },
+    "LEAVE_MY": {
+      "api_id": "LEAVE_MY",
+      "name": "My Leave Requests",
+      "description": "Get current user's leave request history",
+      "short_description": "View my leave requests",
+      "endpoint": "/leave/requests/my",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "leave",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 20
+        },
+        "status": {
+          "type": "enum",
+          "required": false,
+          "enum_values": ["pending", "approved", "rejected", "cancelled"]
+        }
+      },
+      "response_fields": ["data", "total", "page", "page_size"],
+      "usage_example": "Show my leave history"
+    },
+    "LEAVE_CANCEL": {
+      "api_id": "LEAVE_CANCEL",
+      "name": "Cancel Leave Request",
+      "description": "Cancel own pending leave request",
+      "short_description": "Cancel my leave request",
+      "endpoint": "/leave/requests/{request_id}/cancel",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "leave",
+      "path_params": {
+        "request_id": {
+          "type": "uuid",
+          "required": true,
+          "description": "Leave request ID to cancel"
+        }
+      },
+      "request_body": {},
+      "response_fields": ["id", "status", "cancelled_at"],
+      "usage_example": "Cancel my pending leave request",
+      "requires_data_from": ["LEAVE_MY"]
+    },
+    "LEAVE_BALANCE": {
+      "api_id": "LEAVE_BALANCE",
+      "name": "My Leave Balance",
+      "description": "Get current user's leave balance showing available days for each leave type",
+      "short_description": "Check my leave balance",
+      "endpoint": "/leave/balance",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "leave",
+      "request_body": {},
+      "response_fields": ["user_code", "casual_leave", "sick_leave", "privilege_leave", "total_available"],
+      "usage_example": "How many leave days do I have left?"
+    },
+    "DESK_LIST": {
+      "api_id": "DESK_LIST",
+      "name": "List Desks",
+      "description": "Get list of all available desks with their status and equipment info",
+      "short_description": "View available desks",
+      "endpoint": "/desks",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "desk_booking",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 20
+        },
+        "status": {
+          "type": "enum",
+          "required": false,
+          "enum_values": ["available", "assigned", "maintenance"]
+        },
+        "zone": {
+          "type": "string",
+          "required": false,
+          "description": "Filter by zone"
+        }
+      },
+      "response_fields": ["data", "total"],
+      "usage_example": "Show me available desks"
+    },
+    "DESK_BOOK": {
+      "api_id": "DESK_BOOK",
+      "name": "Book Desk",
+      "description": "Book a desk for a date range. Booking is confirmed immediately (no approval needed for desks).",
+      "short_description": "Book a desk",
+      "endpoint": "/desks/bookings",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "desk_booking",
+      "request_body": {
+        "desk_id": {
+          "type": "uuid",
+          "required": true,
+          "description": "ID of desk to book"
+        },
+        "start_date": {
+          "type": "date",
+          "required": true,
+          "description": "Booking start date (YYYY-MM-DD)"
+        },
+        "end_date": {
+          "type": "date",
+          "required": true,
+          "description": "Booking end date (YYYY-MM-DD)"
+        },
+        "purpose": {
+          "type": "string",
+          "required": false,
+          "description": "Purpose of booking",
+          "auto_fill": true
+        }
+      },
+      "response_fields": ["id", "desk_id", "start_date", "end_date", "status"],
+      "usage_example": "Book desk D-001 for tomorrow",
+      "requires_data_from": ["DESK_LIST"]
+    },
+    "DESK_MY_BOOKINGS": {
+      "api_id": "DESK_MY_BOOKINGS",
+      "name": "My Desk Bookings",
+      "description": "Get current user's desk booking history",
+      "short_description": "View my desk bookings",
+      "endpoint": "/desks/bookings/my",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "desk_booking",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 20
+        }
+      },
+      "response_fields": ["data", "total"],
+      "usage_example": "Show my desk bookings"
+    },
+    "DESK_CANCEL_BOOKING": {
+      "api_id": "DESK_CANCEL_BOOKING",
+      "name": "Cancel Desk Booking",
+      "description": "Cancel a desk booking (only future bookings can be cancelled)",
+      "short_description": "Cancel desk booking",
+      "endpoint": "/desks/bookings/{booking_id}",
+      "method": "DELETE",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "desk_booking",
+      "path_params": {
+        "booking_id": {
+          "type": "uuid",
+          "required": true,
+          "description": "Booking ID to cancel"
+        }
+      },
+      "response_fields": ["message"],
+      "usage_example": "Cancel my desk booking",
+      "requires_data_from": ["DESK_MY_BOOKINGS"]
+    },
+    "CONFERENCE_ROOM_LIST": {
+      "api_id": "CONFERENCE_ROOM_LIST",
+      "name": "List Conference Rooms",
+      "description": "Get list of all conference rooms with capacity and availability",
+      "short_description": "View conference rooms",
+      "endpoint": "/desks/rooms",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "desk_booking",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 20
+        }
+      },
+      "response_fields": ["data", "total"],
+      "usage_example": "Show me available conference rooms"
+    },
+    "CONFERENCE_ROOM_BOOK": {
+      "api_id": "CONFERENCE_ROOM_BOOK",
+      "name": "Book Conference Room",
+      "description": "Book a conference room. Requires manager approval.",
+      "short_description": "Book a conference room",
+      "endpoint": "/desks/rooms/bookings",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "desk_booking",
+      "request_body": {
+        "room_id": {
+          "type": "uuid",
+          "required": true,
+          "description": "ID of conference room to book (get from CONFERENCE_ROOM_LIST API)"
+        },
+        "booking_date": {
+          "type": "date",
+          "required": true,
+          "description": "Booking date (YYYY-MM-DD)"
+        },
+        "start_time": {
+          "type": "time",
+          "required": true,
+          "description": "Start time (HH:MM:SS)"
+        },
+        "end_time": {
+          "type": "time",
+          "required": true,
+          "description": "End time (HH:MM:SS)"
+        },
+        "title": {
+          "type": "string",
+          "required": true,
+          "description": "Meeting title (e.g., 'AI/ML Team Meeting')",
+          "auto_fill": true
+        },
+        "attendees_count": {
+          "type": "integer",
+          "required": true,
+          "description": "Number of attendees/people for the meeting"
+        },
+        "description": {
+          "type": "string",
+          "required": false,
+          "description": "Meeting description",
+          "auto_fill": true
+        },
+        "notes": {
+          "type": "string",
+          "required": false,
+          "description": "Additional notes",
+          "auto_fill": true
+        }
+      },
+      "response_fields": ["id", "room_id", "status", "booking_date", "start_time"],
+      "usage_example": "Book meeting room for tomorrow 2pm to 3pm for 10 people",
+      "requires_data_from": ["CONFERENCE_ROOM_LIST"]
+    },
+    "CONFERENCE_ROOM_MY_BOOKINGS": {
+      "api_id": "CONFERENCE_ROOM_MY_BOOKINGS",
+      "name": "My Conference Room Bookings",
+      "description": "Get list of my conference room bookings",
+      "short_description": "View my room bookings",
+      "endpoint": "/desks/rooms/bookings",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "desk_booking",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 20
+        }
+      },
+      "response_fields": ["id", "room_id", "room", "booking_date", "start_time", "end_time", "title", "status"],
+      "usage_example": "Show my conference room bookings"
+    },
+    "CONFERENCE_ROOM_CANCEL": {
+      "api_id": "CONFERENCE_ROOM_CANCEL",
+      "name": "Cancel Conference Room Booking",
+      "description": "Cancel a conference room booking",
+      "short_description": "Cancel room booking",
+      "endpoint": "/desks/rooms/bookings/{booking_id}",
+      "method": "DELETE",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "desk_booking",
+      "path_params": {
+        "booking_id": {
+          "type": "uuid",
+          "required": true,
+          "description": "Booking ID to cancel (get from CONFERENCE_ROOM_MY_BOOKINGS)"
+        }
+      },
+      "query_params": {
+        "reason": {
+          "type": "string",
+          "required": false,
+          "description": "Reason for cancellation"
+        }
+      },
+      "response_fields": ["message"],
+      "usage_example": "Cancel my room booking",
+      "requires_data_from": ["CONFERENCE_ROOM_MY_BOOKINGS"]
+    },
+    "FOOD_ITEMS_LIST": {
+      "api_id": "FOOD_ITEMS_LIST",
+      "name": "List Food Items",
+      "description": "Get menu of available food items with prices and dietary info",
+      "short_description": "View food menu",
+      "endpoint": "/food-orders/items",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "food_ordering",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 50
+        },
+        "category": {
+          "type": "enum",
+          "required": false,
+          "enum_values": ["breakfast", "lunch", "snacks", "beverages", "dinner"]
+        },
+        "is_vegetarian": {
+          "type": "boolean",
+          "required": false
+        },
+        "is_available": {
+          "type": "boolean",
+          "required": false,
+          "default": true
+        },
+        "search": {
+          "type": "string",
+          "required": false,
+          "description": "Search in name/description"
+        }
+      },
+      "response_fields": ["data", "total"],
+      "usage_example": "Show me the lunch menu"
+    },
+    "FOOD_ORDER_CREATE": {
+      "api_id": "FOOD_ORDER_CREATE",
+      "name": "Place Food Order",
+      "description": "Place a food order with multiple items. Order is created with pending status.",
+      "short_description": "Order food",
+      "endpoint": "/food-orders/orders",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "food_ordering",
+      "request_body": {
+        "items": {
+          "type": "array",
+          "required": true,
+          "description": "Array of items to order. Each item needs food_item_id from FOOD_ITEMS_LIST",
+          "items": {
+            "food_item_id": {
+              "type": "uuid",
+              "required": true,
+              "description": "Food item ID (get 'id' field from FOOD_ITEMS_LIST response)"
+            },
+            "quantity": {
+              "type": "integer",
+              "required": false,
+              "default": 1,
+              "description": "Quantity (1-10)"
+            },
+            "special_instructions": {
+              "type": "string",
+              "required": false,
+              "description": "Special instructions like 'less spicy'"
+            }
+          }
+        },
+        "notes": {
+          "type": "string",
+          "required": false,
+          "description": "Order notes like delivery location"
+        }
+      },
+      "response_fields": ["id", "order_number", "status", "total_amount", "items"],
+      "usage_example": "Order 2 chicken biryanis and 1 mango lassi",
+      "requires_data_from": ["FOOD_ITEMS_LIST"]
+    },
+    "FOOD_ORDER_MY": {
+      "api_id": "FOOD_ORDER_MY",
+      "name": "My Food Orders",
+      "description": "Get current user's food order history",
+      "short_description": "View my food orders",
+      "endpoint": "/food-orders/my-orders",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "food_ordering",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 20
+        },
+        "status": {
+          "type": "enum",
+          "required": false,
+          "description": "Filter by order status. Omit to get all orders.",
+          "enum_values": ["pending", "confirmed", "preparing", "ready", "delivered", "cancelled"]
+        }
+      },
+      "response_fields": ["data", "total"],
+      "usage_example": "Show my food order history"
+    },
+    "FOOD_ORDER_CANCEL": {
+      "api_id": "FOOD_ORDER_CANCEL",
+      "name": "Cancel Food Order",
+      "description": "Cancel a food order (only pending orders can be cancelled)",
+      "short_description": "Cancel food order",
+      "endpoint": "/food-orders/orders/{order_id}/cancel",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "food_ordering",
+      "path_params": {
+        "order_id": {
+          "type": "uuid",
+          "required": true,
+          "description": "Order ID to cancel"
+        }
+      },
+      "response_fields": ["message"],
+      "usage_example": "Cancel my last food order",
+      "requires_data_from": ["FOOD_ORDER_MY"]
+    },
+    "IT_ASSETS_MY": {
+      "api_id": "IT_ASSETS_MY",
+      "name": "My IT Assets",
+      "description": "Get IT assets currently assigned to the current user",
+      "short_description": "View my assigned IT equipment",
+      "endpoint": "/it-assets/my",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "it_assets",
+      "request_body": {},
+      "response_fields": ["data"],
+      "usage_example": "What IT equipment is assigned to me?"
+    },
+    "IT_REQUEST_CREATE": {
+      "api_id": "IT_REQUEST_CREATE",
+      "name": "Create IT Request",
+      "description": "Create a new IT support request for new asset, repair, software installation, access request, etc.",
+      "short_description": "Submit IT support request",
+      "endpoint": "/it-requests",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "it_requests",
+      "request_body": {
+        "request_type": {
+          "type": "enum",
+          "required": true,
+          "enum_values": ["NEW", "NEW_ASSET", "REPAIR", "REPLACEMENT", "SOFTWARE_INSTALL", "ACCESS_REQUEST", "NETWORK_ISSUE", "OTHER"],
+          "description": "Type of IT request"
+        },
+        "title": {
+          "type": "string",
+          "required": true,
+          "description": "Short title for the request",
+          "auto_fill": true
+        },
+        "description": {
+          "type": "string",
+          "required": true,
+          "description": "Detailed description of the request (min 10 characters)",
+          "auto_fill": true
+        },
+        "priority": {
+          "type": "enum",
+          "required": false,
+          "enum_values": ["LOW", "MEDIUM", "HIGH", "URGENT"],
+          "default": "MEDIUM",
+          "description": "Request priority"
+        },
+        "related_asset_code": {
+          "type": "string",
+          "required": false,
+          "description": "Asset code if request relates to existing asset (e.g., LAP-001)"
+        }
+      },
+      "response_fields": ["id", "request_number", "request_type", "status", "priority"],
+      "usage_example": "I need a new laptop for development work"
+    },
+    "IT_REQUEST_MY": {
+      "api_id": "IT_REQUEST_MY",
+      "name": "My IT Requests",
+      "description": "Get current user's IT support request history",
+      "short_description": "View my IT requests",
+      "endpoint": "/it-requests/my",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "it_requests",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 20
+        },
+        "status": {
+          "type": "enum",
+          "required": false,
+          "enum_values": ["PENDING", "APPROVED", "REJECTED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
+        }
+      },
+      "response_fields": ["data", "total"],
+      "usage_example": "Show my IT request history"
+    },
+    "IT_REQUEST_CANCEL": {
+      "api_id": "IT_REQUEST_CANCEL",
+      "name": "Cancel IT Request",
+      "description": "Cancel own pending IT request",
+      "short_description": "Cancel IT request",
+      "endpoint": "/it-requests/{request_id}",
+      "method": "DELETE",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "it_requests",
+      "path_params": {
+        "request_id": {
+          "type": "uuid",
+          "required": true,
+          "description": "Request ID to cancel"
+        }
+      },
+      "response_fields": ["message"],
+      "usage_example": "Cancel my pending IT request",
+      "requires_data_from": ["IT_REQUEST_MY"]
+    },
+    "CAFETERIA_TABLES_LIST": {
+      "api_id": "CAFETERIA_TABLES_LIST",
+      "name": "List Cafeteria Tables",
+      "description": "Get list of cafeteria tables available for booking",
+      "short_description": "View cafeteria tables",
+      "endpoint": "/cafeteria/tables",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "cafeteria",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 20
+        }
+      },
+      "response_fields": ["data", "total"],
+      "usage_example": "Show available cafeteria tables"
+    },
+    "CAFETERIA_BOOK_TABLE": {
+      "api_id": "CAFETERIA_BOOK_TABLE",
+      "name": "Book Cafeteria Table",
+      "description": "Book a cafeteria table for a specific date and time",
+      "short_description": "Book cafeteria table",
+      "endpoint": "/cafeteria/bookings",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "cafeteria",
+      "request_body": {
+        "table_id": {
+          "type": "uuid",
+          "required": true,
+          "description": "Table ID to book"
+        },
+        "booking_date": {
+          "type": "date",
+          "required": true,
+          "description": "Booking date (YYYY-MM-DD)"
+        },
+        "start_time": {
+          "type": "time",
+          "required": true,
+          "description": "Start time (HH:MM:SS)"
+        },
+        "end_time": {
+          "type": "time",
+          "required": true,
+          "description": "End time (HH:MM:SS)"
+        }
+      },
+      "response_fields": ["id", "table_id", "booking_date", "start_time", "end_time"],
+      "usage_example": "Book a cafeteria table for lunch at 12:30",
+      "requires_data_from": ["CAFETERIA_TABLES_LIST"]
+    },
+    "CAFETERIA_MY_BOOKINGS": {
+      "api_id": "CAFETERIA_MY_BOOKINGS",
+      "name": "My Cafeteria Bookings",
+      "description": "Get current user's cafeteria table bookings",
+      "short_description": "View my cafeteria bookings",
+      "endpoint": "/cafeteria/bookings/my",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "cafeteria",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 20
+        }
+      },
+      "response_fields": ["data", "total"],
+      "usage_example": "Show my cafeteria table bookings"
+    },
+    "HOLIDAYS_LIST": {
+      "api_id": "HOLIDAYS_LIST",
+      "name": "List Holidays",
+      "description": "Get list of company holidays for the year",
+      "short_description": "View company holidays",
+      "endpoint": "/holidays",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "holidays",
+      "query_params": {
+        "year": {
+          "type": "integer",
+          "required": false,
+          "description": "Filter by year (default: current year)"
+        },
+        "is_mandatory": {
+          "type": "boolean",
+          "required": false,
+          "description": "Filter by mandatory status"
+        }
+      },
+      "response_fields": ["data"],
+      "usage_example": "What are the upcoming holidays?"
+    },
+    "USER_DIRECTORY": {
+      "api_id": "USER_DIRECTORY",
+      "name": "User Directory",
+      "description": "Search and view employee directory with basic contact info",
+      "short_description": "Search employee directory",
+      "endpoint": "/users/directory",
+      "method": "GET",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "users",
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "default": 1
+        },
+        "page_size": {
+          "type": "integer",
+          "required": false,
+          "default": 50
+        },
+        "search": {
+          "type": "string",
+          "required": false,
+          "description": "Search by name, email, phone, or user code"
+        }
+      },
+      "response_fields": ["data", "total"],
+      "usage_example": "Find John's contact info"
+    },
+    "SEARCH_FOOD": {
+      "api_id": "SEARCH_FOOD",
+      "name": "Search Food (Semantic)",
+      "description": "AI-powered semantic search for food items. Finds results by meaning, not just keywords.",
+      "short_description": "Smart search for food",
+      "endpoint": "/search",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "search",
+      "request_body": {
+        "query": {
+          "type": "string",
+          "required": true,
+          "description": "Natural language search query"
+        },
+        "search_type": {
+          "type": "string",
+          "required": true,
+          "const": "food",
+          "description": "Must be 'food' for food search"
+        },
+        "limit": {
+          "type": "integer",
+          "required": false,
+          "default": 10,
+          "description": "Max results to return"
+        }
+      },
+      "response_fields": ["results", "query", "total_results"],
+      "usage_example": "Find healthy vegetarian lunch options"
+    },
+    "SEARCH_IT_ASSETS": {
+      "api_id": "SEARCH_IT_ASSETS",
+      "name": "Search IT Assets (Semantic)",
+      "description": "AI-powered semantic search for IT assets. Finds results by meaning, not just keywords.",
+      "short_description": "Smart search for IT assets",
+      "endpoint": "/search",
+      "method": "POST",
+      "auth_required": true,
+      "user_accessible": true,
+      "category": "search",
+      "request_body": {
+        "query": {
+          "type": "string",
+          "required": true,
+          "description": "Natural language search query"
+        },
+        "search_type": {
+          "type": "string",
+          "required": true,
+          "const": "it_assets",
+          "description": "Must be 'it_assets' for IT asset search"
+        },
+        "limit": {
+          "type": "integer",
+          "required": false,
+          "default": 10,
+          "description": "Max results to return"
+        }
+      },
+      "response_fields": ["results", "query", "total_results"],
+      "usage_example": "Find high performance laptops"
+    }
+  },
+  "categories": {
+    "authentication": {
+      "name": "Authentication",
+      "description": "Login, logout, password management"
+    },
+    "attendance": {
+      "name": "Attendance",
+      "description": "Check-in, check-out, attendance tracking"
+    },
+    "leave": {
+      "name": "Leave Management",
+      "description": "Apply for leave, view balance, cancel requests"
+    },
+    "desk_booking": {
+      "name": "Desk & Conference Room Booking",
+      "description": "Book desks and conference rooms"
+    },
+    "food_ordering": {
+      "name": "Food Ordering",
+      "description": "Order food from cafeteria"
+    },
+    "cafeteria": {
+      "name": "Cafeteria Table Booking",
+      "description": "Book cafeteria tables"
+    },
+    "it_assets": {
+      "name": "IT Assets",
+      "description": "View assigned IT equipment"
+    },
+    "it_requests": {
+      "name": "IT Requests",
+      "description": "Submit IT support requests"
+    },
+    "holidays": {
+      "name": "Holidays",
+      "description": "View company holidays"
+    },
+    "users": {
+      "name": "User Directory",
+      "description": "Search employee directory"
+    },
+    "search": {
+      "name": "Semantic Search",
+      "description": "AI-powered search for food and IT assets"
+    }
+  },
+  "excluded_categories": {
+    "parking": "Excluded as per requirements - parking services not available via chatbot",
+    "admin_operations": "Admin-level operations excluded - only self-service user operations",
+    "approval_operations": "Approval operations excluded - meant for managers/team leads only"
+  }
+}

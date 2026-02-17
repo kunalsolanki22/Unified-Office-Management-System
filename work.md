@@ -1,0 +1,1026 @@
+# AI Chatbot Workflow Documentation
+
+## Overview
+
+The AI Chatbot is an intelligent assistant for the Office Management System that processes natural language requests and executes appropriate API calls to fulfill user needs.
+
+---
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              USER INTERFACE (CLI)                                │
+│                                   cli.py                                         │
+└─────────────────────────────────────┬───────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              ORCHESTRATOR                                        │
+│                           orchestrator.py                                        │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │ • Session Management                                                     │    │
+│  │ • Conversation History                                                   │    │
+│  │ • Request Context Storage                                                │    │
+│  │ • Followup Handling                                                      │    │
+│  │ • API Execution Coordination                                             │    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────┬───────────────────────────────────────────┘
+                                      │
+                    ┌─────────────────┼─────────────────┐
+                    │                 │                 │
+                    ▼                 ▼                 ▼
+┌──────────────────────┐  ┌──────────────────┐  ┌──────────────────────┐
+│    LLM SERVICE       │  │  KNOWLEDGE BASE  │  │    API CLIENT        │
+│   llm_service.py     │  │ knowledge_base.py│  │   api_client.py      │
+│                      │  │                  │  │                      │
+│ • LLM Call 1:        │  │ • API Definitions│  │ • HTTP Requests      │
+│   API Selection      │  │ • Field Schemas  │  │ • Authentication     │
+│ • LLM Call 2:        │  │ • Dependencies   │  │ • Error Handling     │
+│   Payload Generation │  │ • Categories     │  │                      │
+│ • Response Generation│  │                  │  │                      │
+└──────────────────────┘  └──────────────────┘  └──────────────────────┘
+          │                        │                      │
+          ▼                        ▼                      ▼
+┌──────────────────────┐  ┌──────────────────┐  ┌──────────────────────┐
+│    GROQ LLM API      │  │   JSON File      │  │   BACKEND API        │
+│  (Llama 4 Scout)     │  │ api_knowledge_   │  │  (FastAPI Server)    │
+│                      │  │ base.json        │  │                      │
+└──────────────────────┘  └──────────────────┘  └──────────────────────┘
+```
+
+---
+
+## Complete Workflow
+
+### Phase 1: User Input Processing
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                     USER INPUT                                  │
+│  "book a room for me from 3 to 5pm for 10 people for my        │
+│   ai/ml meeting"                                                │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│                 CHECK AUTHENTICATION                            │
+│  Is user logged in?                                             │
+│  ├── NO  → Return "Please login first"                          │
+│  └── YES → Continue to processing                               │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│              CHECK PENDING FOLLOWUP                             │
+│  Is there a pending followup question?                          │
+│  ├── YES → Handle followup response                             │
+│  └── NO  → Process as new request                               │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│           STORE REQUEST CONTEXT                                 │
+│  self.current_request_context = user_input                      │
+│  (Preserved for multi-API flows)                                │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+                              LLM CALL 1
+```
+
+---
+
+### Phase 2: LLM Call 1 - API Selection
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    LLM CALL 1: API SELECTION                    │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│              BUILD API SELECTION PROMPT                         │
+│                                                                 │
+│  Components:                                                    │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ 1. System Instructions                                    │  │
+│  │    - Role: API selector for Office Management System      │  │
+│  │    - Rules: Only select existing APIs                     │  │
+│  │    - Handle dependencies (e.g., list → book)              │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │ 2. API Summary (from knowledge base)                      │  │
+│  │    ## Attendance                                          │  │
+│  │    - ATTENDANCE_CHECK_IN: Check in to office [POST]       │  │
+│  │    - ATTENDANCE_CHECK_OUT: Check out from office [POST]   │  │
+│  │    ## Desk Booking                                        │  │
+│  │    - CONFERENCE_ROOM_LIST: View conference rooms [GET]    │  │
+│  │    - CONFERENCE_ROOM_BOOK: Book a conference room [POST]  │  │
+│  │    ... (33 APIs total)                                    │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │ 3. User Request                                           │  │
+│  │    "book a room for me from 3 to 5pm..."                  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│                    GROQ LLM PROCESSING                          │
+│                                                                 │
+│  Model: meta-llama/llama-4-scout-17b-16e-instruct              │
+│  Temperature: 0.1 (low for consistency)                         │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│                    LLM RESPONSE PARSING                         │
+│                                                                 │
+│  SELECTED_APIS: [CONFERENCE_ROOM_LIST, CONFERENCE_ROOM_BOOK]   │
+│  REASONING: Need to list rooms first to get IDs, then book     │
+│  NEEDS_USER_INPUT: Date for the booking                        │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+                              LLM CALL 2
+```
+
+---
+
+### Phase 3: LLM Call 2 - Payload Generation
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                LLM CALL 2: PAYLOAD GENERATION                   │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│              BUILD PAYLOAD GENERATION PROMPT                    │
+│                                                                 │
+│  Components:                                                    │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ 1. Current Date/Time                                      │  │
+│  │    CURRENT DATE: 2026-02-13                               │  │
+│  │    CURRENT TIME: 16:30:00                                 │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │ 2. Conversation History (last 5 messages)                 │  │
+│  │    USER: book a room for me from 3 to 5pm...              │  │
+│  │    ASSISTANT: What date would you like to book?           │  │
+│  │    USER: today                                            │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │ 3. Previous API Responses (if any)                        │  │
+│  │    CONFERENCE_ROOM_LIST: {"data": [{"id": "uuid-1",       │  │
+│  │    "label": "Meeting Room A", "capacity": 10}, ...]}      │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │ 4. API Details (schemas for selected APIs)                │  │
+│  │    ### CONFERENCE_ROOM_BOOK                               │  │
+│  │    Request Body Fields:                                   │  │
+│  │    - room_id (uuid, REQUIRED): ID from room list          │  │
+│  │    - booking_date (date, REQUIRED): YYYY-MM-DD            │  │
+│  │    - start_time (time, REQUIRED): HH:MM:SS                │  │
+│  │    - end_time (time, REQUIRED): HH:MM:SS                  │  │
+│  │    - title (string, REQUIRED, auto-fill)                  │  │
+│  │    - attendees_count (integer, REQUIRED)                  │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │ 5. Intelligent Extraction Rules                           │  │
+│  │    - "10 people" → attendees_count: 10                    │  │
+│  │    - "3 to 5pm" → start_time: "15:00:00",                 │  │
+│  │                   end_time: "17:00:00"                    │  │
+│  │    - "ai/ml meeting" → title: "AI/ML Meeting"             │  │
+│  │    - "today" → booking_date: "2026-02-13"                 │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│                    LLM RESPONSE (JSON)                          │
+│                                                                 │
+│  {                                                              │
+│    "needs_followup": false,                                     │
+│    "followup_question": null,                                   │
+│    "payloads": {                                                │
+│      "CONFERENCE_ROOM_LIST": {                                  │
+│        "body": {},                                              │
+│        "query_params": {"page": 1, "page_size": 20},            │
+│        "path_params": {}                                        │
+│      },                                                         │
+│      "CONFERENCE_ROOM_BOOK": {                                  │
+│        "body": {                                                │
+│          "room_id": "<from previous API>",                      │
+│          "booking_date": "2026-02-13",                          │
+│          "start_time": "15:00:00",                              │
+│          "end_time": "17:00:00",                                │
+│          "title": "AI/ML Meeting",                              │
+│          "attendees_count": 10                                  │
+│        },                                                       │
+│        "query_params": {},                                      │
+│        "path_params": {}                                        │
+│      }                                                          │
+│    },                                                           │
+│    "execution_order": ["CONFERENCE_ROOM_LIST",                  │
+│                        "CONFERENCE_ROOM_BOOK"]                  │
+│  }                                                              │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+              ┌──────────────────────┴──────────────────────┐
+              │                                             │
+              ▼                                             ▼
+┌─────────────────────────────┐            ┌─────────────────────────────┐
+│     NEEDS FOLLOWUP?         │            │     READY TO EXECUTE        │
+│                             │            │                             │
+│  If needs_followup: true    │            │  If needs_followup: false   │
+│  ┌───────────────────────┐  │            │  ┌───────────────────────┐  │
+│  │ Store pending_followup│  │            │  │ Proceed to API        │  │
+│  │ Return question       │  │            │  │ Execution Phase       │  │
+│  │ to user               │  │            │  │                       │  │
+│  └───────────────────────┘  │            │  └───────────────────────┘  │
+└─────────────────────────────┘            └──────────────┬──────────────┘
+                                                          │
+                                                          ▼
+                                                   API EXECUTION
+```
+
+---
+
+### Phase 4: API Execution
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    API EXECUTION PHASE                          │
+│                                                                 │
+│  Execution Order: [CONFERENCE_ROOM_LIST, CONFERENCE_ROOM_BOOK] │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│              STEP 1: EXECUTE CONFERENCE_ROOM_LIST               │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ Request:                                                  │  │
+│  │   GET /api/v1/desks/rooms?page=1&page_size=20            │  │
+│  │   Headers: Authorization: Bearer <token>                  │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │ Response: 200 OK                                          │  │
+│  │   {                                                       │  │
+│  │     "data": [                                             │  │
+│  │       {                                                   │  │
+│  │         "id": "c0a1ddb4-3ff1-4e8e-9ea1-05a3926012ac",    │  │
+│  │         "label": "Meeting Room A",                        │  │
+│  │         "room_code": "CNF-8045",                          │  │
+│  │         "capacity": 10,                                   │  │
+│  │         "equipment": ["Projector", "Whiteboard", ...]     │  │
+│  │       },                                                  │  │
+│  │       ...                                                 │  │
+│  │     ]                                                     │  │
+│  │   }                                                       │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ✓ Store response in api_responses dict                        │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│              STEP 2: PREPARE CONFERENCE_ROOM_BOOK               │
+│                                                                 │
+│  Check: Does this API have dependencies?                        │
+│  └── YES: requires_data_from: ["CONFERENCE_ROOM_LIST"]         │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ REGENERATE PAYLOAD (LLM Call 2 again)                     │  │
+│  │                                                           │  │
+│  │ Input:                                                    │  │
+│  │ - Full request context (original + followup)              │  │
+│  │ - Previous API response (room list)                       │  │
+│  │                                                           │  │
+│  │ LLM selects best room:                                    │  │
+│  │ - Required: 10 people                                     │  │
+│  │ - Available: Room with capacity=10, id="c0a1ddb4..."      │  │
+│  │ - Selected: c0a1ddb4-3ff1-4e8e-9ea1-05a3926012ac         │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ FALLBACK: Dependency Injection                            │  │
+│  │                                                           │  │
+│  │ _inject_dependencies() method:                            │  │
+│  │ - Extracts room_id from previous response                 │  │
+│  │ - _select_best_room(): Picks room matching capacity       │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│              STEP 3: EXECUTE CONFERENCE_ROOM_BOOK               │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ Request:                                                  │  │
+│  │   POST /api/v1/desks/rooms/bookings                       │  │
+│  │   Headers: Authorization: Bearer <token>                  │  │
+│  │   Body: {                                                 │  │
+│  │     "room_id": "c0a1ddb4-3ff1-4e8e-9ea1-05a3926012ac",   │  │
+│  │     "booking_date": "2026-02-13",                         │  │
+│  │     "start_time": "15:00:00",                             │  │
+│  │     "end_time": "17:00:00",                               │  │
+│  │     "title": "AI/ML Meeting",                             │  │
+│  │     "attendees_count": 10,                                │  │
+│  │     "description": "AI/ML team discussion"                │  │
+│  │   }                                                       │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │ Response: 201 Created                                     │  │
+│  │   {                                                       │  │
+│  │     "data": {                                             │  │
+│  │       "id": "booking-uuid-123",                           │  │
+│  │       "room_id": "c0a1ddb4-...",                          │  │
+│  │       "status": "pending_approval",                       │  │
+│  │       "booking_date": "2026-02-13",                       │  │
+│  │       "start_time": "15:00:00",                           │  │
+│  │       "end_time": "17:00:00"                              │  │
+│  │     }                                                     │  │
+│  │   }                                                       │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ✓ Store response in api_responses dict                        │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+                            RESPONSE GENERATION
+```
+
+---
+
+### Phase 5: Response Generation
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                 RESPONSE GENERATION PHASE                       │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│           GENERATE USER-FRIENDLY RESPONSE                       │
+│                                                                 │
+│  Input to LLM:                                                  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ USER REQUEST: "book a room... for ai/ml meeting"          │  │
+│  │                                                           │  │
+│  │ API RESPONSES:                                            │  │
+│  │ {                                                         │  │
+│  │   "CONFERENCE_ROOM_LIST": {"data": [...]},               │  │
+│  │   "CONFERENCE_ROOM_BOOK": {                               │  │
+│  │     "data": {                                             │  │
+│  │       "id": "booking-uuid-123",                           │  │
+│  │       "status": "pending_approval"                        │  │
+│  │     }                                                     │  │
+│  │   }                                                       │  │
+│  │ }                                                         │  │
+│  │                                                           │  │
+│  │ ERRORS: None                                              │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  Rules:                                                         │
+│  - If errors exist: Report failure honestly                     │
+│  - If success: Confirm booking with details                     │
+│  - Never hallucinate or make up information                     │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│                    FINAL USER RESPONSE                          │
+│                                                                 │
+│  ✅ Your conference room has been booked!                       │
+│                                                                 │
+│  Booking Details:                                               │
+│  • Room: Meeting Room A (CNF-8045)                              │
+│  • Date: February 13, 2026                                      │
+│  • Time: 3:00 PM - 5:00 PM                                      │
+│  • Attendees: 10 people                                         │
+│  • Status: Pending Approval                                     │
+│  • Booking ID: booking-uuid-123                                 │
+│                                                                 │
+│  Your manager will need to approve this booking.                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Followup Handling Flow
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    FOLLOWUP HANDLING                            │
+└────────────────────────────────────────────────────────────────┘
+
+Initial Request:
+┌─────────────────────────────────────────────────────────────────┐
+│ USER: "book a room for me from 3 to 5pm for 10 people"          │
+│                                                                 │
+│ LLM Call 2 Response:                                            │
+│ {                                                               │
+│   "needs_followup": true,                                       │
+│   "followup_question": "What date would you like to book?"      │
+│ }                                                               │
+│                                                                 │
+│ CHATBOT: 🤔 What date would you like to book?                   │
+│                                                                 │
+│ Store in pending_followup:                                      │
+│ {                                                               │
+│   "selected_apis": ["CONFERENCE_ROOM_LIST", "CONFERENCE_..."],  │
+│   "original_input": "book a room for me from 3 to 5pm...",      │
+│   "partial_result": {...}                                       │
+│ }                                                               │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ USER: "today"                                                   │
+│                                                                 │
+│ Combined Input:                                                 │
+│ "book a room for me from 3 to 5pm for 10 people for my ai/ml   │
+│  meeting. The user confirmed: today"                            │
+│                                                                 │
+│ Update current_request_context with combined input              │
+│                                                                 │
+│ LLM Call 2 (again) with full context                            │
+│ → Now has all required information                              │
+│ → Generates complete payloads                                   │
+│ → Proceeds to API execution                                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Data Flow Diagram
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   User      │     │ Orchestrator│     │ LLM Service │     │  API Client │
+│   (CLI)     │     │             │     │             │     │             │
+└──────┬──────┘     └──────┬──────┘     └──────┬──────┘     └──────┬──────┘
+       │                   │                   │                   │
+       │  User Input       │                   │                   │
+       │──────────────────>│                   │                   │
+       │                   │                   │                   │
+       │                   │  LLM Call 1       │                   │
+       │                   │  (API Selection)  │                   │
+       │                   │──────────────────>│                   │
+       │                   │                   │                   │
+       │                   │  Selected APIs    │                   │
+       │                   │<──────────────────│                   │
+       │                   │                   │                   │
+       │                   │  LLM Call 2       │                   │
+       │                   │  (Payload Gen)    │                   │
+       │                   │──────────────────>│                   │
+       │                   │                   │                   │
+       │                   │  Payloads JSON    │                   │
+       │                   │<──────────────────│                   │
+       │                   │                   │                   │
+       │                   │                   │  Execute API 1    │
+       │                   │───────────────────────────────────────>│
+       │                   │                   │                   │
+       │                   │                   │  API 1 Response   │
+       │                   │<───────────────────────────────────────│
+       │                   │                   │                   │
+       │                   │  LLM Call 2       │                   │
+       │                   │  (Regen Payload)  │                   │
+       │                   │──────────────────>│                   │
+       │                   │                   │                   │
+       │                   │  Updated Payload  │                   │
+       │                   │<──────────────────│                   │
+       │                   │                   │                   │
+       │                   │                   │  Execute API 2    │
+       │                   │───────────────────────────────────────>│
+       │                   │                   │                   │
+       │                   │                   │  API 2 Response   │
+       │                   │<───────────────────────────────────────│
+       │                   │                   │                   │
+       │                   │  Generate Response│                   │
+       │                   │──────────────────>│                   │
+       │                   │                   │                   │
+       │                   │  Friendly Response│                   │
+       │                   │<──────────────────│                   │
+       │                   │                   │                   │
+       │  Final Response   │                   │                   │
+       │<──────────────────│                   │                   │
+       │                   │                   │                   │
+```
+
+---
+
+## Key Components
+
+### 1. Knowledge Base (`api_knowledge_base.json`)
+
+```json
+{
+  "CONFERENCE_ROOM_BOOK": {
+    "api_id": "CONFERENCE_ROOM_BOOK",
+    "endpoint": "/desks/rooms/bookings",
+    "method": "POST",
+    "request_body": {
+      "room_id": {"type": "uuid", "required": true},
+      "booking_date": {"type": "date", "required": true},
+      "start_time": {"type": "time", "required": true},
+      "end_time": {"type": "time", "required": true},
+      "title": {"type": "string", "required": true, "auto_fill": true},
+      "attendees_count": {"type": "integer", "required": true}
+    },
+    "requires_data_from": ["CONFERENCE_ROOM_LIST"]
+  }
+}
+```
+
+### 2. Request Context Storage
+
+```python
+# Stored in orchestrator
+self.current_request_context = "book a room for me from 3 to 5pm for 10 people for my ai/ml meeting. The user confirmed: today"
+
+# Used for:
+# - Regenerating payloads for dependent APIs
+# - Extracting capacity requirements
+# - Maintaining full context across multi-API flows
+```
+
+### 3. Dependency Injection
+
+```python
+def _inject_dependencies(api_id, payload, previous_responses, api_info):
+    """
+    Auto-inject data from previous API responses
+    
+    Example:
+    - CONFERENCE_ROOM_BOOK needs room_id
+    - CONFERENCE_ROOM_LIST returned room list
+    - Select best room matching capacity (10 people)
+    - Inject room_id into booking payload
+    """
+```
+
+---
+
+## Multi-API Result Storage System
+
+The chatbot implements a **chained execution pattern** for handling workflows that require multiple API calls where subsequent APIs depend on data from previous ones.
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                     MULTI-API RESULT STORAGE SYSTEM                              │
+│                                                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────┐ │
+│  │                    Central Storage: api_responses Dict                     │ │
+│  │                                                                            │ │
+│  │  api_responses = {                                                         │ │
+│  │    "CONFERENCE_ROOM_LIST": {                                               │ │
+│  │      "data": [{"id": "room-123", "label": "Room A", "capacity": 10}, ...]  │ │
+│  │    },                                                                      │ │
+│  │    "CONFERENCE_ROOM_BOOK": {                                               │ │
+│  │      "data": {"id": "booking-456", "status": "pending", ...}               │ │
+│  │    }                                                                       │ │
+│  │  }                                                                         │ │
+│  └────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────┐ │
+│  │                    Request Context: current_request_context                │ │
+│  │                                                                            │ │
+│  │  Stores the FULL user request including any followup responses:            │ │
+│  │  "book a room for 10 people from 3 to 5pm for my ai/ml meeting. today"    │ │
+│  │                                                                            │ │
+│  │  Used to re-extract details when regenerating payloads                     │ │
+│  └────────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Execution Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                      CHAINED API EXECUTION                                       │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+Step 1: Execute API #1 (e.g., CONFERENCE_ROOM_LIST)
+  │
+  ├── Execute with initial payload
+  │
+  └── Store result: api_responses["CONFERENCE_ROOM_LIST"] = response
+        │
+        ▼
+Step 2: Check API #2 Dependencies
+  │
+  ├── api_info["requires_data_from"] = ["CONFERENCE_ROOM_LIST"]
+  │
+  └── Dependency found in api_responses? → YES
+        │
+        ▼
+Step 3: Regenerate Payload for API #2
+  │
+  ├── Call LLM again with:
+  │   • user_input: current_request_context (full request)
+  │   • selected_apis: ["CONFERENCE_ROOM_BOOK"]
+  │   • previous_api_responses: {"CONFERENCE_ROOM_LIST": <stored response>}
+  │
+  └── LLM extracts room_id from previous response
+        │
+        ▼
+Step 4: Fallback Dependency Injection
+  │
+  ├── _inject_dependencies() checks if LLM missed any IDs
+  │
+  └── Auto-injects IDs based on specific API patterns
+        │
+        ▼
+Step 5: Execute API #2 (e.g., CONFERENCE_ROOM_BOOK)
+  │
+  └── Store result: api_responses["CONFERENCE_ROOM_BOOK"] = response
+```
+
+### Supported Dependency Chains
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    COMMON DEPENDENCY CHAINS                                      │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+1. Room Booking
+   ┌────────────────────┐     ┌────────────────────┐
+   │ CONFERENCE_ROOM_LIST│ ──► │ CONFERENCE_ROOM_BOOK│
+   └────────────────────┘     └────────────────────┘
+         room_id extracted ───────────┘
+
+2. Desk Booking
+   ┌────────────────────┐     ┌────────────────────┐
+   │     DESK_LIST      │ ──► │     DESK_BOOK      │
+   └────────────────────┘     └────────────────────┘
+         desk_id extracted ───────────┘
+
+3. Attendance Submission
+   ┌────────────────────┐     ┌────────────────────┐
+   │   ATTENDANCE_MY    │ ──► │ ATTENDANCE_SUBMIT  │
+   └────────────────────┘     └────────────────────┘
+       attendance_id extracted ─────────┘
+
+4. Leave Cancellation
+   ┌────────────────────┐     ┌────────────────────┐
+   │    LEAVE_MY_LIST   │ ──► │    LEAVE_CANCEL    │
+   └────────────────────┘     └────────────────────┘
+         leave_id extracted ───────────┘
+```
+
+### LLM Call 2 With Previous Responses
+
+When regenerating payloads, the LLM receives previous API data in this format:
+
+```
+=== PREVIOUS API RESPONSES (CRITICAL - USE THIS DATA!) ===
+
+CONFERENCE_ROOM_LIST returned 5 items. First item:
+{
+  "id": "c0a1ddb4-3ff1-4e8e-9ea1-05a3926012ac",
+  "label": "Meeting Room A",
+  "capacity": 10,
+  "equipment": ["Projector", "Whiteboard"]
+}
+
+=== END PREVIOUS API RESPONSES ===
+```
+
+The LLM is instructed to:
+1. Use actual IDs from the previous responses
+2. Select the best matching item (e.g., room with capacity >= attendees)
+3. Never use placeholder strings
+
+### Fallback Auto-Injection Logic
+
+If the LLM fails to extract IDs, `_inject_dependencies()` provides fallback:
+
+```python
+# Specific handlers for known patterns
+ATTENDANCE_SUBMIT ← ATTENDANCE_MY:
+  → Extract attendance_id from first (latest) attendance record
+
+CONFERENCE_ROOM_BOOK ← CONFERENCE_ROOM_LIST:
+  → _select_best_room() picks room matching capacity requirement
+
+DESK_BOOK ← DESK_LIST:
+  → Select first available desk
+
+CAFETERIA_BOOK_TABLE ← CAFETERIA_TABLES_LIST:
+  → Select first available table
+
+FOOD_ORDER_CREATE ← FOOD_ITEMS_LIST:
+  → _match_food_items() matches user request to menu items
+  → Extracts quantities ("2 chicken biryani" → quantity: 2)
+
+# Generic handler for other patterns
+Any API with requires_data_from:
+  → Extract "id" from first item in list response
+  → Inject into null/empty path_params or body fields
+```
+
+---
+
+## Validation Error Retry System
+
+When an API returns a 422 validation error, the system can ask for missing information instead of failing:
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                VALIDATION ERROR RETRY FLOW                      │
+└────────────────────────────────────────────────────────────────┘
+
+1. API Returns 422 Validation Error
+   │
+   ▼
+2. Parse Error Response
+   ┌──────────────────────────────────────────────────────────┐
+   │ _parse_validation_errors() extracts missing field names  │
+   │ e.g., ["attendees_count", "title"]                       │
+   └──────────────────────────────────────────────────────────┘
+   │
+   ▼
+3. Check if Error is Fixable
+   ┌──────────────────────────────────────────────────────────┐
+   │ _is_business_rule_error() checks for unfixable errors:   │
+   │ - "no team lead assigned" → NOT fixable by user          │
+   │ - "missing attendees_count" → fixable by user            │
+   └──────────────────────────────────────────────────────────┘
+   │
+   ├── NOT FIXABLE → Store error, continue with other APIs
+   │
+   └── FIXABLE → Ask followup question
+       │
+       ▼
+4. Generate Followup Question
+   ┌──────────────────────────────────────────────────────────┐
+   │ _generate_validation_followup() creates user-friendly    │
+   │ question: "Could you tell me how many people will be     │
+   │ attending?"                                               │
+   └──────────────────────────────────────────────────────────┘
+   │
+   ▼
+5. Store Retry State
+   ┌──────────────────────────────────────────────────────────┐
+   │ pending_validation_retry = {                              │
+   │   "api_id": "CONFERENCE_ROOM_BOOK",                      │
+   │   "original_input": "book a room...",                    │
+   │   "completed_responses": {API_1: response, ...},         │
+   │   "remaining_apis": ["API_3", "API_4"],                  │
+   │   "missing_fields": ["attendees_count"]                  │
+   │ }                                                         │
+   └──────────────────────────────────────────────────────────┘
+   │
+   ▼
+6. User Responds with Missing Info
+   │
+   ▼
+7. _handle_validation_retry()
+   ┌──────────────────────────────────────────────────────────┐
+   │ - Combine original request with new info                  │
+   │ - Regenerate payload with LLM Call 2                      │
+   │ - Continue execution with remaining APIs                  │
+   └──────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Multi-Request Handling
+
+The chatbot can handle multiple actions in a single request:
+
+```
+USER: "book a conference room from 2 to 4 for ai meeting, 
+       pre-order 2 chicken biryani, 
+       book a cafeteria table for 1pm, 
+       and apply for casual leave tomorrow"
+
+SYSTEM WORKFLOW:
+┌─────────────────────────────────────────────────────────────────┐
+│ LLM Call 1 selects ALL required APIs:                           │
+│                                                                  │
+│ 1. CONFERENCE_ROOM_LIST  → Get room options                     │
+│ 2. CONFERENCE_ROOM_BOOK  → Book the room                        │
+│ 3. FOOD_ITEMS_LIST       → Get menu items                       │
+│ 4. FOOD_ORDER_CREATE     → Create food order                    │
+│ 5. CAFETERIA_TABLES_LIST → Get table options                    │
+│ 6. CAFETERIA_BOOK_TABLE  → Book the table                       │
+│ 7. LEAVE_CREATE          → Create leave request                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Execution Order (dependencies first):                           │
+│                                                                  │
+│ Step 1: CONFERENCE_ROOM_LIST → Store room data                  │
+│ Step 2: CONFERENCE_ROOM_BOOK → Use room_id from Step 1          │
+│ Step 3: FOOD_ITEMS_LIST → Store menu data                       │
+│ Step 4: FOOD_ORDER_CREATE → Match items, build order            │
+│ Step 5: CAFETERIA_TABLES_LIST → Store table data                │
+│ Step 6: CAFETERIA_BOOK_TABLE → Use table_id from Step 5         │
+│ Step 7: LEAVE_CREATE → No dependency, execute directly          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## State Management
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    STATE VARIABLES                              │
+└────────────────────────────────────────────────────────────────┘
+
+current_request_context: str
+  │ Stores the full user request (including followup responses)
+  │ Used when regenerating payloads for dependent APIs
+  │ Cleared after cycle completes
+
+pending_followup: Dict
+  │ Stores state when LLM needs more info before execution
+  │ Contains: selected_apis, original_input, partial_result
+
+pending_validation_retry: Dict
+  │ Stores state when API returns fixable validation error
+  │ Contains: api_id, completed_responses, remaining_apis, missing_fields
+  │ Cleared after cycle completes
+
+conversation_history: List[Dict]
+  │ Last 20 messages for context
+  │ Cleared on logout
+```
+
+---
+
+## Session Memory System
+
+The chatbot maintains in-memory session context that persists throughout the user's session and is cleared on logout/exit.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         SESSION MEMORY (session_memory.py)                       │
+│                                                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────┐ │
+│  │                         SessionMemory Dataclass                            │ │
+│  │                                                                            │ │
+│  │  user_email: str           # Logged-in user email                          │ │
+│  │  user_name: str            # User's display name                           │ │
+│  │  user_role: str            # User's role (employee, manager, etc.)         │ │
+│  │                                                                            │ │
+│  │  entities: Dict            # Extracted entities from conversations         │ │
+│  │  recent_actions: List      # Last 10 successful actions                    │ │
+│  │  preferences: Dict         # Learned user preferences                      │ │
+│  │  current_flow: Dict        # Context for current request flow              │ │
+│  │                                                                            │ │
+│  │  session_start: datetime   # When session began                            │ │
+│  │  last_activity: datetime   # Last user interaction                         │ │
+│  └────────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Lifecycle
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    SESSION MEMORY LIFECYCLE                     │
+└────────────────────────────────────────────────────────────────┘
+
+1. LOGIN
+   ┌──────────────────────────────────────────────────────────┐
+   │ session_memory.initialize(email, name, role)             │
+   │ Creates fresh SessionMemory with user info               │
+   └──────────────────────────────────────────────────────────┘
+   │
+   ▼
+2. DURING SESSION
+   ┌──────────────────────────────────────────────────────────┐
+   │ • extract_preferences_from_request() - Learn preferences │
+   │ • extract_and_store_from_response() - Record actions     │
+   │ • get_context_summary() - Provide context to LLM         │
+   │ • set/get entities, preferences, flow context            │
+   └──────────────────────────────────────────────────────────┘
+   │
+   ▼
+3. LOGOUT / EXIT
+   ┌──────────────────────────────────────────────────────────┐
+   │ session_memory.clear()                                    │
+   │ All session data is deleted permanently                   │
+   └──────────────────────────────────────────────────────────┘
+```
+
+### What Gets Stored
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    RECENT ACTIONS                               │
+│  Stored after each successful API execution                     │
+│                                                                 │
+│  • room_booking: {booking_id, room, date, time}                │
+│  • food_order: {order_id, order_number, total, status}         │
+│  • table_booking: {booking_id, table, date, time}              │
+│  • leave_request: {leave_id, type, start_date, end_date}       │
+│  • desk_booking: {booking_id, desk, date}                      │
+│  • check_in/check_out: {attendance_id, time}                   │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│                    LEARNED PREFERENCES                          │
+│  Extracted from user requests automatically                     │
+│                                                                 │
+│  • typical_attendees: Average number of meeting attendees      │
+│  • typical_meeting_hour: Common meeting time preference        │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Integration Points
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    WHERE SESSION MEMORY IS USED                 │
+└────────────────────────────────────────────────────────────────┘
+
+1. LLM Call 2 Prompt
+   ┌──────────────────────────────────────────────────────────┐
+   │ get_context_summary() adds session context to prompt:     │
+   │                                                           │
+   │ === SESSION CONTEXT ===                                   │
+   │ User: Charlie Brown                                       │
+   │ Recent actions:                                           │
+   │   - room_booking: {room: "Room A", date: "2026-02-13"}   │
+   │ User preferences:                                         │
+   │   - typical_attendees: 10                                 │
+   │ === END SESSION CONTEXT ===                               │
+   └──────────────────────────────────────────────────────────┘
+
+2. Process Input
+   ┌──────────────────────────────────────────────────────────┐
+   │ extract_preferences_from_request(user_input)              │
+   │ Learns from "10 people", "3pm meeting" patterns           │
+   └──────────────────────────────────────────────────────────┘
+
+3. After API Success
+   ┌──────────────────────────────────────────────────────────┐
+   │ extract_and_store_from_response(api_id, response)         │
+   │ Records successful actions for future reference           │
+   └──────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Error Handling
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    ERROR SCENARIOS                              │
+└────────────────────────────────────────────────────────────────┘
+
+1. API Returns Error (422 Validation Error)
+   ┌──────────────────────────────────────────────────────────┐
+   │ Error stored in api_errors dict                          │
+   │ Response generation explicitly mentions failure          │
+   │ User gets honest error message, not fake success         │
+   └──────────────────────────────────────────────────────────┘
+
+2. Missing Required Field
+   ┌──────────────────────────────────────────────────────────┐
+   │ LLM Call 2 sets needs_followup: true                     │
+   │ Asks user for specific missing information               │
+   │ Only asks for CRITICAL fields (dates, not titles)        │
+   └──────────────────────────────────────────────────────────┘
+
+3. No Matching API Found
+   ┌──────────────────────────────────────────────────────────┐
+   │ LLM Call 1 returns empty selected_apis                   │
+   │ User informed: "I couldn't find any APIs to handle..."   │
+   └──────────────────────────────────────────────────────────┘
+
+4. LLM Error (Rate Limit, Auth Error)
+   ┌──────────────────────────────────────────────────────────┐
+   │ Exception caught and logged                              │
+   │ User gets: "❌ Sorry, I encountered an error: ..."       │
+   └──────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Summary
+
+The AI Chatbot follows this flow:
+
+1. **Receive** user natural language input (can contain multiple requests)
+2. **Select** ALL required APIs using LLM Call 1 (including dependencies)
+3. **Generate** payloads using LLM Call 2 (with followups if needed)
+4. **Execute** APIs in dependency order, storing results
+5. **Regenerate** payloads for dependent APIs using stored responses
+6. **Handle validation errors** by asking for missing info and retrying
+7. **Generate** user-friendly response (honest about success/failure)
+8. **Clear** stored state (context, retry info) after cycle completes
+9. **Return** final response to user
+
+### Key Features
+
+- **Multi-Request Handling**: Process multiple actions in one request
+- **Dependency Resolution**: Automatically execute LIST APIs before ACTION APIs
+- **Smart Matching**: Match food items, select best rooms by capacity
+- **Validation Retry**: Ask for missing fields instead of failing
+- **State Cleanup**: Clear all stored data after each complete cycle
