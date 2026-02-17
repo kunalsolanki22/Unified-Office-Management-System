@@ -30,6 +30,7 @@ class EmployeeDashboard extends StatefulWidget {
 }
 
 class _EmployeeDashboardState extends State<EmployeeDashboard> {
+    String get _firstInitial => (widget.userName.isNotEmpty) ? widget.userName.trim()[0].toUpperCase() : '?';
   int _selectedIndex = 0;
   final AttendanceService _attendanceService = AttendanceService();
   final HolidayService _holidayService = HolidayService();
@@ -451,14 +452,17 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(24),
+            CircleAvatar(
+              radius: 40,
+              backgroundColor: const Color(0xFFEFF6FF),
+              child: Text(
+                _firstInitial,
+                style: const TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
+                ),
               ),
-              child: const Icon(Icons.contacts, size: 40, color: navyColor),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -588,10 +592,10 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                         border: Border.all(color: const Color(0xFFDBEAFE), width: 1),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Text(
-                          'A',
-                          style: TextStyle(
+                          _firstInitial,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: navyColor,
@@ -955,59 +959,6 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
       iconBgColor: iconBgColor,
       title: title,
       onTap: onTap,
-    );
-  }
-
-  Widget _buildMyActivitySection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Text(
-              'MY ACTIVITY',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: Colors.grey[400],
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildActivityItem(
-            title: 'Leave Request',
-            subtitle: 'PENDING APPROVAL',
-            status: 'PENDING',
-            statusColor: const Color(0xFFD97706),
-            statusBgColor: const Color(0xFFFEF3C7),
-            accentColor: yellowAccent,
-          ),
-          const SizedBox(height: 12),
-          _buildActivityItem(
-            title: 'Desk Booking – A12',
-            subtitle: 'TODAY AT 10:00 AM',
-            status: 'ACTIVE',
-            statusColor: const Color(0xFF2563EB),
-            statusBgColor: const Color(0xFFDBEAFE),
-            accentColor: const Color(0xFF3B82F6),
-          ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Container(
-              width: 50,
-              height: 5,
-              decoration: BoxDecoration(
-                color: yellowAccent,
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

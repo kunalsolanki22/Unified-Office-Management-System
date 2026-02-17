@@ -30,9 +30,7 @@ class _LeaveScreenState extends State<LeaveScreen>
   DateTime? _startDate;
   DateTime? _endDate;
 
-  // Half day options
-  bool _isHalfDay = false;
-  String? _halfDayType;
+  // Removed half day options
 
   // Leave type selection - matching backend enums
   String _selectedLeaveType = 'casual';
@@ -85,7 +83,7 @@ class _LeaveScreenState extends State<LeaveScreen>
       children: [
         // Leave Type Dropdown
         DropdownButtonFormField<String>(
-          value: _selectedLeaveType,
+          initialValue: _selectedLeaveType,
           decoration: const InputDecoration(
             labelText: 'Leave Type',
             border: OutlineInputBorder(),
@@ -113,47 +111,6 @@ class _LeaveScreenState extends State<LeaveScreen>
           ),
         ),
         const SizedBox(height: 16),
-        // Half Day Checkbox
-        Row(
-          children: [
-            Checkbox(
-              value: _isHalfDay,
-              onChanged: (value) {
-                setState(() {
-                  _isHalfDay = value ?? false;
-                  if (!_isHalfDay) _halfDayType = null;
-                });
-              },
-            ),
-            const Text('Apply as Half Day'),
-          ],
-        ),
-        if (_isHalfDay)
-          Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: DropdownButtonFormField<String>(
-              value: _halfDayType,
-              decoration: const InputDecoration(
-                labelText: 'Half Day Type',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: 'first_half',
-                  child: Text('First Half'),
-                ),
-                DropdownMenuItem(
-                  value: 'second_half',
-                  child: Text('Second Half'),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _halfDayType = value;
-                });
-              },
-            ),
-          ),
         const SizedBox(height: 24),
         // Submit Button
         SizedBox(
@@ -262,9 +219,7 @@ class _LeaveScreenState extends State<LeaveScreen>
   int _calculateLeaveDays() {
     if (_startDate == null || _endDate == null) return 0;
     int days = _endDate!.difference(_startDate!).inDays + 1;
-    if (_isHalfDay && days == 1) {
-      return 1; // Will be 0.5 days
-    }
+    // Removed half day logic
     return days;
   }
 
@@ -278,12 +233,6 @@ class _LeaveScreenState extends State<LeaveScreen>
       SnackbarHelper.showError(context, 'Please select an end date (TO)');
       return;
     }
-    if (_isHalfDay && _halfDayType == null) {
-      SnackbarHelper.showError(
-          context, 'Please select half day type (First/Second Half)');
-      return;
-    }
-
     setState(() => _isSubmitting = true);
 
     final result = await _leaveService.createLeaveRequest(
@@ -293,8 +242,7 @@ class _LeaveScreenState extends State<LeaveScreen>
       reason: _reasonController.text.trim().isNotEmpty
           ? _reasonController.text.trim()
           : null,
-      isHalfDay: _isHalfDay,
-      halfDayType: _isHalfDay ? _halfDayType : null,
+      // Removed isHalfDay and halfDayType
     );
 
     if (!mounted) return;
@@ -308,8 +256,6 @@ class _LeaveScreenState extends State<LeaveScreen>
         _startDate = null;
         _endDate = null;
         _reasonController.clear();
-        _isHalfDay = false;
-        _halfDayType = null;
       });
       // Refresh data
       _loadData();
@@ -349,7 +295,8 @@ class _LeaveScreenState extends State<LeaveScreen>
 
     if (result['success'] == true) {
       SnackbarHelper.showSuccess(context, 'Leave request cancelled');
-      _loadLeaveRequests();
+      await _loadLeaveRequests();
+      await _loadLeaveBalance(); // Refresh leave balance after cancel
     } else {
       SnackbarHelper.showError(
           context, result['error'] ?? 'Failed to cancel request');
@@ -365,18 +312,25 @@ class _LeaveScreenState extends State<LeaveScreen>
             ? const SizedBox(height: 60, child: Center(child: CircularProgressIndicator()))
             : _leaveBalances.isEmpty
                 ? const Text('No leave balance data available')
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _leaveBalances.map((balance) {
-                      final leaveType = balance['leave_type']?.toString().toUpperCase() ?? 'N/A';
-                      final available = balance['available_days'] ?? 0;
-                      final total = balance['total_days'] ?? 0;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Text('$leaveType: $available / $total'),
-                      );
-                    }).toList(),
+                : SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columns: const [
+                        DataColumn(label: Text('Type')),
+                        DataColumn(label: Text('Available')),
+                        DataColumn(label: Text('Total')),
+                      ],
+                      rows: _leaveBalances.map<DataRow>((balance) {
+                        final leaveType = balance['leave_type']?.toString().toUpperCase() ?? 'N/A';
+                        final available = double.tryParse(balance['available_days'].toString())?.toInt() ?? 0;
+                        final total = double.tryParse(balance['total_days'].toString())?.toInt() ?? 0;
+                        return DataRow(cells: [
+                          DataCell(Text(leaveType)),
+                          DataCell(Text(available.toString())),
+                          DataCell(Text(total.toString())),
+                        ]);
+                      }).toList(),
+                    ),
                   ),
         actions: [
           TextButton(
@@ -464,8 +418,8 @@ class _LeaveScreenState extends State<LeaveScreen>
               onValueChanged: (dates) {
                 setState(() {
                   _selectedRange = dates;
-                  if (dates.isNotEmpty && dates[0] != null) _startDate = dates[0];
-                  if (dates.length > 1 && dates[1] != null) _endDate = dates[1];
+                  if (dates.isNotEmpty) _startDate = dates[0];
+                  if (dates.length > 1) _endDate = dates[1];
                 });
               },
             ),
@@ -577,9 +531,9 @@ class _LeaveScreenState extends State<LeaveScreen>
     final leaveType = request['leave_type']?.toString().toUpperCase() ?? 'N/A';
     final startDate = request['start_date'] ?? '';
     final endDate = request['end_date'] ?? '';
-    final totalDays = request['total_days'] ?? 0;
+    final totalDays = double.tryParse(request['total_days'].toString())?.toInt() ?? 0;
     final reason = request['reason'] ?? '';
-    final isHalfDay = request['is_half_day'] ?? false;
+    // Removed isHalfDay
     final requestId = request['id']?.toString() ?? '';
 
     Color statusColor;
@@ -701,7 +655,7 @@ class _LeaveScreenState extends State<LeaveScreen>
                 const Icon(Icons.schedule, size: 16, color: Colors.grey),
                 const SizedBox(width: 8),
                 Text(
-                  isHalfDay ? '0.5 day (Half Day)' : '$totalDays day(s)',
+                  '${totalDays.toString()} day(s)',
                   style: const TextStyle(fontSize: 14),
                 ),
               ],
