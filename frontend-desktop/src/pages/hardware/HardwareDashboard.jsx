@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CalendarDays, ArrowRight, HardDrive, Car, Coffee, Monitor, Users } from 'lucide-react';
+import { hardwareService } from '../../services/hardwareService';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -13,14 +15,60 @@ const itemVariants = {
 
 const HardwareDashboard = () => {
     const navigate = useNavigate();
+    const [stats, setStats] = useState({ total: 0, available: 0, assigned: 0, maintenance: 0, pending_requests: 0 });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                setLoading(true);
+                // Fetch all assets to calculate summary stats
+                const assetsRes = await hardwareService.getAssets();
+                console.log('Hardware assets response:', assetsRes);
+                
+                // Backend returns: { data: [...], total, page, page_size }
+                const assetsArray = assetsRes.data || [];
+                
+                // Calculate stats from asset list
+                const total = assetsArray.length;
+                const available = assetsArray.filter(a => a.status === 'AVAILABLE').length;
+                const assigned = assetsArray.filter(a => a.status === 'ASSIGNED').length;
+                const maintenance = assetsArray.filter(a => a.status === 'MAINTENANCE').length;
+                
+                setStats({
+                    total: total,
+                    available: available,
+                    assigned: assigned,
+                    maintenance: maintenance,
+                    pending_requests: 0,
+                });
+            } catch (err) {
+                console.error('Hardware assets error:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchDashboardData();
+    }, []);
 
     const quickActions = [
-        { icon: Car,       label: 'PARKING MANAGER',  sub: 'Slot & Capacity Controls',      path: '/hardware/services' },
-        { icon: Coffee,    label: 'CAFETERIA OPS',     sub: 'Food Provisioning Oversight',   path: '/hardware/services' },
-        { icon: Monitor,   label: 'DESK MANAGEMENT',   sub: 'Workspace Allocation',          path: '/hardware/services' },
-        { icon: Users,     label: 'CONFERENCE MGMT',   sub: 'Room Booking & Scheduling',     path: '/hardware/services' },
-        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment',          path: '/hardware/assets' },
+        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls', path: '/hardware/services' },
+        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: '/hardware/services' },
+        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation', path: '/hardware/services' },
+        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling', path: '/hardware/services' },
+        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment', path: '/hardware/assets' },
     ];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-[#1a367c] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                    <p className="text-sm text-[#8892b0] font-medium">Loading dashboard...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
@@ -40,7 +88,7 @@ const HardwareDashboard = () => {
                             IT HARDWARE REQUESTS
                         </div>
                         <div className="text-[2.2rem] font-extrabold text-[#1a367c] leading-tight mb-2">
-                            07 Pending<br />Approvals
+                            {stats.pending_requests} Pending<br />Approvals
                         </div>
                         <p className="text-[#8892b0] text-[0.95rem] leading-relaxed max-w-[90%]">
                             Employee hardware requests awaiting your review and approval.
@@ -118,7 +166,38 @@ const HardwareDashboard = () => {
                 </motion.div>
             </div>
 
-            {/* Quick Actions — 5 cards matching ActionHub */}
+            {/* Hardware Stats */}
+            <div>
+                <motion.div variants={itemVariants} className="mb-6">
+                    <h3 className="text-sm font-bold text-[#1a367c] tracking-widest">HARDWARE OVERVIEW</h3>
+                </motion.div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                    {[
+                        { label: 'Total Assets', value: String(stats.total), bg: '#FFF9E6', color: '#FFB012', text: '📦' },
+                        { label: 'Available', value: String(stats.available), bg: '#E8F5E9', color: '#22C55E', text: '✓' },
+                        { label: 'Assigned', value: String(stats.assigned), bg: '#E3F2FD', color: '#2196F3', text: '👤' },
+                        { label: 'Maintenance', value: String(stats.maintenance), bg: '#FFF3E0', color: '#FF9800', text: '🔧' },
+                        { label: 'Pending Requests', value: String(stats.pending_requests), bg: '#FFEBEE', color: '#EF4444', text: '⏳' },
+                    ].map((stat) => (
+                        <motion.div
+                            key={stat.label}
+                            variants={itemVariants}
+                            className="bg-white flex items-center justify-between gap-4 px-6 py-5 rounded-[20px] shadow-sm border border-slate-100 hover:-translate-y-1 hover:shadow-xl transition-all duration-300"
+                        >
+                            <div>
+                                <div className="text-[0.8rem] text-[#8892b0] font-semibold mb-1">{stat.label}</div>
+                                <div className="text-[2rem] font-extrabold text-[#1a367c]">{stat.value}</div>
+                            </div>
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0"
+                                style={{ background: stat.bg, color: stat.color }}>
+                                {stat.text}
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Quick Actions */}
             <div>
                 <motion.div variants={itemVariants} className="flex flex-col gap-1 mb-6">
                     <h3 className="text-2xl font-bold text-[#1a367c]">

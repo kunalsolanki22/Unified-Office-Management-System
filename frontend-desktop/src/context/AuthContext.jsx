@@ -21,6 +21,11 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('access_token', data.data.access_token);
         const meData = await authService.me();
         const userData = meData.data;
+
+        // Normalize to uppercase to match frontend constants
+        if (userData.role) userData.role = userData.role.toUpperCase();
+        if (userData.manager_type) userData.manager_type = userData.manager_type.toUpperCase();
+
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
         return userData;

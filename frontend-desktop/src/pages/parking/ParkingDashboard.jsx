@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CalendarDays, MapPin, CheckSquare, ArrowRight, Car, Coffee, Monitor, Users, HardDrive } from 'lucide-react';
+import { parkingService } from '../../services/parkingService';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -14,6 +16,31 @@ const itemVariants = {
 const ParkingDashboard = () => {
     const navigate = useNavigate();
 
+    const [stats, setStats] = useState({ total: 0, available: 0, occupied: 0, disabled: 0 });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                setLoading(true);
+                const summaryRes = await parkingService.getSummary();
+                console.log('Parking summary response:', summaryRes);
+                const summaryData = summaryRes.data || summaryRes;
+                setStats({
+                    total: summaryData.total_slots ?? summaryData.total ?? 0,
+                    available: summaryData.available_slots ?? summaryData.available ?? 0,
+                    occupied: summaryData.occupied_slots ?? summaryData.occupied ?? 0,
+                    disabled: summaryData.disabled_slots ?? summaryData.disabled ?? 0,
+                });
+            } catch (err) {
+                console.error('Parking summary error:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchDashboardData();
+    }, []);
+
     const quickActions = [
         { icon: Car,       label: 'PARKING MANAGER',  sub: 'Slot & Capacity Controls',      path: '/parking/slots' },
         { icon: Coffee,    label: 'CAFETERIA OPS',     sub: 'Food Provisioning Oversight',   path: '/parking/services' },
@@ -22,13 +49,29 @@ const ParkingDashboard = () => {
         { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment',          path: '/parking/services' },
     ];
 
+    const statsCards = [
+        { label: 'Total Slots',  value: String(stats.total),     bg: '#FFF9E6', color: '#FFB012', text: 'P' },
+        { label: 'Available',    value: String(stats.available),  bg: '#E8F5E9', color: '#22C55E', text: '✓' },
+        { label: 'Occupied',     value: String(stats.occupied),   bg: '#FFF9E6', color: '#FFB012', text: '⏱' },
+        { label: 'Disabled',     value: String(stats.disabled),   bg: '#FFEBEE', color: '#EF4444', text: '✕' },
+    ];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-[#1a367c] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                    <p className="text-sm text-[#8892b0] font-medium">Loading dashboard...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
 
-            {/* Top Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* Pending Requests Card */}
                 <motion.div
                     variants={itemVariants}
                     className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col justify-between min-h-[320px] relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
@@ -40,7 +83,7 @@ const ParkingDashboard = () => {
                             PARKING REQUESTS
                         </div>
                         <div className="text-[2.2rem] font-extrabold text-[#1a367c] leading-tight mb-2">
-                            05 Pending<br />Approvals
+                            Pending<br />Approvals
                         </div>
                         <p className="text-[#8892b0] text-[0.95rem] leading-relaxed max-w-[90%]">
                             Employee parking slot requests awaiting your review and approval.
@@ -58,7 +101,6 @@ const ParkingDashboard = () => {
                     </div>
                 </motion.div>
 
-                {/* Announcements Card */}
                 <motion.div
                     variants={itemVariants}
                     className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col min-h-[320px] hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
@@ -83,7 +125,6 @@ const ParkingDashboard = () => {
                     </div>
                 </motion.div>
 
-                {/* Holidays Card */}
                 <motion.div
                     variants={itemVariants}
                     className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col min-h-[320px] hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
@@ -118,18 +159,12 @@ const ParkingDashboard = () => {
                 </motion.div>
             </div>
 
-            {/* Parking Overview Stats */}
             <div>
                 <motion.div variants={itemVariants} className="mb-6">
                     <h3 className="text-sm font-bold text-[#1a367c] tracking-widest">PARKING OVERVIEW</h3>
                 </motion.div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {[
-                        { label: 'Total Slots',  value: '37', bg: '#FFF9E6', color: '#FFB012', text: 'P' },
-                        { label: 'Available',    value: '24', bg: '#E8F5E9', color: '#22C55E', text: '✓' },
-                        { label: 'Occupied',     value: '11', bg: '#FFF9E6', color: '#FFB012', text: '⏱' },
-                        { label: 'Disabled',     value: '2',  bg: '#FFEBEE', color: '#EF4444', text: '✕' },
-                    ].map((stat) => (
+                    {statsCards.map((stat) => (
                         <motion.div
                             key={stat.label}
                             variants={itemVariants}
@@ -148,7 +183,6 @@ const ParkingDashboard = () => {
                 </div>
             </div>
 
-            {/* Quick Actions — 5 cards matching ActionHub */}
             <div>
                 <motion.div variants={itemVariants} className="flex flex-col gap-1 mb-6">
                     <h3 className="text-2xl font-bold text-[#1a367c]">

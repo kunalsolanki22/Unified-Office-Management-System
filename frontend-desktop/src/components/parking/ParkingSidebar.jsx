@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-    LayoutDashboard, Users, Clock, CheckSquare,
+    LayoutDashboard, Users, CheckSquare,
     CalendarDays, User, Zap, LogOut
 } from 'lucide-react';
 import logo from '../../assets/cygnet-logo.png';
@@ -8,8 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const corePillars = [
     { name: 'Dashboard',      path: '/parking/dashboard',      icon: LayoutDashboard },
-    { name: 'User Directory', path: '/parking/user-directory', icon: Users },
-    { name: 'Attendance',     path: '/parking/attendance',     icon: Clock },
+    { name: 'User Directory', path: '/admin/user-directory',         icon: Users },
     { name: 'Approvals',      path: '/parking/requests',       icon: CheckSquare },
     { name: 'Holidays',       path: '/parking/holidays',       icon: CalendarDays },
 ];
@@ -45,7 +44,7 @@ const ParkingSidebar = () => {
 
             {/* Core Pillars */}
             <div className="mb-8">
-                <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-semibold">
+                <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-semibold">        
                     Core Pillars
                 </div>
                 {corePillars.map((item) => (
@@ -66,7 +65,7 @@ const ParkingSidebar = () => {
 
             {/* Access Tools */}
             <div className="mb-8">
-                <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-semibold">
+                <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-semibold">        
                     Access Tools
                 </div>
                 {accessTools.map((item) => (

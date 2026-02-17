@@ -1,5 +1,3 @@
-cd /d/ADMIN-FRONTEND/frontend-desktop
-cat > src/services/api.js << 'EOF'
 import axios from 'axios';
 
 const api = axios.create({
@@ -25,4 +23,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-EOF

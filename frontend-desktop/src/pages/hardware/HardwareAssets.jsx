@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, RefreshCw } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { hardwareService } from '../../services/hardwareService';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -11,37 +13,75 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
-const mockAssets = [
-    { id: 1, assetId: 'AST-001', type: 'Laptop', brand: 'Dell', model: 'Latitude 5520', status: 'Assigned', assignedTo: 'Karan Sharma' },
-    { id: 2, assetId: 'AST-002', type: 'Monitor', brand: 'Samsung', model: '27" FHD', status: 'Available', assignedTo: '-' },
-    { id: 3, assetId: 'AST-003', type: 'Keyboard', brand: 'Logitech', model: 'K380', status: 'Maintenance', assignedTo: '-' },
-    { id: 4, assetId: 'AST-004', type: 'Laptop', brand: 'HP', model: 'EliteBook 840', status: 'Available', assignedTo: '-' },
-];
-
 function HardwareAssets() {
-    const [assets, setAssets] = useState(mockAssets);
+    const [assets, setAssets] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [showForm, setShowForm] = useState(false);
-    const [newAsset, setNewAsset] = useState({ type: '', brand: '', model: '' });
+    const [newAsset, setNewAsset] = useState({ asset_type: '', vendor: '', model: '' });
+    const [submitting, setSubmitting] = useState(false);
+
+    const fetchAssets = async () => {
+        try {
+            setLoading(true);
+            const res = await hardwareService.getAssets();
+            console.log('Hardware assets response:', res);
+            
+            // Backend returns: { data: [...], total, page, page_size }
+            const assetsArray = res.data || [];
+            const mapped = assetsArray.map(a => ({
+                id: a.id,
+                assetId: a.asset_code,
+                type: a.asset_type,
+                name: a.name,
+                vendor: a.vendor || '—',
+                model: a.model || '—',
+                status: (a.status || 'available').charAt(0).toUpperCase() + (a.status || 'available').slice(1).toLowerCase(),
+                assignedTo: a.current_assignment?.user_name || '—',
+            }));
+            setAssets(mapped);
+        } catch (err) {
+            console.error('Failed to load assets:', err);
+            toast.error('Failed to load assets');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchAssets(); }, []);
 
     const filtered = assets.filter(a =>
         a.assetId.toLowerCase().includes(search.toLowerCase()) ||
         a.type.toLowerCase().includes(search.toLowerCase()) ||
-        a.brand.toLowerCase().includes(search.toLowerCase())
+        a.vendor.toLowerCase().includes(search.toLowerCase())
     );
 
-    const handleAdd = () => {
-        if (!newAsset.type || !newAsset.brand || !newAsset.model) return;
-        setAssets([...assets, {
-            id: assets.length + 1,
-            assetId: `AST-00${assets.length + 1}`,
-            ...newAsset,
-            status: 'Available',
-            assignedTo: '-'
-        }]);
-        setNewAsset({ type: '', brand: '', model: '' });
-        setShowForm(false);
+    const handleAdd = async () => {
+        if (!newAsset.asset_type || !newAsset.vendor || !newAsset.model) {
+            toast.error('Please fill all fields');
+            return;
+        }
+        try {
+            setSubmitting(true);
+            await hardwareService.addAsset(newAsset.asset_type, newAsset.vendor, newAsset.model);
+            toast.success(`Asset added successfully!`);
+            setNewAsset({ asset_type: '', vendor: '', model: '' });
+            setShowForm(false);
+            await fetchAssets();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || 'Failed to add asset');
+        } finally {
+            setSubmitting(false);
+        }
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="w-8 h-8 border-2 border-[#1a367c] border-t-transparent rounded-full animate-spin mx-auto"></div>
+            </div>
+        );
+    }
 
     return (
         <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
@@ -54,12 +94,20 @@ function HardwareAssets() {
                         Manage & Assign Hardware Assets
                     </p>
                 </div>
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="bg-[#1a367c] text-white px-6 py-3 rounded-full text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2"
-                >
-                    <Plus className="w-4 h-4" /> ADD ASSET
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={fetchAssets}
+                        className="border border-slate-200 text-[#8892b0] px-4 py-3 rounded-xl text-xs font-bold tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
+                    >
+                        <RefreshCw className="w-4 h-4" /> REFRESH
+                    </button>
+                    <button
+                        onClick={() => setShowForm(!showForm)}
+                        className="bg-[#1a367c] text-white px-6 py-3 rounded-full text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" /> ADD ASSET
+                    </button>
+                </div>
             </motion.div>
 
             <AnimatePresence>
@@ -73,8 +121,8 @@ function HardwareAssets() {
                         <h3 className="text-sm font-bold text-[#1a367c] mb-6 tracking-wide">ADD NEW ASSET</h3>
                         <div className="grid grid-cols-3 gap-6 mb-6">
                             {[
-                                { key: 'type', label: 'TYPE', placeholder: 'e.g. Laptop' },
-                                { key: 'brand', label: 'BRAND', placeholder: 'e.g. Dell' },
+                                { key: 'asset_type', label: 'TYPE', placeholder: 'e.g. Laptop' },
+                                { key: 'vendor', label: 'VENDOR', placeholder: 'e.g. Dell' },
                                 { key: 'model', label: 'MODEL', placeholder: 'e.g. Latitude 5520' },
                             ].map(field => (
                                 <div key={field.key} className="space-y-2">
@@ -92,8 +140,8 @@ function HardwareAssets() {
                             <button onClick={() => setShowForm(false)} className="px-6 py-3 rounded-xl border border-red-100 text-red-500 text-xs font-bold hover:bg-red-50 transition-colors">
                                 CANCEL
                             </button>
-                            <button onClick={handleAdd} className="px-6 py-3 rounded-xl bg-[#1a367c] text-white text-xs font-bold hover:bg-[#2c4a96] transition-colors shadow-lg shadow-blue-900/10">
-                                + SAVE ASSET
+                            <button onClick={handleAdd} disabled={submitting} className={`px-6 py-3 rounded-xl text-white text-xs font-bold transition-colors shadow-lg shadow-blue-900/10 ${submitting ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#1a367c] hover:bg-[#2c4a96]'}`}>
+                                {submitting ? 'SAVING...' : '+ SAVE ASSET'}
                             </button>
                         </div>
                     </motion.div>
@@ -115,34 +163,38 @@ function HardwareAssets() {
                 <div className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1.5fr] pb-4 border-b border-slate-100 mb-2 px-4 text-[0.7rem] font-bold text-[#8892b0] tracking-widest">
                     <div>ASSET ID</div>
                     <div>TYPE</div>
-                    <div>BRAND</div>
+                    <div>VENDOR</div>
                     <div>MODEL</div>
                     <div>STATUS</div>
                     <div>ASSIGNED TO</div>
                 </div>
 
                 <div className="space-y-1">
-                    {filtered.map((asset) => (
-                        <motion.div
-                            key={asset.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1.5fr] items-center p-4 rounded-xl hover:bg-[#fafbfb] transition-colors"
-                        >
-                            <div className="text-sm font-bold text-[#1a367c]">{asset.assetId}</div>
-                            <div className="text-sm text-[#8892b0]">{asset.type}</div>
-                            <div className="text-sm text-[#8892b0]">{asset.brand}</div>
-                            <div className="text-sm text-[#8892b0]">{asset.model}</div>
-                            <div>
-                                <span className={`px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide ${
-                                    asset.status === 'Available' ? 'bg-green-50 text-green-600' :
-                                    asset.status === 'Assigned' ? 'bg-blue-50 text-blue-600' :
-                                    'bg-[#fff8e6] text-[#f9b012]'
-                                }`}>{asset.status}</span>
-                            </div>
-                            <div className="text-sm text-[#8892b0]">{asset.assignedTo}</div>
-                        </motion.div>
-                    ))}
+                    {filtered.length === 0 ? (
+                        <div className="text-center py-12 text-[#8892b0] text-sm">No assets found</div>
+                    ) : (
+                        filtered.map((asset) => (
+                            <motion.div
+                                key={asset.id}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1.5fr] items-center p-4 rounded-xl hover:bg-[#fafbfb] transition-colors"        
+                            >
+                                <div className="text-sm font-bold text-[#1a367c]">{asset.assetId}</div>
+                                <div className="text-sm text-[#8892b0]">{asset.type}</div>
+                                <div className="text-sm text-[#8892b0]">{asset.vendor}</div>
+                                <div className="text-sm text-[#8892b0]">{asset.model}</div>
+                                <div>
+                                    <span className={`px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide ${
+                                        asset.status === 'Available' ? 'bg-green-50 text-green-600' :
+                                        asset.status === 'Assigned' ? 'bg-blue-50 text-blue-600' :
+                                        'bg-[#fff8e6] text-[#f9b012]'
+                                    }`}>{asset.status}</span>
+                                </div>
+                                <div className="text-sm text-[#8892b0]">{asset.assignedTo}</div>
+                            </motion.div>
+                        ))
+                    )}
                 </div>
             </motion.div>
         </motion.div>
