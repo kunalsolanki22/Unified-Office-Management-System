@@ -2,16 +2,33 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_validato
 from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
+import re
 
 from ..models.enums import UserRole, ManagerType, VehicleType
 from ..core.config import settings
+from ..utils.validators import validate_password_strength, validate_vehicle_number, validate_phone_number
 
 
 class UserBase(BaseModel):
     """Base user schema with common fields."""
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
-    phone: Optional[str] = None
+    phone: Optional[str] = Field(None, description="Phone number (exactly 10 digits)")
+    
+    @field_validator('phone')
+    @classmethod
+    def validate_phone_format(cls, v: Optional[str]) -> Optional[str]:
+        """Validate phone number is exactly 10 digits."""
+        if v is None:
+            return v
+        is_valid, error_message = validate_phone_number(v)
+        if not is_valid:
+            raise ValueError(error_message)
+        # Return cleaned phone number (only digits)
+        cleaned = re.sub(r'[\s\-\(\)\+]', '', v)
+        if cleaned.startswith('91') and len(cleaned) == 12:
+            cleaned = cleaned[2:]
+        return cleaned
 
 
 class UserCreate(UserBase):
@@ -22,11 +39,12 @@ class UserCreate(UserBase):
     - first_name, last_name (required)
     - password (required)
     - role (required - assigned by creator)
+    - vehicle_number (required - format: XX-00-XX-0000, e.g., GJ-33-DD-3333)
+    - vehicle_type (required - car, motorcycle, bicycle, or none)
     
     Optional fields:
     - email (auto-generated from name + company domain if not provided)
     - phone (optional)
-    - vehicle_number, vehicle_type (optional - for parking)
     - manager_type (required when role is MANAGER)
     - department (required when role is TEAM_LEAD)
     - team_lead_code (optional when role is EMPLOYEE)
@@ -39,6 +57,17 @@ class UserCreate(UserBase):
     Permission rules:
     - SUPER_ADMIN can create: ADMIN, MANAGER, TEAM_LEAD, EMPLOYEE
     - ADMIN can create: MANAGER, TEAM_LEAD, EMPLOYEE
+    
+    Password Requirements:
+    - At least 8 characters long
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    - At least one special character (!@#$%^&*()_+-=[]{}|;:',.<>?/`~)
+    
+    Vehicle Number Format:
+    - Format: XX-00-XX-0000 (e.g., GJ-33-DD-3333)
+    - State code (2 letters) - District code (2 digits) - Series (1-2 letters) - Number (1-4 digits)
     """
     email: Optional[EmailStr] = None  # Auto-generated if not provided
     password: str = Field(..., min_length=8)
@@ -62,9 +91,35 @@ class UserCreate(UserBase):
     admin_code: Optional[str] = None
     
     # Vehicle info (for parking services) - Required for all users
-    vehicle_number: str = Field(..., min_length=4, max_length=20, description="Vehicle number (required)")
-    vehicle_type: VehicleType = Field(default=VehicleType.CAR, description="Vehicle type (defaults to car)")
+    vehicle_number: str = Field(
+        ..., 
+        min_length=4, 
+        max_length=20, 
+        description="Vehicle number in format XX-00-XX-0000 (e.g., GJ-33-DD-3333). Required for parking allocation."
+    )
+    vehicle_type: VehicleType = Field(
+        ..., 
+        description="Vehicle type (car, motorcycle, bicycle, or none). Required for parking allocation."
+    )
     
+    @field_validator('password')
+    @classmethod
+    def validate_password_strength_check(cls, v: str) -> str:
+        """Validate password meets strength requirements."""
+        is_valid, error_message = validate_password_strength(v)
+        if not is_valid:
+            raise ValueError(error_message)
+        return v
+    
+    @field_validator('vehicle_number')
+    @classmethod
+    def validate_vehicle_number_format(cls, v: str) -> str:
+        """Validate vehicle number format (XX-00-XX-0000)."""
+        is_valid, error_message = validate_vehicle_number(v)
+        if not is_valid:
+            raise ValueError(error_message)
+        return v.strip().upper()
+
     @model_validator(mode='after')
     def validate_role_fields(self):
         """Validate fields based on role."""
@@ -86,7 +141,7 @@ class UserUpdate(BaseModel):
     """User update schema - limited fields that can be updated."""
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    phone: Optional[str] = None
+    phone: Optional[str] = Field(None, description="Phone number (exactly 10 digits)")
     is_active: Optional[bool] = None
     department: Optional[str] = None
     
@@ -101,17 +156,77 @@ class UserUpdate(BaseModel):
     
     # Manager only field
     manager_type: Optional[ManagerType] = None
+    
+    @field_validator('phone')
+    @classmethod
+    def validate_phone_format(cls, v: Optional[str]) -> Optional[str]:
+        """Validate phone number is exactly 10 digits."""
+        if v is None:
+            return v
+        is_valid, error_message = validate_phone_number(v)
+        if not is_valid:
+            raise ValueError(error_message)
+        # Return cleaned phone number (only digits)
+        cleaned = re.sub(r'[\s\-\(\)\+]', '', v)
+        if cleaned.startswith('91') and len(cleaned) == 12:
+            cleaned = cleaned[2:]
+        return cleaned
+    
+    @field_validator('vehicle_number')
+    @classmethod
+    def validate_vehicle_number_format(cls, v: Optional[str]) -> Optional[str]:
+        """Validate vehicle number format if provided."""
+        if v is None:
+            return v
+        is_valid, error_message = validate_vehicle_number(v)
+        if not is_valid:
+            raise ValueError(error_message)
+        return v.strip().upper()
 
 
 class PasswordUpdate(BaseModel):
-    """Password update by user."""
+    """Password update by user.
+    
+    Password Requirements:
+    - At least 8 characters long
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    - At least one special character (!@#$%^&*()_+-=[]{}|;:',.<>?/`~)
+    """
     current_password: str
     new_password: str = Field(..., min_length=8)
+    
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password_strength(cls, v: str) -> str:
+        """Validate new password meets strength requirements."""
+        is_valid, error_message = validate_password_strength(v)
+        if not is_valid:
+            raise ValueError(error_message)
+        return v
 
 
 class PasswordUpdateByAdmin(BaseModel):
-    """Password reset by admin - no current password needed."""
+    """Password reset by admin - no current password needed.
+    
+    Password Requirements:
+    - At least 8 characters long
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    - At least one special character (!@#$%^&*()_+-=[]{}|;:',.<>?/`~)
+    """
     new_password: str = Field(..., min_length=8)
+    
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password_strength(cls, v: str) -> str:
+        """Validate new password meets strength requirements."""
+        is_valid, error_message = validate_password_strength(v)
+        if not is_valid:
+            raise ValueError(error_message)
+        return v
 
 
 class UserRoleChange(BaseModel):

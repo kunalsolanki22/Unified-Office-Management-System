@@ -947,15 +947,20 @@ docker compose up --build
 
 ### Default Credentials
 
-**Super Admin**
-- Email: `super.admin@company.com`
-- Password: `Admin@123`
-- Role: Full system access
+After running `python -m scripts.seed_data`, the following users are created:
 
-**Admin**
-- Email: `admin@company.com`
-- Password: `Admin@123`
-- Role: User and system management
+| Role | Email | Password | User Code |
+|------|-------|----------|----------|
+| **Super Admin** | `super.admin@company.com` | `Admin@123` | `1001` |
+| **Admin** | `admin@company.com` | `Admin@123` | `2001` |
+| **Parking Manager** | `parking.manager@company.com` | `Manager@123` | `3001` |
+| **Attendance Manager** | `attendance.manager@company.com` | `Manager@123` | `3002` |
+| **Desk Manager** | `desk.manager@company.com` | `Manager@123` | `3003` |
+| **Cafeteria Manager** | `cafeteria.manager@company.com` | `Manager@123` | `3004` |
+| **IT Manager** | `it.manager@company.com` | `Manager@123` | `3005` |
+| **Dev Team Lead** | `dev.teamlead@company.com` | `TeamLead@123` | `4001` |
+| **Sales Team Lead** | `sales.teamlead@company.com` | `TeamLead@123` | `4002` |
+| **Employees** | `employee1@company.com` - `employee5@company.com` | `Employee@123` | `5001` - `5005` |
 
 ### Local Development
 
@@ -974,8 +979,8 @@ cp .env.example .env
 # Run migrations
 alembic upgrade head
 
-# Seed initial data (creates super admin and sample users)
-python scripts/seed_hierarchy.py
+# Seed initial data (creates users, desks, parking slots, IT assets, etc.)
+python -m scripts.seed_data
 
 # Start the server
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
@@ -2892,18 +2897,19 @@ alembic history
 #### 5. Seed Initial Data
 
 ```bash
-# Create super admin and sample hierarchical users
-python scripts/seed_hierarchy.py
+# Create all seed data (users, desks, parking, food items, IT assets, etc.)
+python -m scripts.seed_data
 
 # This creates:
-# - Super Admin (super.admin@company.com / Admin@123)
-# - Admin (admin@company.com / Admin@123)
-# - 5 Managers (one for each type)
-# - Multiple Team Leads
-# - Sample employees
-
-# Optional: Seed additional sample data (parking, desks, food items)
-python scripts/seed_data.py
+# - Super Admin (super.admin@company.com / Admin@123 / Code: 1001)
+# - Admin (admin@company.com / Admin@123 / Code: 2001)
+# - 5 Managers (one for each type, codes: 3001-3005)
+# - 2 Team Leads (codes: 4001-4002)
+# - 5 Employees (codes: 5001-5005)
+# - 10 Desks and 5 Conference Rooms
+# - 15 Parking Slots
+# - Sample Food Items and Cafeteria Tables
+# - Sample IT Assets
 ```
 
 #### 6. Run Development Server
@@ -3239,8 +3245,8 @@ psql -U postgres office_management -c "CREATE EXTENSION vector;"
 # Run migrations
 alembic upgrade head
 
-# Create super admin (production)
-python scripts/seed_hierarchy.py  # Or create manually via psql
+# Create initial data (production)
+python -m scripts.seed_data  # Or create users manually via psql
 ```
 
 #### 4. Configure Reverse Proxy (Nginx)
@@ -3700,8 +3706,8 @@ unified-office-management/
 │   ├── versions/                  # Migration files
 │   └── env.py
 ├── scripts/
-│   ├── seed_hierarchy.py          # Seed initial users
-│   └── seed_data.py               # Seed sample data
+│   ├── seed_data.py               # Seed all initial data (users, desks, parking, etc.)
+│   └── regenerate_embeddings.py   # Regenerate AI embeddings for search
 ├── tests/                         # Test suite
 │   ├── conftest.py                # Pytest fixtures
 │   ├── test_auth.py
@@ -4661,7 +4667,7 @@ psql -U postgres office_management -c "DROP SCHEMA public CASCADE; CREATE SCHEMA
 
 # Recreate from scratch
 alembic upgrade head
-python scripts/seed_hierarchy.py
+python -m scripts.seed_data
 ```
 
 **Error:** `Target database is not up to date`
@@ -4821,14 +4827,15 @@ pip install torch==2.1.2 sentence-transformers==2.2.2
 
 **Solution:**
 ```bash
-# Script is idempotent, but if you want to reset
+# The seed script is idempotent (skips existing users)
+# If you want to reset completely:
 psql -U postgres office_management
 
-# Delete existing users
+# Delete existing users (cascade deletes related data)
 DELETE FROM users;
 
 # Run seed again
-python scripts/seed_hierarchy.py
+python -m scripts.seed_data
 ```
 
 #### 11. Docker Build Errors

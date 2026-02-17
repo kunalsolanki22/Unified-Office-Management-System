@@ -78,24 +78,33 @@ async def create_user(
     """
     Create a new user - Only SUPER_ADMIN and ADMIN can create users.
     
-    Required fields:
+    **Required fields:**
     - first_name, last_name (required)
-    - password (required)
+    - password (required - min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special character)
     - role (required - ADMIN, MANAGER, TEAM_LEAD, or EMPLOYEE)
+    - vehicle_number (required - format: XX-00-XX-0000, e.g., GJ-33-DD-3333)
+    - vehicle_type (required - car, motorcycle, bicycle, or none)
     
-    Optional fields:
+    **Optional fields:**
     - email (auto-generated from name if not provided)
-    - phone (optional)
-    - vehicle_number, vehicle_type (optional)
+    - phone (optional - must be exactly 10 digits if provided)
     - manager_type (required when role is MANAGER)
     - department (required when role is TEAM_LEAD)
     - team_lead_code (optional when role is EMPLOYEE)
     - manager_code (optional - for hierarchy assignment)
     - admin_code (optional - for hierarchy assignment)
     
-    Permission rules:
+    **Permission rules:**
     - SUPER_ADMIN can create: ADMIN, MANAGER, TEAM_LEAD, EMPLOYEE
     - ADMIN can create: MANAGER, TEAM_LEAD, EMPLOYEE
+    
+    **Vehicle Number Format:**
+    - State code (2 letters) - District code (2 digits) - Series (1-2 letters) - Number (1-4 digits)
+    - Example: GJ-33-DD-3333, MH-12-AB-1234
+    
+    **Phone Number Format:**
+    - Exactly 10 digits (e.g., 9876543210)
+    - Country code (+91) is automatically stripped if provided
     """
     user_service = UserService(db)
     user, error = await user_service.create_user(user_data, current_user)
