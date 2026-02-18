@@ -32,8 +32,11 @@ function Login() {
         setLoading(true);
         try {
             const userData = await login(email, password);
+            console.log("Login successful, userData:", userData);
             toast.success("Login successful");
-            navigate(getRedirectPath(userData));
+            const redirectPath = getRedirectPath(userData);
+            console.log("Redirecting to:", redirectPath);
+            navigate(redirectPath);
         } catch (err) {
             setError(err.response?.data?.detail || "Invalid email or password");
         } finally {
@@ -98,8 +101,8 @@ function Login() {
                         onClick={handleLogin}
                         disabled={!email || !password || loading}
                         className={`w-full py-2.5 rounded-lg font-medium transition-all duration-200 ${!email || !password || loading
-                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                : "bg-blue-500 text-white hover:bg-blue-600 shadow-md"
+                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            : "bg-blue-500 text-white hover:bg-blue-600 shadow-md"
                             }`}
                     >
                         {loading ? "Logging in..." : "Login"}

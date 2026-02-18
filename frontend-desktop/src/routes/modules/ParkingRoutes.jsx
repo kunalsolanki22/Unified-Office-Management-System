@@ -1,24 +1,18 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ParkingLayout from '../../layouts/ParkingLayout';
 
-<<<<<<< HEAD
-=======
 // Parking specific pages
->>>>>>> recovery
 import ParkingDashboard from '../../pages/parking/ParkingDashboard';
 import ParkingSlots from '../../pages/parking/ParkingSlots';
 import ParkingRequests from '../../pages/parking/ParkingRequests';
 import Holidays from '../../pages/parking/Holidays';
 
-<<<<<<< HEAD
-=======
 // Shared pages from reporting-manager (reuse Akanksha's work)
 import UserDirectory from '../../pages/reporting-manager/UserDirectory';
 import Attendance from '../../pages/reporting-manager/AttendanceValidation';
 import MyAttendance from '../../pages/reporting-manager/MyAttendance';
 import Services from '../../pages/reporting-manager/ActionHub';
 
->>>>>>> recovery
 const ParkingRoutes = () => {
     return (
         <Routes>

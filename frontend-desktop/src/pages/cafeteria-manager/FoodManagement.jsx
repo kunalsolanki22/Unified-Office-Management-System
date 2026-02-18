@@ -1,48 +1,156 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import { toast } from 'react-toastify';
 import Button from '../../components/ui/Button';
 import InventoryTable from '../../components/cafeteria-manager/InventoryTable';
 import OrdersTable from '../../components/cafeteria-manager/OrdersTable';
 import AddFoodModal from '../../components/cafeteria-manager/AddFoodModal';
+import { cafeteriaService } from '../../services/cafeteriaService';
 
 const FoodManagement = () => {
     const [activeTab, setActiveTab] = useState('inventory');
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState(null);
+    const [inventory, setInventory] = useState([]);
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock Data
-    const [inventory, setInventory] = useState([
-        { id: 1, name: 'Executive Veg Thali', category: 'Main Course', price: 12.00, status: 'Available' },
-        { id: 2, name: 'Chicken Burger', category: 'Snacks', price: 8.50, status: 'Available' },
-        { id: 3, name: 'Cold Coffee', category: 'Beverages', price: 4.00, status: 'Out of Stock' },
-    ]);
+    // Fetch Data
+    const fetchInventory = async () => {
+        setLoading(true);
+        try {
+            const response = await cafeteriaService.getFoodItems({ page: 1, page_size: 100 });
+            const itemsList = response.data || response.items || [];
 
-    const [orders, setOrders] = useState([
-        { id: 'ORD-881', emp: 'Sarah Wilson', items: 'Executive Veg Thali', total: 12.00, status: 'Pending' },
-        { id: 'ORD-882', emp: 'Mike Ross', items: 'Chicken Burger (x2)', total: 17.00, status: 'Completed' },
-        { id: 'ORD-883', emp: 'Rachel Zane', items: 'Cold Coffee', total: 4.00, status: 'Pending' }
-    ]);
+            const formattedItems = itemsList.map(item => ({
+                id: item.id,
+                name: item.name,
+                category: item.category_name || 'General',
+                price: item.price !== undefined ? parseFloat(item.price) : 0,
+                status: item.is_available ? 'Available' : (item.is_active ? 'Unavailable' : 'Out of Stock')
+            }));
+            setInventory(formattedItems);
+        } catch (error) {
+            console.error("Failed to fetch inventory", error);
+            toast.error("Failed to load inventory items.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchOrders = async () => {
+        setLoading(true);
+        try {
+            const response = await cafeteriaService.getOrders({ page: 1, page_size: 20 });
+            const ordersList = response.data || response.orders || [];
+
+            // Helper to format items string
+            const formatItems = (items) => {
+                if (!items || items.length === 0) return 'No Items';
+                return items.map(i => `${i.item_name} ${i.quantity > 1 ? `(x${i.quantity})` : ''}`).join(', ');
+            };
+
+            const formattedOrders = ordersList.map(order => ({
+                id: order.id,
+                orderNumber: order.order_number,
+                emp: order.user_name || `User ${order.user_code ? order.user_code.substring(0, 6) : 'Unknown'}`,
+                items: formatItems(order.items),
+                total: parseFloat(order.total_amount),
+                status: order.status
+            }));
+            setOrders(formattedOrders);
+        } catch (error) {
+            console.error("Failed to fetch orders", error);
+            toast.error("Failed to load orders.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'inventory') {
+            fetchInventory();
+        } else {
+            fetchOrders();
+        }
+    }, [activeTab]);
 
     // Handlers
-    const handleAddFood = (newItem) => {
-        setInventory([...inventory, { ...newItem, id: Date.now() }]);
+    const handleOpenAdd = () => {
+        setEditingItem(null);
+        setIsModalOpen(true);
     };
 
-    const handleDeleteItem = (id) => {
-        setInventory(inventory.filter(item => item.id !== id));
+    const handleOpenEdit = (item) => {
+        setEditingItem(item);
+        setIsModalOpen(true);
     };
 
-    const handleToggleStatus = (id) => {
-        setInventory(inventory.map(item =>
-            item.id === id
-                ? { ...item, status: item.status === 'Available' ? 'Unavailable' : 'Available' }
-                : item
-        ));
+    const handleModalSubmit = async (formData) => {
+        try {
+            const payload = {
+                name: formData.name,
+                category_name: formData.category, // Backend expects category_name
+                price: formData.price,
+                is_available: formData.status === 'Available',
+                // Default values
+                description: '',
+                preparation_time_minutes: 15,
+                is_active: true
+            };
+
+            let promise;
+            if (editingItem) {
+                promise = cafeteriaService.updateFoodItem(editingItem.id, payload);
+            } else {
+                promise = cafeteriaService.createFoodItem(payload);
+            }
+
+            await toast.promise(promise, {
+                pending: editingItem ? 'Updating item...' : 'Adding item...',
+                success: editingItem ? 'Item updated successfully!' : 'Item added successfully!',
+                error: 'Failed to save item. Please try again.'
+            });
+
+            fetchInventory();
+        } catch (error) {
+            console.error("Failed to save food item", error);
+            // Toast handled by promise
+        }
     };
 
-    const handleUpdateOrderStatus = (id, newStatus) => {
-        setOrders(orders.map(order =>
-            order.id === id ? { ...order, status: newStatus } : order
-        ));
+
+
+    const handleToggleStatus = async (id) => {
+        const item = inventory.find(i => i.id === id);
+        if (!item) return;
+        const newStatus = item.status === 'Available' ? false : true;
+
+        toast.promise(
+            async () => {
+                await cafeteriaService.updateFoodItem(id, { is_available: newStatus });
+                fetchInventory();
+            },
+            {
+                pending: 'Updating status...',
+                success: 'Status updated!',
+                error: 'Failed to update status.'
+            }
+        );
+    };
+
+    const handleUpdateOrderStatus = async (id, newStatus) => {
+        toast.promise(
+            async () => {
+                await cafeteriaService.updateOrderStatus(id, newStatus);
+                fetchOrders();
+            },
+            {
+                pending: 'Updating order status...',
+                success: `Order marked as ${newStatus}!`,
+                error: 'Failed to update order status.'
+            }
+        );
     };
 
     return (
@@ -53,9 +161,11 @@ const FoodManagement = () => {
                     <h1 className="text-2xl font-extrabold text-[#1a367c] tracking-tight">Inventory & Orders</h1>
                     <p className="text-sm text-[#8892b0] font-medium mt-1">Manage inventory and process incoming orders.</p>
                 </div>
-                <Button onClick={() => setIsAddModalOpen(true)} className="gap-2 shadow-lg hover:shadow-xl transition-all">
-                    <Plus className="w-4 h-4" /> New Item
-                </Button>
+                {activeTab === 'inventory' && (
+                    <Button onClick={handleOpenAdd} className="gap-2 shadow-lg hover:shadow-xl transition-all">
+                        <Plus className="w-4 h-4" /> New Item
+                    </Button>
+                )}
             </div>
 
             {/* Tabs */}
@@ -82,18 +192,29 @@ const FoodManagement = () => {
 
             {/* Content */}
             <div className="min-h-[400px]">
-                {activeTab === 'inventory' ? (
-                    <InventoryTable inventory={inventory} onDelete={handleDeleteItem} onToggleStatus={handleToggleStatus} />
+                {loading ? (
+                    <div className="flex items-center justify-center h-40">
+                        <div className="text-gray-500 font-medium">Loading data...</div>
+                    </div>
                 ) : (
-                    <OrdersTable orders={orders} onUpdateStatus={handleUpdateOrderStatus} />
+                    activeTab === 'inventory' ? (
+                        <InventoryTable
+                            items={inventory}
+                            onToggleStatus={handleToggleStatus}
+                            onEdit={handleOpenEdit}
+                        />
+                    ) : (
+                        <OrdersTable orders={orders} onUpdateStatus={handleUpdateOrderStatus} />
+                    )
                 )}
             </div>
 
             {/* Modals */}
             <AddFoodModal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                onAdd={handleAddFood}
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onAdd={handleModalSubmit}
+                initialData={editingItem}
             />
         </div>
     );

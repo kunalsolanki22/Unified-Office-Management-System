@@ -48,7 +48,7 @@ const AppRoutes = () => {
                 {/* Parking Manager */}
                 <Route element={<ProtectedRoutes
                     allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
-                    allowedManagerTypes={['PARKING']}
+                    allowedManagerTypes={['parking']}
                 />}>
                     <Route path="/parking/*" element={<ParkingRoutes />} />
                 </Route>
@@ -56,7 +56,7 @@ const AppRoutes = () => {
                 {/* IT Hardware Manager */}
                 <Route element={<ProtectedRoutes
                     allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
-                    allowedManagerTypes={['IT_SUPPORT']}
+                    allowedManagerTypes={['it_support']}
                 />}>
                     <Route path="/hardware/*" element={<HardwareRoutes />} />
                 </Route>
@@ -64,7 +64,7 @@ const AppRoutes = () => {
                 {/* Attendance Manager */}
                 <Route element={<ProtectedRoutes
                     allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
-                    allowedManagerTypes={['ATTENDANCE']}
+                    allowedManagerTypes={['attendance']}
                 />}>
                     <Route path="/attendance-manager/*" element={<AttendanceManagerRoutes />} />
                 </Route>
@@ -72,7 +72,7 @@ const AppRoutes = () => {
                 {/* Cafeteria Manager */}
                 <Route element={<ProtectedRoutes
                     allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
-                    allowedManagerTypes={['CAFETERIA']}
+                    allowedManagerTypes={['cafeteria']}
                 />}>
                     <Route path="/cafeteria-manager/*" element={<CafeteriaManagerRoutes />} />
                 </Route>
@@ -80,7 +80,7 @@ const AppRoutes = () => {
                 {/* Conference & Desk Manager */}
                 <Route element={<ProtectedRoutes
                     allowedRoles={[ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN]}
-                    allowedManagerTypes={['DESK_CONFERENCE']}
+                    allowedManagerTypes={['desk_conference']}
                 />}>
                     <Route path="/conference-desk-manager/*" element={<ConferenceDeskManagerRoutes />} />
                 </Route>

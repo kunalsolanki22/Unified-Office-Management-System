@@ -32,19 +32,33 @@ export const AuthProvider = ({ children }) => {
     };
 
     const getRedirectPath = (userData) => {
-        const role = userData?.role;
-        const managerType = userData?.manager_type;
-        if (role === 'SUPER_ADMIN') return '/super-admin/dashboard';
-        if (role === 'ADMIN') return '/admin/dashboard';
-        if (role === 'MANAGER') {
-            if (managerType === 'PARKING') return '/parking/dashboard';
-            if (managerType === 'IT_SUPPORT') return '/hardware/dashboard';
-            if (managerType === 'ATTENDANCE') return '/attendance-manager/dashboard';
-            if (managerType === 'CAFETERIA') return '/cafeteria-manager/dashboard';
-            if (managerType === 'DESK_CONFERENCE') return '/conference-desk-manager/dashboard';
+        if (!userData) return '/login';
+
+        const role = userData.role;
+        const managerType = userData.manager_type;
+
+        // Super Admin
+        if (role === 'super_admin') return '/super-admin/dashboard';
+
+        // Admin
+        if (role === 'admin') return '/admin/dashboard';
+
+        // Managers
+        if (role === 'manager') {
+            if (managerType === 'parking') return '/parking-manager/dashboard';
+            if (managerType === 'it_support') return '/hardware-manager/dashboard';
+            if (managerType === 'attendance') return '/attendance-manager/dashboard';
+            if (managerType === 'cafeteria') return '/cafeteria-manager/dashboard';
+            if (managerType === 'desk_conference') return '/conference-desk-manager/dashboard';
+            return '/login'; // Fallback if manager type is unknown
         }
-        if (role === 'TEAM_LEAD') return '/reporting-manager/dashboard';
-        if (role === 'EMPLOYEE') return '/employee/dashboard';
+
+        // Team Lead
+        if (role === 'team_lead') return '/reporting-manager/dashboard';
+
+        // Employee
+        if (role === 'employee') return '/employee/dashboard';
+
         return '/login';
     };
 

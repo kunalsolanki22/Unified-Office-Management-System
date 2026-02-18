@@ -1,15 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 
-const AddFoodModal = ({ isOpen, onClose, onAdd }) => {
-    const [newItem, setNewItem] = useState({
+const AddFoodModal = ({ isOpen, onClose, onAdd, initialData = null }) => {
+    const defaultState = {
         name: '',
         category: 'Main Course',
         price: '',
         status: 'Available'
-    });
+    };
+
+    const [newItem, setNewItem] = useState(defaultState);
+
+    useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                setNewItem({
+                    name: initialData.name || '',
+                    category: initialData.category || 'Main Course',
+                    price: initialData.price || '',
+                    status: initialData.status || 'Available'
+                });
+            } else {
+                setNewItem(defaultState);
+            }
+        }
+    }, [isOpen, initialData]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -17,12 +34,14 @@ const AddFoodModal = ({ isOpen, onClose, onAdd }) => {
             ...newItem,
             price: parseFloat(newItem.price)
         });
-        setNewItem({ name: '', category: 'Main Course', price: '', status: 'Available' });
+        setNewItem(defaultState);
         onClose();
     };
 
+    const isEdit = !!initialData;
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Add New Food Item" maxWidth="max-w-[400px]">
+        <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? "Edit Food Item" : "Add New Food Item"} maxWidth="max-w-[400px]">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label className="block text-xs font-bold text-[#1a367c] mb-1.5 uppercase tracking-wide">Item Name</label>
@@ -66,11 +85,12 @@ const AddFoodModal = ({ isOpen, onClose, onAdd }) => {
                     >
                         <option value="Available">Available</option>
                         <option value="Out of Stock">Out of Stock</option>
+                        <option value="Unavailable">Unavailable</option>
                     </select>
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                    <Button type="submit" className="flex-1">Add Item</Button>
+                    <Button type="submit" className="flex-1">{isEdit ? "Update Item" : "Add Item"}</Button>
                     <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
                 </div>
             </form>

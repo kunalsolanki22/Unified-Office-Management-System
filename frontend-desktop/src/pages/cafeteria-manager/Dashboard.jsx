@@ -25,29 +25,82 @@ const Dashboard = () => {
     });
     const [loading, setLoading] = useState(true);
 
+    const [reservations, setReservations] = useState([]);
+
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const ordersData = await cafeteriaService.getOrders();
-                // map orders to expected format if needed, assuming API returns array
-                // API structure might be different, but we'll assume a list of orders
-                const formattedOrders = ordersData.map(o => ({
-                    id: o.id || `ORD-${Math.floor(Math.random() * 1000)}`,
-                    emp: o.employee_name || 'Unknown',
-                    items: o.items || 'Items',
-                    qty: o.quantity || '1',
-                    status: o.status || 'Pending'
-                }));
+                // Fetch Food Order Stats
+                const statsResponse = await cafeteriaService.getDashboardStats();
+                const statsData = statsResponse.data || statsResponse;
 
-                setOrders(formattedOrders.slice(0, 5)); // Take recent 5
+                // Fetch Seating Stats
+                const seatingResponse = await cafeteriaService.getCafeteriaStats();
+                const seatingData = seatingResponse.data || seatingResponse;
 
-                const pendingCount = ordersData.filter(o => o.status === 'Pending').length;
+                // Fetch Recent Orders
+                const ordersResponse = await cafeteriaService.getOrders({ page: 1, page_size: 5 });
+                const ordersList = ordersResponse.data || ordersResponse.orders || [];
 
-                setStats(prev => ({
-                    ...prev,
-                    foodOrders: ordersData.length,
-                    pendingReq: pendingCount
-                }));
+                const formattedOrders = Array.isArray(ordersList) ? ordersList.map(o => ({
+                    id: o.order_number || o.id,
+                    emp: o.user_name || 'Unknown',
+                    items: Array.isArray(o.items) ? o.items.map(i => i.item_name).join(', ') : '',
+                    qty: Array.isArray(o.items) ? o.items.reduce((acc, i) => acc + i.quantity, 0).toString() : '0',
+                    status: o.status,
+                    created_at: o.created_at
+                })) : [];
+
+                setOrders(formattedOrders);
+
+                // Fetch Reservations
+                const bookingsResponse = await cafeteriaService.getReservations({ page: 1, page_size: 5 });
+                const bookingsList = bookingsResponse.data || bookingsResponse;
+
+                const formattedReservations = Array.isArray(bookingsList) ? bookingsList.map(b => ({
+                    id: String(b.id).substring(0, 8).toUpperCase(),
+                    emp: b.user_name || b.user_code,
+                    seat: b.table_label || b.table_code,
+                    time: new Date(`${b.booking_date}T${b.start_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    created_at: b.created_at,
+                    type: 'booking'
+                })) : [];
+
+                setReservations(formattedReservations.slice(0, 3));
+
+                // Derive Recent Activity
+                const allActivities = [
+                    ...formattedOrders.map(o => ({
+                        type: 'order',
+                        title: `New Order #${o.id}`,
+                        time: o.created_at,
+                        status: 'success'
+                    })),
+                    ...formattedReservations.map(b => ({
+                        type: 'booking',
+                        title: `Table ${b.seat} Reserved`,
+                        time: b.created_at,
+                        status: 'warning'
+                    }))
+                ];
+
+                const sortedActivities = allActivities
+                    .sort((a, b) => new Date(b.time) - new Date(a.time))
+                    .slice(0, 5);
+
+                // Map correct backend field names:
+                // statsData.total_orders_today  → Food Orders today
+                // statsData.orders_by_status?.pending → Pending orders
+                // seatingData.booked_tables     → Seating Active
+                // statsData.revenue_today       → Revenue today
+                setStats({
+                    foodOrders: statsData.total_orders_today ?? 0,
+                    pendingReq: statsData.orders_by_status?.pending ?? 0,
+                    seatingActive: seatingData.booked_tables ?? 0,
+                    revenueToday: statsData.revenue_today ?? 0,
+                    recentActivities: sortedActivities
+                });
+
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);
             } finally {
@@ -57,13 +110,6 @@ const Dashboard = () => {
 
         fetchDashboardData();
     }, []);
-
-    // Mock Data for Reservations (until API is clear)
-    const reservations = [
-        { id: 'RSV-04', emp: 'Jessica Pearson', seat: 'Desk A-12', time: '1:00 PM' },
-        { id: 'RSV-05', emp: 'Donna Paulsen', seat: 'Desk B-05', time: '2:30 PM' },
-        { id: 'RSV-06', emp: 'Alex Williams', seat: 'Desk A-08', time: '4:00 PM' },
-    ];
 
     return (
         <div className="space-y-8 animate-fade-in pb-10">
@@ -138,10 +184,10 @@ const Dashboard = () => {
 
             {/* Analytics Widgets */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <AnalyticsWidget label="Food Orders" value={stats.foodOrders} />
-                <AnalyticsWidget label="Seating Active" value={stats.seatingActive} />
-                <AnalyticsWidget label="Pending Req" value={stats.pendingReq} />
-                {/* Low Stock removed as per previous intent/lack of data */}
+                <AnalyticsWidget label="Food Orders Today" value={loading ? '—' : stats.foodOrders} />
+                <AnalyticsWidget label="Seating Active" value={loading ? '—' : stats.seatingActive} />
+                <AnalyticsWidget label="Pending Orders" value={loading ? '—' : stats.pendingReq} />
+                <AnalyticsWidget label="Revenue Today" value={loading ? '—' : `₹${Number(stats.revenueToday ?? 0).toFixed(0)}`} valueColor="text-green-600" />
             </div>
 
             {/* Recent Orders */}
@@ -152,7 +198,7 @@ const Dashboard = () => {
             {/* Reservations & Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <SeatingReservations reservations={reservations} />
-                <RecentActivity />
+                <RecentActivity activities={stats.recentActivities} />
             </div>
         </div>
     );

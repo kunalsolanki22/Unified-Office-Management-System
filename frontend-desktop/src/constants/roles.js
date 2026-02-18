@@ -1,19 +1,19 @@
 export const ROLES = {
-    SUPER_ADMIN: 'SUPER_ADMIN',
-    ADMIN: 'ADMIN',
-    MANAGER: 'MANAGER',
-    TEAM_LEAD: 'TEAM_LEAD',
-    EMPLOYEE: 'EMPLOYEE',
-    ATTENDANCE_MANAGER: 'ATTENDANCE_MANAGER',
-    CAFETERIA_MANAGER: 'CAFETERIA_MANAGER',
-    REPORTING_MANAGER: 'REPORTING_MANAGER',
-    CONFERENCE_DESK_MANAGER: 'CONFERENCE_DESK_MANAGER'
+    SUPER_ADMIN: 'super_admin',
+    ADMIN: 'admin',
+    MANAGER: 'manager',
+    TEAM_LEAD: 'team_lead',
+    EMPLOYEE: 'employee',
+    ATTENDANCE_MANAGER: 'attendance_manager',
+    CAFETERIA_MANAGER: 'cafeteria_manager',
+    REPORTING_MANAGER: 'reporting_manager',
+    CONFERENCE_DESK_MANAGER: 'conference_desk_manager'
 };
 
 export const MANAGER_TYPES = {
-    PARKING: 'PARKING',
-    IT_SUPPORT: 'IT_SUPPORT',
-    ATTENDANCE: 'ATTENDANCE',
-    CAFETERIA: 'CAFETERIA',
-    DESK_CONFERENCE: 'DESK_CONFERENCE',
+    PARKING: 'parking',
+    IT_SUPPORT: 'it_support',
+    ATTENDANCE: 'attendance',
+    CAFETERIA: 'cafeteria',
+    DESK_CONFERENCE: 'desk_conference',
 };
