@@ -9,15 +9,16 @@ class AuthService {
   static const String baseUrl = 'http://127.0.0.1:8000/api/v1';
 
   Future<String> changePasswordWithEmail(
-      String email, String oldPassword, String newPassword) async {
+      String email, String oldPassword, String newPassword, String confirmPassword) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/change-password'),
         headers: const {'Content-Type': 'application/json'},
         body: json.encode({
-          'email': email,
-          'old_password': oldPassword,
+          'email': email, // Only include if backend expects it for unauthenticated
+          'current_password': oldPassword,
           'new_password': newPassword,
+          'confirm_password': confirmPassword,
         }),
       );
 
@@ -32,7 +33,7 @@ class AuthService {
     }
   }
 
-  Future<String> changePassword(String oldPassword, String newPassword) async {
+  Future<String> changePassword(String oldPassword, String newPassword, String confirmPassword) async {
     final token = await getToken();
     if (token == null) {
       return 'Not authenticated. Please login again.';
@@ -46,8 +47,9 @@ class AuthService {
           'Authorization': 'Bearer $token',
         },
         body: json.encode({
-          'old_password': oldPassword,
+          'current_password': oldPassword,
           'new_password': newPassword,
+          'confirm_password': confirmPassword,
         }),
       );
 

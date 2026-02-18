@@ -270,7 +270,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       _isLoading = true;
     });
     if (_hasToken) {
-      final result = await _authService.changePassword(oldPass, newPass);
+      final result = await _authService.changePassword(oldPass, newPass, confirmPass);
       setState(() => _isLoading = false);
       if (result == 'success') {
         _showSnackBar('Password changed successfully!', Colors.green);
@@ -279,7 +279,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         _showSnackBar(result, Colors.red);
       }
     } else {
-      final result = await _authService.changePasswordWithEmail(email, oldPass, newPass);
+      final result = await _authService.changePasswordWithEmail(email, oldPass, newPass, confirmPass);
       setState(() => _isLoading = false);
       if (result == 'success') {
         _showSnackBar('Password changed successfully!', Colors.green);
