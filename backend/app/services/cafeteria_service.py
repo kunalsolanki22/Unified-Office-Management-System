@@ -339,7 +339,10 @@ class CafeteriaService:
         page_size: int = 20
     ) -> Tuple[List[CafeteriaTableBooking], int]:
         """List cafeteria bookings with filtering."""
-        query = select(CafeteriaTableBooking).options(selectinload(CafeteriaTableBooking.table))
+        query = select(CafeteriaTableBooking).options(
+            selectinload(CafeteriaTableBooking.table),
+            selectinload(CafeteriaTableBooking.user)
+        )
         count_query = select(func.count(CafeteriaTableBooking.id))
         
         conditions = []

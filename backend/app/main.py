@@ -26,6 +26,9 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
+# Custom middleware
+app.add_middleware(ResponseMiddleware)
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -34,9 +37,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Custom middleware
-app.add_middleware(ResponseMiddleware)
 
 
 # Exception handlers

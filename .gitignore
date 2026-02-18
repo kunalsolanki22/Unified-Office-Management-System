@@ -11,3 +11,23 @@ backend/docker-compose.override.yml
 frontend-desktop/.env
 .DS_Store
 Thumbs.db
+
+# Node
+node_modules/
+dist/
+build/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Logs
+*.log
+
+# Database
+*.db
+
+# OS
+.DS_Store

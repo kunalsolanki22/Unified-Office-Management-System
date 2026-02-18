@@ -3,7 +3,7 @@
 @theme {
   --font-sans: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
 
-  --color-primary: #1e3a8a;
+  --color-primary: #8C8D90;
   /* Deep Blue */
   --color-primary-light: #3b82f6;
   /* Lighter Blue */
@@ -45,7 +45,7 @@
   }
 
   /* Super Admin Colors */
-  --color-primary-dark: #1a367c;
+  --color-primary-dark: #8C8D90;
   --color-primary-light: #2c4a96;
   --color-accent-orange: #f9b012;
   --color-text-light: #ccd6f6;
