@@ -22,28 +22,26 @@ const HardwareDashboard = () => {
         const fetchDashboardData = async () => {
             try {
                 setLoading(true);
-                // Fetch all assets to calculate summary stats
-                const assetsRes = await hardwareService.getAssets();
+                const assetsRes = await hardwareService.getAssets({ page_size: 100 });
                 console.log('Hardware assets response:', assetsRes);
-                
-                // Backend returns: { data: [...], total, page, page_size }
+
                 const assetsArray = assetsRes.data || [];
-                
-                // Calculate stats from asset list
-                const total = assetsArray.length;
+                const total = assetsRes.total || assetsArray.length;
                 const available = assetsArray.filter(a => a.status === 'AVAILABLE').length;
                 const assigned = assetsArray.filter(a => a.status === 'ASSIGNED').length;
                 const maintenance = assetsArray.filter(a => a.status === 'MAINTENANCE').length;
-                
-                setStats({
-                    total: total,
-                    available: available,
-                    assigned: assigned,
-                    maintenance: maintenance,
-                    pending_requests: 0,
-                });
+
+                let pendingCount = 0;
+                try {
+                    const reqRes = await hardwareService.getRequests({ status: 'PENDING' });
+                    pendingCount = reqRes.total || (reqRes.data || []).length;
+                } catch (e) {
+                    console.warn('Could not fetch request count:', e.message);
+                }
+
+                setStats({ total, available, assigned, maintenance, pending_requests: pendingCount });
             } catch (err) {
-                console.error('Hardware assets error:', err);
+                console.error('Hardware dashboard error:', err);
             } finally {
                 setLoading(false);
             }
@@ -72,11 +70,7 @@ const HardwareDashboard = () => {
 
     return (
         <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
-
-            {/* Top Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* Pending Requests Card */}
                 <motion.div
                     variants={itemVariants}
                     className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col justify-between min-h-[320px] relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
@@ -106,7 +100,6 @@ const HardwareDashboard = () => {
                     </div>
                 </motion.div>
 
-                {/* Announcements Card */}
                 <motion.div
                     variants={itemVariants}
                     className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col min-h-[320px] hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
@@ -131,7 +124,6 @@ const HardwareDashboard = () => {
                     </div>
                 </motion.div>
 
-                {/* Holidays Card */}
                 <motion.div
                     variants={itemVariants}
                     className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col min-h-[320px] hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
@@ -166,7 +158,6 @@ const HardwareDashboard = () => {
                 </motion.div>
             </div>
 
-            {/* Hardware Stats */}
             <div>
                 <motion.div variants={itemVariants} className="mb-6">
                     <h3 className="text-sm font-bold text-[#1a367c] tracking-widest">HARDWARE OVERVIEW</h3>
@@ -197,7 +188,6 @@ const HardwareDashboard = () => {
                 </div>
             </div>
 
-            {/* Quick Actions */}
             <div>
                 <motion.div variants={itemVariants} className="flex flex-col gap-1 mb-6">
                     <h3 className="text-2xl font-bold text-[#1a367c]">
@@ -234,7 +224,6 @@ const HardwareDashboard = () => {
                     ))}
                 </div>
             </div>
-
         </motion.div>
     );
 };

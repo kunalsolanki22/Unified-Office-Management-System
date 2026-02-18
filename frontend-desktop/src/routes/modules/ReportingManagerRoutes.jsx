@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ReportingManagerLayout from '../../layouts/ReportingManagerLayout';
 import Dashboard from '../../pages/reporting-manager/Dashboard';
-import UserDirectory from '../../pages/reporting-manager/UserDirectory';
+import UserDirectory from '../../pages/shared/UserDirectory';
 import AttendanceValidation from '../../pages/reporting-manager/AttendanceValidation';
 import ApprovalsHub from '../../pages/reporting-manager/ApprovalsHub';
 import ProjectProposal from '../../pages/reporting-manager/ProjectProposal';

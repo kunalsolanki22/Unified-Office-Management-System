@@ -26,8 +26,7 @@ function HardwareAssets() {
             setLoading(true);
             const res = await hardwareService.getAssets();
             console.log('Hardware assets response:', res);
-            
-            // Backend returns: { data: [...], total, page, page_size }
+
             const assetsArray = res.data || [];
             const mapped = assetsArray.map(a => ({
                 id: a.id,
@@ -63,7 +62,12 @@ function HardwareAssets() {
         }
         try {
             setSubmitting(true);
-            await hardwareService.addAsset(newAsset.asset_type, newAsset.vendor, newAsset.model);
+            await hardwareService.createAsset({
+                name: `${newAsset.vendor} ${newAsset.model}`,
+                asset_type: newAsset.asset_type.toUpperCase(),
+                vendor: newAsset.vendor,
+                model: newAsset.model,
+            });
             toast.success(`Asset added successfully!`);
             setNewAsset({ asset_type: '', vendor: '', model: '' });
             setShowForm(false);
@@ -120,8 +124,24 @@ function HardwareAssets() {
                     >
                         <h3 className="text-sm font-bold text-[#1a367c] mb-6 tracking-wide">ADD NEW ASSET</h3>
                         <div className="grid grid-cols-3 gap-6 mb-6">
+                            <div className="space-y-2">
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">TYPE</label>
+                                <select
+                                    value={newAsset.asset_type}
+                                    onChange={e => setNewAsset({ ...newAsset, asset_type: e.target.value })}
+                                    className="w-full bg-[#f8f9fa] p-3 rounded-lg text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium"
+                                >
+                                    <option value="">Select type</option>
+                                    <option value="LAPTOP">Laptop</option>
+                                    <option value="MONITOR">Monitor</option>
+                                    <option value="KEYBOARD">Keyboard</option>
+                                    <option value="MOUSE">Mouse</option>
+                                    <option value="HEADSET">Headset</option>
+                                    <option value="DOCKING_STATION">Docking Station</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
                             {[
-                                { key: 'asset_type', label: 'TYPE', placeholder: 'e.g. Laptop' },
                                 { key: 'vendor', label: 'VENDOR', placeholder: 'e.g. Dell' },
                                 { key: 'model', label: 'MODEL', placeholder: 'e.g. Latitude 5520' },
                             ].map(field => (
@@ -178,7 +198,7 @@ function HardwareAssets() {
                                 key={asset.id}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1.5fr] items-center p-4 rounded-xl hover:bg-[#fafbfb] transition-colors"        
+                                className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1.5fr] items-center p-4 rounded-xl hover:bg-[#fafbfb] transition-colors"
                             >
                                 <div className="text-sm font-bold text-[#1a367c]">{asset.assetId}</div>
                                 <div className="text-sm text-[#8892b0]">{asset.type}</div>

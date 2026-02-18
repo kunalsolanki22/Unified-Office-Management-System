@@ -54,7 +54,7 @@ function HardwareRequests() {
 
     const handleApprove = async (id) => {
         try {
-            await hardwareService.approveRequest(id);
+            await hardwareService.approveRequest(id, 'approve', 'Approved by manager');
             toast.success('Request approved!');
             await fetchRequests();
         } catch (err) {
@@ -64,7 +64,7 @@ function HardwareRequests() {
 
     const handleReject = async (id) => {
         try {
-            await hardwareService.rejectRequest(id);
+            await hardwareService.approveRequest(id, 'reject', '', 'Rejected by manager');
             toast.info('Request rejected');
             await fetchRequests();
         } catch (err) {
@@ -174,5 +174,4 @@ function HardwareRequests() {
         </motion.div>
     );
 }
-
 export default HardwareRequests;

@@ -7,16 +7,16 @@ import logo from '../../assets/cygnet-logo.png';
 import { useAuth } from '../../context/AuthContext';
 
 const corePillars = [
-    { name: 'Dashboard',      path: '/hardware/dashboard',      icon: LayoutDashboard },
-    { name: 'User Directory', path: '/admin/user-directory',          icon: Users },
-    { name: 'Approvals',      path: '/hardware/requests',       icon: CheckSquare },
-    { name: 'Vendors',        path: '/hardware/vendors',        icon: Building2 },
-    { name: 'Holidays',       path: '/hardware/holidays',       icon: CalendarDays },
+    { name: 'Dashboard', path: '/hardware/dashboard', icon: LayoutDashboard },
+    { name: 'User Directory', path: '/hardware/user-directory', icon: Users },
+    { name: 'Approvals', path: '/hardware/requests', icon: CheckSquare },
+    { name: 'Vendors', path: '/hardware/vendors', icon: Building2 },
+    { name: 'Holidays', path: '/hardware/holidays', icon: CalendarDays },
 ];
 
 const accessTools = [
     { name: 'My Attendance', path: '/hardware/my-attendance', icon: User },
-    { name: 'Services',      path: '/hardware/services',      icon: Zap },
+    { name: 'Services', path: '/hardware/services', icon: Zap },
 ];
 
 const HardwareSidebar = () => {
@@ -45,7 +45,7 @@ const HardwareSidebar = () => {
 
             {/* Core Pillars */}
             <div className="mb-8">
-                <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-semibold">        
+                <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-semibold">
                     Core Pillars
                 </div>
                 {corePillars.map((item) => (
@@ -66,7 +66,7 @@ const HardwareSidebar = () => {
 
             {/* Access Tools */}
             <div className="mb-8">
-                <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-semibold">        
+                <div className="text-[0.7rem] uppercase tracking-[1.2px] text-[#8892b0] mb-4 font-semibold">
                     Access Tools
                 </div>
                 {accessTools.map((item) => (
