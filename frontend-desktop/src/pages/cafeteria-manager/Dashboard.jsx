@@ -1,14 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Activity,
     Megaphone,
     Calendar as CalendarIcon,
     ArrowRight,
     Plus,
-    Utensils,
-    Armchair,
-    Clock,
-    AlertTriangle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DashboardCard from '../../components/cafeteria-manager/DashboardCard';
@@ -17,19 +13,52 @@ import RecentOrders from '../../components/cafeteria-manager/RecentOrders';
 import SeatingReservations from '../../components/cafeteria-manager/SeatingReservations';
 import RecentActivity from '../../components/cafeteria-manager/RecentActivity';
 import Button from '../../components/ui/Button';
+import { cafeteriaService } from '../../services/cafeteriaService';
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const [orders, setOrders] = useState([]);
+    const [stats, setStats] = useState({
+        foodOrders: 0,
+        pendingReq: 0,
+        seatingActive: 24 // Mock for now
+    });
+    const [loading, setLoading] = useState(true);
 
-    // Mock Data
-    const recentOrders = [
-        { id: 'ORD-881', emp: 'Sarah Wilson', items: 'Executive Veg Thali', qty: '01', status: 'Pending' },
-        { id: 'ORD-882', emp: 'Mike Ross', items: 'Chicken Burger (x2)', qty: '02', status: 'Completed' },
-        { id: 'ORD-883', emp: 'Rachel Zane', items: 'Cold Coffee', qty: '01', status: 'Pending' },
-        { id: 'ORD-884', emp: 'Harvey Specter', items: 'Club Sandwich', qty: '01', status: 'Completed' },
-        { id: 'ORD-885', emp: 'Louis Litt', items: 'Mud Mud Cake', qty: '01', status: 'Completed' },
-    ];
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                const ordersData = await cafeteriaService.getOrders();
+                // map orders to expected format if needed, assuming API returns array
+                // API structure might be different, but we'll assume a list of orders
+                const formattedOrders = ordersData.map(o => ({
+                    id: o.id || `ORD-${Math.floor(Math.random() * 1000)}`,
+                    emp: o.employee_name || 'Unknown',
+                    items: o.items || 'Items',
+                    qty: o.quantity || '1',
+                    status: o.status || 'Pending'
+                }));
 
+                setOrders(formattedOrders.slice(0, 5)); // Take recent 5
+
+                const pendingCount = ordersData.filter(o => o.status === 'Pending').length;
+
+                setStats(prev => ({
+                    ...prev,
+                    foodOrders: ordersData.length,
+                    pendingReq: pendingCount
+                }));
+            } catch (error) {
+                console.error("Failed to fetch dashboard data", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    // Mock Data for Reservations (until API is clear)
     const reservations = [
         { id: 'RSV-04', emp: 'Jessica Pearson', seat: 'Desk A-12', time: '1:00 PM' },
         { id: 'RSV-05', emp: 'Donna Paulsen', seat: 'Desk B-05', time: '2:30 PM' },
@@ -109,15 +138,15 @@ const Dashboard = () => {
 
             {/* Analytics Widgets */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <AnalyticsWidget label="Food Orders" value="142" />
-                <AnalyticsWidget label="Seating Active" value="24" />
-                <AnalyticsWidget label="Pending Req" value="07" />
-                <AnalyticsWidget label="Low Stock" value="03" valueColor="text-red-500" />
+                <AnalyticsWidget label="Food Orders" value={stats.foodOrders} />
+                <AnalyticsWidget label="Seating Active" value={stats.seatingActive} />
+                <AnalyticsWidget label="Pending Req" value={stats.pendingReq} />
+                {/* Low Stock removed as per previous intent/lack of data */}
             </div>
 
             {/* Recent Orders */}
             <div className="grid grid-cols-1 gap-6">
-                <RecentOrders orders={recentOrders} />
+                <RecentOrders orders={orders} />
             </div>
 
             {/* Reservations & Activity */}
