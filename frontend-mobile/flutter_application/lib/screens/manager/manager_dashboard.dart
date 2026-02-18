@@ -8,6 +8,8 @@ import '../manager_profile_screen.dart';
 import '../cafeteria_screen.dart';
 import '../parking_screen.dart';
 import '../leave_screen.dart';
+import 'attendance_review_screen.dart';
+import 'leave_review_screen.dart';
 
 
 class ManagerDashboard extends StatefulWidget {
@@ -389,6 +391,47 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
+            const SizedBox(height: 24),
+            const Text(
+              'Review Requests',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A2E),
+              ),
+            ),
+            const SizedBox(height: 16),
+             Row(
+              children: [
+                Expanded(child: _buildQuickLinkCard(
+                  icon: Icons.fact_check,
+                  title: 'Attendance',
+                  subtitle: 'Review approvals',
+                  color: Colors.purple.shade50,
+                  iconColor: Colors.purple,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AttendanceReviewScreen()),
+                    );
+                  },
+                )),
+                const SizedBox(width: 16),
+                Expanded(child: _buildQuickLinkCard(
+                  icon: Icons.event_available,
+                  title: 'Leave',
+                  subtitle: 'Review requests',
+                  color: Colors.teal.shade50,
+                  iconColor: Colors.teal,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LeaveReviewScreen()),
+                    );
+                  },
+                )),
+              ],
+            ),
             const SizedBox(height: 24),
             _buildAttendanceCard(),
             const SizedBox(height: 24),
@@ -783,6 +826,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     required String subtitle,
     required Color color,
     required Color iconColor,
+    VoidCallback? onTap,
   }) {
     return _HoverableCard(
       icon: icon,
@@ -790,7 +834,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
       subtitle: subtitle,
       color: color,
       iconColor: iconColor,
-      onTap: () async {
+      onTap: onTap ?? () async {
         if (title == 'Cafeteria') {
           final result = await Navigator.push(
             context,

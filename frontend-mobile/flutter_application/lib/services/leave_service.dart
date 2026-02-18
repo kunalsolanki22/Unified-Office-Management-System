@@ -87,6 +87,53 @@ class LeaveService {
     }
   }
 
+  /// Get leave requests (Manager view sees all, employee sees own)
+  Future<Map<String, dynamic>> getLeaveRequests({
+    int page = 1,
+    int pageSize = 20,
+    String? status,
+    String? leaveType,
+    String? startDate,
+    String? endDate,
+    String? userId,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      final queryParams = <String, String>{
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+      };
+      if (status != null) queryParams['status'] = status;
+      if (leaveType != null) queryParams['leave_type'] = leaveType;
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+      if (userId != null) queryParams['user_id'] = userId;
+
+      final uri =
+          Uri.parse('$baseUrl/leave/requests').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'data': data['data'] ?? [],
+          'total': data['total'] ?? 0,
+          'page': data['page'] ?? page,
+          'page_size': data['page_size'] ?? pageSize,
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['detail'] ?? 'Failed to fetch leave requests'
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Connection error: $e'};
+    }
+  }
+
   /// Get a specific leave request by ID
   Future<Map<String, dynamic>> getLeaveRequest(String requestId) async {
     try {
