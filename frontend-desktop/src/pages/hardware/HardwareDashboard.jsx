@@ -79,7 +79,7 @@ const HardwareDashboard = () => {
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-4">
                             <HardDrive className="w-4 h-4 text-[#f9b012]" />
-                            IT HARDWARE REQUESTS
+                            HARDWARE REQUESTS
                         </div>
                         <div className="text-[2.2rem] font-extrabold text-[#1a367c] leading-tight mb-2">
                             {stats.pending_requests} Pending<br />Approvals

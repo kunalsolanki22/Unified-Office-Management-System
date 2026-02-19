@@ -7,8 +7,8 @@ import {
     ArrowRight,
     Monitor,
     Projector,
-    CheckSquare,
-    ClipboardList
+    ClipboardList,
+    Users
 } from 'lucide-react';
 import { deskService } from '../../services/deskService';
 
@@ -31,21 +31,20 @@ const Dashboard = () => {
             try {
                 setLoading(true);
 
-                // Fetch desks
                 const desksRes = await deskService.getDesks({ page_size: 100 });
-                console.log('Desks response:', desksRes);
                 const desksArray = desksRes.data || [];
                 const totalDesks = desksRes.total || desksArray.length;
 
-                // Fetch today's desk bookings to get accurate counts
                 const today = new Date().toISOString().split('T')[0];
                 let activeDeskBookings = 0;
                 try {
-                    const deskBookingsRes = await deskService.getDeskBookings({ page_size: 100, booking_date: today });
+                    const deskBookingsRes = await deskService.getDeskBookings({ page_size: 100 });
                     const deskBookingsArray = deskBookingsRes.data || [];
-                    activeDeskBookings = deskBookingsArray.filter(b => 
-                        b.status.toLowerCase() === 'confirmed' || b.status.toLowerCase() === 'checked_in'
-                    ).length;
+                    activeDeskBookings = deskBookingsArray.filter(b => {
+                        const status = b.status.toLowerCase();
+                        if (status !== 'confirmed' && status !== 'checked_in') return false;
+                        return b.start_date <= today && b.end_date >= today;
+                    }).length;
                 } catch (e) {
                     console.warn('Could not fetch desk bookings:', e.message);
                 }
@@ -54,12 +53,9 @@ const Dashboard = () => {
                 const maintenanceDesks = desksArray.filter(d => d.status.toUpperCase() === 'MAINTENANCE').length;
                 const availableDesks = totalDesks - bookedDesks - maintenanceDesks;
 
-                // Fetch conference rooms
                 const roomsRes = await deskService.getRooms({ page_size: 100 });
-                console.log('Rooms response:', roomsRes);
                 const totalRooms = roomsRes.total || (roomsRes.data || []).length;
 
-                // Fetch pending room bookings
                 let pendingBookings = 0;
                 try {
                     const pendingRes = await deskService.getPendingRoomBookings();
@@ -100,8 +96,8 @@ const Dashboard = () => {
                     <div className="absolute top-0 right-0 w-40 h-40 bg-blue-50 rounded-bl-full -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-4">
-                            <Monitor className="w-4 h-4 text-[#f9b012]" />
-                            DESK & CONFERENCE REQUESTS
+                            <Projector className="w-4 h-4 text-[#f9b012]" />
+                            CONFERENCE REQUESTS
                         </div>
                         <div className="text-[2.2rem] font-extrabold text-[#1a367c] leading-tight mb-2">
                             {stats.pendingBookings} Pending<br />Requests
@@ -112,7 +108,7 @@ const Dashboard = () => {
                     </div>
                     <div className="relative z-10">
                         <button
-                            onClick={() => navigate('/conference-desk-manager/approvals')}
+                            onClick={() => navigate('/conference-desk-manager/conference-booking')}
                             className="bg-[#1a367c] text-white px-7 py-3.5 rounded-xl text-xs font-bold tracking-widest flex items-center gap-3 hover:bg-[#2c4a96] transition-all hover:shadow-lg group/btn"
                         >
                             REVIEW REQUESTS
@@ -224,7 +220,7 @@ const Dashboard = () => {
                     {[
                         { icon: Monitor, label: 'MANAGE DESKS', sub: 'Slot Allocation', path: '/conference-desk-manager/desk-booking' },
                         { icon: Projector, label: 'CONFERENCE ROOMS', sub: 'Booking Management', path: '/conference-desk-manager/conference-booking' },
-                        { icon: CheckSquare, label: 'APPROVALS', sub: 'Pending Requests', path: '/conference-desk-manager/approvals' },
+                        { icon: Users, label: 'USER DIRECTORY', sub: 'Employee Lookup', path: '/conference-desk-manager/user-directory' },
                         { icon: ClipboardList, label: 'MY ATTENDANCE', sub: 'View Logs', path: '/conference-desk-manager/my-attendance' },
                     ].map((action, idx) => (
                         <motion.div

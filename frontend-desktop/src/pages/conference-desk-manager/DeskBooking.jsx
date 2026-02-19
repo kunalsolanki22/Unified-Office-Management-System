@@ -28,7 +28,13 @@ const DeskBooking = () => {
 
             const bookingsRes = await deskService.getDeskBookings({ page_size: 100 });
             console.log('Bookings response:', bookingsRes);
-            setBookings(bookingsRes.data || []);
+            const today = new Date().toISOString().split('T')[0];
+            const activeBookings = (bookingsRes.data || []).filter(b => {
+                const status = b.status.toLowerCase();
+                if (status === 'cancelled' || status === 'rejected') return false;
+                return b.end_date >= today;
+            });
+            setBookings(activeBookings);
         } catch (err) {
             console.error('Failed to load desk data:', err);
         } finally {
