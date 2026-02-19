@@ -22,7 +22,7 @@ const Sidebar = () => {
 
     const accessTools = [
         { name: 'My Attendance', path: '/super-admin/my-attendance', icon: CalendarCheck },
-        { name: 'Action Hub', path: '/super-admin/actions', icon: Zap },
+        { name: 'Services', path: '/super-admin/actions', icon: Zap },
     ];
 
     return (

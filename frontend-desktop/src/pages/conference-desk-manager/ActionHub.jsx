@@ -4,11 +4,11 @@ import { Car, Coffee, Monitor, Users, HardDrive, ArrowRight, Projector } from 'l
 const ActionHub = () => {
     const navigate = useNavigate();
     const actions = [
-        { icon: Monitor, label: 'MANAGE DESKS', sub: 'Slot Allocation', path: '/conference-desk-manager/desk-booking' },
-        { icon: Projector, label: 'CONFERENCE ROOMS', sub: 'Booking Management', path: '/conference-desk-manager/conference-booking' },
-        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls', path: '#' },
-        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: '#' },
-        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment', path: '#' },
+        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: '/conference-desk-manager/service-booking' },
+        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation', path: '/conference-desk-manager/service-booking?tab=desk' },
+        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls', path: '/conference-desk-manager/service-booking?tab=parking' },
+        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling', path: '/conference-desk-manager/service-booking?tab=conference' },
+        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment', path: '/conference-desk-manager/service-booking?tab=hardware' },
     ];
 
     return (
@@ -21,8 +21,8 @@ const ActionHub = () => {
                 {actions.map((action, idx) => (
                     <div
                         key={idx}
-                        onClick={() => action.path !== '#' ? navigate(action.path) : null}
-                        className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group hover:-translate-y-2 hover:shadow-xl transition-all duration-300"
+                        onClick={() => action.path ? navigate(action.path) : null}
+                        className={`w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center relative overflow-hidden group hover:-translate-y-2 hover:shadow-xl transition-all duration-300 ${action.path ? 'cursor-pointer' : 'cursor-default opacity-60'}`}
                     >
                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:bg-[#1a367c] group-hover:text-white transition-colors duration-300">
                             <action.icon className="w-7 h-7" strokeWidth={1.5} />

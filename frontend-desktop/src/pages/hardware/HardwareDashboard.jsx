@@ -70,11 +70,11 @@ const HardwareDashboard = () => {
     }, []);
 
     const quickActions = [
-        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls', path: '/hardware/services' },
-        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: '/hardware/services' },
-        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation', path: '/hardware/services' },
-        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling', path: '/hardware/services' },
-        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment', path: '/hardware/assets' },
+        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: '/hardware/service-booking' },
+        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation', path: '/hardware/service-booking?tab=desk' },
+        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls', path: '/hardware/service-booking?tab=parking' },
+        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling', path: '/hardware/service-booking?tab=conference' },
+        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment', path: '/hardware/service-booking?tab=hardware' },
     ];
 
     if (loading) {
@@ -227,8 +227,8 @@ const HardwareDashboard = () => {
                         <motion.div
                             key={idx}
                             variants={itemVariants}
-                            onClick={() => navigate(action.path)}
-                            className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group hover:-translate-y-2 hover:shadow-xl transition-all duration-300"
+                            onClick={() => action.path && navigate(action.path)}
+                            className={`w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center relative overflow-hidden group hover:-translate-y-2 hover:shadow-xl transition-all duration-300 ${action.path ? 'cursor-pointer' : 'cursor-default opacity-60'}`}
                         >
                             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:bg-[#1a367c] group-hover:text-white transition-colors duration-300">
                                 <action.icon className="w-7 h-7" strokeWidth={1.5} />

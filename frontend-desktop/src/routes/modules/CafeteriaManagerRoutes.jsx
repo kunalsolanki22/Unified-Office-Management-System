@@ -11,6 +11,7 @@ import Approvals from '../../pages/attendance-manager/Approvals'; // Reused for 
 import Holidays from '../../pages/cafeteria-manager/Holidays'; // Dedicated Page
 import MyAttendance from '../../pages/attendance-manager/MyAttendance'; // Reused for My Attendance
 import ActionHub from '../../pages/super-admin/ActionHub'; // Reused for Services
+import ServiceBooking from '../../pages/shared/ServiceBooking';
 
 const CafeteriaManagerRoutes = () => {
     return (
@@ -25,6 +26,7 @@ const CafeteriaManagerRoutes = () => {
                 <Route path="desk-management" element={<DeskManagement />} />
                 <Route path="my-attendance" element={<MyAttendance />} />
                 <Route path="services" element={<ActionHub />} />
+                <Route path="service-booking" element={<ServiceBooking />} />
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Route>
         </Routes>

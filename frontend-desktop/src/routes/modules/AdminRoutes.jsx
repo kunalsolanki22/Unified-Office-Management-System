@@ -10,6 +10,7 @@ import AttendanceValidation from '../../pages/admin/AttendanceValidation';
 import Holidays from '../../pages/admin/Holidays';
 import ActionHub from '../../pages/admin/ActionHub';
 import MyAttendance from '../../pages/admin/MyAttendance';
+import ServiceBooking from '../../pages/shared/ServiceBooking';
 
 import ProjectApprovals from '../../pages/admin/ProjectApprovals';
 
@@ -25,6 +26,7 @@ const AdminRoutes = () => {
                 <Route path="holidays" element={<Holidays />} />
                 <Route path="action-hub" element={<ActionHub />} />
                 <Route path="my-attendance" element={<MyAttendance />} />
+                <Route path="service-booking" element={<ServiceBooking />} />
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Route>
         </Routes>

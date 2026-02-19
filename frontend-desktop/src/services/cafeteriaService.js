@@ -24,6 +24,10 @@ export const cafeteriaService = {
         const res = await api.put(`/food-orders/items/${id}`, data);
         return res.data;
     },
+    createFoodOrder: async (data) => {
+        const res = await api.post('/food-orders/orders', data);
+        return res.data;
+    },
     getOrders: async (params = {}) => {
         const res = await api.get('/food-orders/orders', { params });
         console.log('getOrders response:', res);

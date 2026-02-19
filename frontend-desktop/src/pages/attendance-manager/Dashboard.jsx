@@ -188,18 +188,18 @@ const Dashboard = () => {
 
                 <div className="flex flex-wrap justify-center gap-6">
                     {[
-                        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
-                        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
-                        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation' },
-                        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling' },
-                        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment' },
+                        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls', path: '/attendance-manager/service-booking?tab=parking' },
+                        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: '/attendance-manager/service-booking' },
+                        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation', path: '/attendance-manager/service-booking?tab=desk' },
+                        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling', path: '/attendance-manager/service-booking?tab=conference' },
+                        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment', path: '/attendance-manager/service-booking?tab=hardware' },
                     ].map((action, idx) => (
                         <motion.div
                             key={idx}
                             variants={itemVariants}
                             whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)' }}
-                            onClick={() => navigate('/attendance-manager/action-hub')}
-                            className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group"
+                            onClick={() => action.path && navigate(action.path)}
+                            className={`w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center relative overflow-hidden group ${action.path ? 'cursor-pointer' : 'cursor-default opacity-60'}`}
                         >
                             <div className="absolute inset-0 bg-radial-gradient from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 

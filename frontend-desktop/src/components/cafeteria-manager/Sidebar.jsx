@@ -19,8 +19,8 @@ const Sidebar = () => {
     ];
 
     const accessTools = [
-        { name: 'Services', path: '/cafeteria-manager/services', icon: Zap },
         { name: 'My Attendance', path: '/cafeteria-manager/my-attendance', icon: ClipboardList },
+        { name: 'Services', path: '/cafeteria-manager/services', icon: Zap },
     ];
 
     return (

@@ -1,14 +1,18 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Car, Coffee, Monitor, Users, HardDrive, ArrowRight } from 'lucide-react';
 
 const ActionHub = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    // Auto-detect base path from current URL (e.g. /parking, /hardware, /reporting-manager)
+    const basePath = '/' + location.pathname.split('/')[1];
+
     const actions = [
-        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
-        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
-        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation' },
-        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling' },
-        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment' },
+        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: `${basePath}/service-booking` },
+        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation', path: `${basePath}/service-booking?tab=desk` },
+        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls', path: `${basePath}/service-booking?tab=parking` },
+        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling', path: `${basePath}/service-booking?tab=conference` },
+        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment', path: `${basePath}/service-booking?tab=hardware` },
     ];
 
     return (
@@ -21,8 +25,8 @@ const ActionHub = () => {
                 {actions.map((action, idx) => (
                     <div
                         key={idx}
-                        onClick={() => navigate('/reporting-manager/dashboard')} // Placeholder - verify actual routes or keep partial
-                        className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group hover:-translate-y-2 hover:shadow-xl transition-all duration-300"
+                        onClick={() => action.path ? navigate(action.path) : null}
+                        className={`w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center relative overflow-hidden group hover:-translate-y-2 hover:shadow-xl transition-all duration-300 ${action.path ? 'cursor-pointer' : 'cursor-default opacity-60'}`}
                     >
                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:bg-[#1a367c] group-hover:text-white transition-colors duration-300">
                             <action.icon className="w-7 h-7" strokeWidth={1.5} />

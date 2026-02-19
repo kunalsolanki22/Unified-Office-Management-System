@@ -9,6 +9,7 @@ import Approvals from '../../pages/attendance-manager/Approvals';
 import Holidays from '../../pages/attendance-manager/Holidays';
 import ActionHub from '../../pages/attendance-manager/ActionHub';
 import MyAttendance from '../../pages/attendance-manager/MyAttendance';
+import ServiceBooking from '../../pages/shared/ServiceBooking';
 
 const AttendanceManagerRoutes = () => {
     return (
@@ -21,6 +22,7 @@ const AttendanceManagerRoutes = () => {
                 <Route path="holidays" element={<Holidays />} />
                 <Route path="action-hub" element={<ActionHub />} />
                 <Route path="my-attendance" element={<MyAttendance />} />
+                <Route path="service-booking" element={<ServiceBooking />} />
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Route>
         </Routes>
