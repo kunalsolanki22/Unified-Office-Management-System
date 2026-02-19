@@ -1,12 +1,12 @@
 import api from './api';
 
 export const holidayService = {
-    getHolidays: async (year = new Date().getFullYear()) => {
-        const res = await api.get('/holidays', { params: { year } });
+    getHolidays: async (params = {}) => {
+        const res = await api.get('/holidays/list', { params });
         return res.data;
     },
     createHoliday: async (data) => {
-        const res = await api.post('/holidays', data);
+        const res = await api.post('/holidays/create', data);
         return res.data;
     },
     updateHoliday: async (id, data) => {

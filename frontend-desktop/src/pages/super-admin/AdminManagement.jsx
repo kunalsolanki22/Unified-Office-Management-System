@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Edit2, Mail, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../constants/roles';
+import { userService } from '../../services/userService';
 
 const AdminManagement = () => {
     const { user } = useAuth();
@@ -12,27 +13,81 @@ const AdminManagement = () => {
     const canModify = [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role);
 
     const [showForm, setShowForm] = useState(false);
-    const [admins, setAdmins] = useState([
-        { id: 1, name: 'Sarah Miller', date: 'JAN 12, 2026', role: 'REGIONAL ADMIN', email: 's.miller@cygnet.one', avatarColor: 'bg-blue-800', initial: 'S' },
-        { id: 2, name: 'David Chen', date: 'FEB 05, 2026', role: 'INFRASTRUCTURE LEAD', email: 'd.chen@cygnet.one', avatarColor: 'bg-indigo-600', roleColor: 'bg-indigo-50 text-indigo-700', initial: 'D' },
-        { id: 3, name: 'Elena Vance', date: 'DEC 22, 2025', role: 'SECURITY ADMIN', email: 'e.vance@cygnet.one', avatarColor: 'bg-orange-600', roleColor: 'bg-emerald-50 text-emerald-700', initial: 'E' },
-    ]);
-    const [newAdmin, setNewAdmin] = useState({ name: '', email: '', role: '', date: new Date().toLocaleDateString() });
+    const [admins, setAdmins] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [newAdmin, setNewAdmin] = useState({
+        first_name: '',
+        last_name: '',
+        email: '',
+        password: '',
+        role: 'ADMIN',
+        phone: '',
+        vehicle_number: '',
+        vehicle_type: 'none'
+    });
     const [searchQuery, setSearchQuery] = useState('');
 
-    const handleAddAdmin = () => {
-        if (newAdmin.name && newAdmin.email && newAdmin.role) {
-            setAdmins([
-                ...admins,
-                {
-                    id: Date.now(),
-                    ...newAdmin,
-                    initial: newAdmin.name[0].toUpperCase(),
-                    avatarColor: 'bg-slate-700'
-                }
-            ]);
-            setNewAdmin({ name: '', email: '', role: '', date: new Date().toLocaleDateString() });
+    useEffect(() => {
+        fetchAdmins();
+    }, []);
+
+    const fetchAdmins = async () => {
+        try {
+            setLoading(true);
+            const response = await userService.getUsers({ role: ROLES.ADMIN });
+            const data = response.data || response;
+            // Format for display
+            const formattedAdmins = Array.isArray(data) ? data.map(admin => ({
+                id: admin.id,
+                name: `${admin.first_name} ${admin.last_name}`,
+                email: admin.email,
+                role: admin.role,
+                date: new Date(admin.created_at).toLocaleDateString(),
+                initial: admin.first_name ? admin.first_name[0].toUpperCase() : 'A',
+                avatarColor: 'bg-blue-800', // You could randomize this
+                roleColor: 'bg-blue-50 text-blue-800'
+            })) : [];
+            setAdmins(formattedAdmins);
+        } catch (error) {
+            console.error("Failed to fetch admins", error);
+            toast.error("Failed to load admins");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddAdmin = async () => {
+        try {
+            if (!newAdmin.first_name || !newAdmin.last_name || !newAdmin.password) {
+                toast.error("Please fill required fields (Name, Password)");
+                return;
+            }
+
+            // Backend requires first_name, last_name, vehicle info
+            const payload = {
+                ...newAdmin,
+                vehicle_number: newAdmin.vehicle_number || "XX-00-XX-0000", // Default if skipped, though user should provide
+                vehicle_type: newAdmin.vehicle_type || "none"
+            };
+
+            await userService.createUser(payload);
+            toast.success("Admin created successfully!");
             setShowForm(false);
+            setNewAdmin({
+                first_name: '',
+                last_name: '',
+                email: '',
+                password: '',
+                role: 'ADMIN',
+                phone: '',
+                vehicle_number: '',
+                vehicle_type: 'none'
+            });
+            fetchAdmins(); // Refresh data
+        } catch (error) {
+            console.error("Create admin error", error);
+            const msg = error.response?.data?.detail || "Failed to create admin";
+            toast.error(msg);
         }
     };
 
@@ -104,40 +159,60 @@ const AdminManagement = () => {
                         <h3 className="text-sm font-bold text-[#1a367c] mb-6 tracking-wide">PROVISION NEW ADMINISTRATOR</h3>
                         <div className="grid grid-cols-2 gap-6 mb-6">
                             <div className="space-y-2">
-                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">FULL NAME</label>
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">FIRST NAME</label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. Sarah Miller"
+                                    placeholder="e.g. Sarah"
                                     className="w-full bg-[#f8f9fa] p-3 rounded-lg text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium"
-                                    value={newAdmin.name}
-                                    onChange={e => setNewAdmin({ ...newAdmin, name: e.target.value })}
+                                    value={newAdmin.first_name}
+                                    onChange={e => setNewAdmin({ ...newAdmin, first_name: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">EMAIL ADDRESS</label>
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">LAST NAME</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Miller"
+                                    className="w-full bg-[#f8f9fa] p-3 rounded-lg text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium"
+                                    value={newAdmin.last_name}
+                                    onChange={e => setNewAdmin({ ...newAdmin, last_name: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">EMAIL ADDRESS (OPTIONAL)</label>
                                 <input
                                     type="email"
-                                    placeholder="e.g. s.miller@cygnet.one"
+                                    placeholder="Auto-generated if empty"
                                     className="w-full bg-[#f8f9fa] p-3 rounded-lg text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium"
                                     value={newAdmin.email}
                                     onChange={e => setNewAdmin({ ...newAdmin, email: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">INITIAL ROLE</label>
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">PASSWORD</label>
                                 <input
-                                    type="text"
-                                    placeholder="e.g. Regional Admin"
+                                    type="password"
+                                    placeholder="Min 8 chars"
                                     className="w-full bg-[#f8f9fa] p-3 rounded-lg text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium"
-                                    value={newAdmin.role}
-                                    onChange={e => setNewAdmin({ ...newAdmin, role: e.target.value })}
+                                    value={newAdmin.password}
+                                    onChange={e => setNewAdmin({ ...newAdmin, password: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">ASSIGNMENT DATE</label>
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">PHONE</label>
                                 <input
                                     type="text"
-                                    value={newAdmin.date}
+                                    placeholder="10 digits"
+                                    className="w-full bg-[#f8f9fa] p-3 rounded-lg text-sm border-none outline-none focus:ring-2 focus:ring-[#1a367c]/20 text-[#1a367c] font-medium"
+                                    value={newAdmin.phone}
+                                    onChange={e => setNewAdmin({ ...newAdmin, phone: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[0.65rem] font-bold text-[#8892b0] tracking-wider">ROLE</label>
+                                <input
+                                    type="text"
+                                    value="ADMIN"
                                     readOnly
                                     className="w-full bg-[#f8f9fa] p-3 rounded-lg text-sm border-none outline-none text-[#8892b0] font-medium cursor-not-allowed"
                                 />

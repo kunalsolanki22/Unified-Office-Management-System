@@ -196,7 +196,18 @@ class AttendanceService:
         elif user.role == UserRole.TEAM_LEAD:
             attendance.approver_code = user.manager_code
         elif user.role == UserRole.MANAGER:
-            # Find super admin
+            # Manager: Approved by Admin
+            result = await self.db.execute(
+                select(User.user_code).where(
+                    User.role == UserRole.ADMIN,
+                    User.is_deleted == False,
+                    User.is_active == True
+                ).limit(1)
+            )
+            admin_code = result.scalar_one_or_none()
+            attendance.approver_code = admin_code
+        elif user.role == UserRole.ADMIN:
+            # Admin: Approved by Super Admin
             result = await self.db.execute(
                 select(User.user_code).where(
                     User.role == UserRole.SUPER_ADMIN,
@@ -290,6 +301,13 @@ class AttendanceService:
             if employee.role == UserRole.TEAM_LEAD and employee.manager_code == approver.user_code:
                 return True, None
             return False, "You can only approve attendance for your direct reports"
+            
+        # Admin can approve Managers
+        if approver.role == UserRole.ADMIN:
+            if employee.role == UserRole.MANAGER:
+                return True, None
+            return False, "You can only approve attendance for Managers"
+
         
         return False, "Insufficient permissions to approve attendance"
     
@@ -387,18 +405,36 @@ class AttendanceService:
         """
         base_query = select(Attendance).where(
             Attendance.status == AttendanceStatus.PENDING_APPROVAL
-        ).options(selectinload(Attendance.entries))
+        ).options(
+            selectinload(Attendance.entries),
+            selectinload(Attendance.user),
+            selectinload(Attendance.approver)
+        )
         count_query = select(func.count(Attendance.id)).where(
             Attendance.status == AttendanceStatus.PENDING_APPROVAL
         )
         
         # Filter based on role
         if approver.role == UserRole.SUPER_ADMIN:
-            # See all pending approvals
-            pass
+            # See approvals where they are the designated approver
+            base_query = base_query.where(
+                Attendance.approver_code == approver.user_code
+            )
+            count_query = count_query.where(
+                Attendance.approver_code == approver.user_code
+            )
         elif approver.role == UserRole.MANAGER:
             # See approvals where they are the designated approver
             # (team leads who report to this manager)
+            base_query = base_query.where(
+                Attendance.approver_code == approver.user_code
+            )
+            count_query = count_query.where(
+                Attendance.approver_code == approver.user_code
+            )
+        elif approver.role == UserRole.ADMIN:
+             # See approvals where they are the designated approver
+            # (managers who report to this admin)
             base_query = base_query.where(
                 Attendance.approver_code == approver.user_code
             )

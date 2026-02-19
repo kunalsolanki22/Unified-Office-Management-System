@@ -5,174 +5,15 @@ import { Calendar as CalendarIcon, Clock, CheckCircle, AlertCircle, Plus, X, Loa
 import { toast } from 'react-toastify';
 import { attendanceService } from '../../services/attendanceService';
 import ConfirmationModal from '../../components/ui/ConfirmationModal';
+
+// ... existing imports
 import LeaveProposal from '../../components/leave/LeaveProposal';
 
 const MyAttendance = () => {
-    const [todayStatus, setTodayStatus] = useState(null);
-    const [logs, setLogs] = useState([]);
-    const [loadingStatus, setLoadingStatus] = useState(true);
-    const [loadingLogs, setLoadingLogs] = useState(true);
-    const [checkingIn, setCheckingIn] = useState(false);
-    const [checkingOut, setCheckingOut] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [activeTab, setActiveTab] = useState('attendance');
+    // ... existing state
+    const [activeTab, setActiveTab] = useState('attendance'); // 'attendance' or 'leave'
 
-    // Timer State
-    const [elapsedTime, setElapsedTime] = useState(0); // in seconds
-    const timerIntervalRef = useRef(null);
-
-    const fetchStatus = useCallback(async () => {
-        try {
-            setLoadingStatus(true);
-            const res = await attendanceService.getMyStatus();
-            setTodayStatus(res?.data ?? null);
-
-            // Calculate initial timer if checked in
-            if (res?.data?.is_checked_in && res?.data?.entries) {
-                const lastEntry = res.data.entries[res.data.entries.length - 1];
-                if (lastEntry && !lastEntry.check_out) {
-                    const checkInTime = new Date(lastEntry.check_in).getTime();
-                    const now = new Date().getTime();
-                    setElapsedTime(Math.floor((now - checkInTime) / 1000));
-                }
-            } else {
-                setElapsedTime(0);
-            }
-        } catch { /* ignore */ }
-        finally { setLoadingStatus(false); }
-    }, []);
-
-    const fetchLogs = useCallback(async () => {
-        try {
-            setLoadingLogs(true);
-            const res = await attendanceService.getMyAttendance({ page_size: 30 });
-            setLogs(res?.data ?? []);
-        } catch {
-            setLogs([]);
-        } finally {
-            setLoadingLogs(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchLogs();
-        fetchStatus();
-        return () => clearInterval(timerIntervalRef.current);
-    }, [fetchLogs, fetchStatus]);
-
-    // Timer Logic
-    useEffect(() => {
-        if (todayStatus?.is_checked_in) {
-            timerIntervalRef.current = setInterval(() => {
-                setElapsedTime(prev => prev + 1);
-            }, 1000);
-        } else {
-            clearInterval(timerIntervalRef.current);
-        }
-        return () => clearInterval(timerIntervalRef.current);
-    }, [todayStatus?.is_checked_in]);
-
-    const formatTimer = (seconds) => {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
-
-    const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-
-    const handleCheckIn = async () => {
-        try {
-            setCheckingIn(true);
-            await attendanceService.checkIn();
-            toast.success('Checked in successfully!');
-            await fetchLogs();
-            await fetchStatus();
-        } catch (err) {
-            const msg = err?.response?.data?.detail || 'Failed to check in.';
-            toast.error(msg);
-        } finally {
-            setCheckingIn(false);
-        }
-    };
-
-    const handleCheckOut = async () => {
-        try {
-            setCheckingOut(true);
-            await attendanceService.checkOut();
-            toast.success('Checked out successfully!');
-            await fetchLogs();
-            await fetchStatus();
-        } catch (err) {
-            const msg = err?.response?.data?.detail || 'Failed to check out.';
-            toast.error(msg);
-        } finally {
-            setCheckingOut(false);
-        }
-    };
-
-    const confirmSubmit = async () => {
-        try {
-            setSubmitting(true);
-            await attendanceService.submitAttendance(todayStatus?.attendance_id);
-            toast.success('Attendance submitted for approval!');
-            await fetchLogs();
-            await fetchStatus();
-        } catch (err) {
-            const msg = err?.response?.data?.detail || 'Failed to submit attendance.';
-            toast.error(msg);
-        } finally {
-            setSubmitting(false);
-            setIsSubmitModalOpen(false);
-        }
-    };
-
-    const handleSubmit = () => {
-        setIsSubmitModalOpen(true);
-    };
-
-    const formatTime = (timeStr) => {
-        if (!timeStr) return '--:--';
-        try {
-            if (timeStr.includes('T')) return new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            // Treat "HH:MM:SS" as UTC
-            const [h, m] = timeStr.split(':');
-            const date = new Date();
-            date.setUTCHours(parseInt(h), parseInt(m)); // Use UTC hours
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } catch { return timeStr; }
-    };
-
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '—';
-        return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-    };
-
-    const getStatusBadge = (status) => {
-        const map = {
-            present: 'bg-green-50 text-green-600',
-            checked_in: 'bg-orange-50 text-orange-500',
-            submitted: 'bg-blue-50 text-blue-600',
-            approved: 'bg-green-50 text-green-600',
-            rejected: 'bg-red-50 text-red-500',
-            absent: 'bg-red-50 text-red-500',
-            pending_approval: 'bg-amber-50 text-amber-600'
-        };
-        return map[status?.toLowerCase()] || 'bg-slate-100 text-slate-500';
-    };
-
-    // Determine today's check-in/out from latest log
-    const todayLog = logs[0];
-    const hasCheckedIn = !!todayLog?.check_in_time; // This logic might need adjustment based on API response structure
-    const hasCheckedOut = !!todayLog?.check_out_time;
-
-    // Derived states from API
-    const isCheckedIn = todayStatus?.is_checked_in;
-    const canSubmit = todayStatus?.can_submit;
-    const isDraft = todayStatus?.status === 'draft';
-    const hasTodayRecord = todayStatus?.has_attendance;
-
-    const daysPresent = logs.filter(l => ['approved', 'present', 'submitted', 'pending_approval'].includes(l.status)).length;
+    // ... existing hooks and functions
 
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 pb-10">
@@ -210,9 +51,10 @@ const MyAttendance = () => {
             </div>
 
             {activeTab === 'attendance' ? (
+                /* Existing Attendance Content */
                 <>
                     <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
-                        {/* Left: Check In/Out Panel */}
+                        {/* ... Left Panel ... */}
                         <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col justify-between relative overflow-hidden">
 
                             {/* Timer Display */}
@@ -394,6 +236,7 @@ const MyAttendance = () => {
                     </div>
                 </>
             ) : (
+                /* LEAVE PROPOSAL TAB */
                 <LeaveProposal />
             )}
 
@@ -411,3 +254,4 @@ const MyAttendance = () => {
 };
 
 export default MyAttendance;
+

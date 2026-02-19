@@ -14,7 +14,7 @@ from ....core.dependencies import (
 from ....models.user import User
 from ....models.enums import AttendanceStatus, UserRole, ManagerType
 from ....schemas.attendance import (
-    AttendanceResponse, AttendanceApproval, AttendanceCheckIn, AttendanceCheckOut
+    AttendanceResponse, AttendanceApproval, AttendanceCheckIn, AttendanceCheckOut, AttendanceDetailResponse
 )
 from ....schemas.base import APIResponse, PaginatedResponse
 from ....services.attendance_service import AttendanceService
@@ -329,7 +329,7 @@ async def get_my_attendance(
     )
 
 
-@router.get("/pending-approvals", response_model=PaginatedResponse[AttendanceResponse])
+@router.get("/pending-approvals", response_model=PaginatedResponse[AttendanceDetailResponse])
 async def get_pending_approvals(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -343,7 +343,7 @@ async def get_pending_approvals(
     )
     
     return create_paginated_response(
-        data=[AttendanceResponse.model_validate(a) for a in attendances],
+        data=[AttendanceDetailResponse.model_validate(a) for a in attendances],
         total=total,
         page=page,
         page_size=page_size,

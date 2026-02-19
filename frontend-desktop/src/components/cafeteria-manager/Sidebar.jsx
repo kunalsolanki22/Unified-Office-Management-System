@@ -15,8 +15,6 @@ const Sidebar = () => {
         { name: 'Food Management', path: '/cafeteria-manager/food-management', icon: Utensils },
         { name: 'Desk Management', path: '/cafeteria-manager/desk-management', icon: Armchair },
         { name: 'User Directory', path: '/cafeteria-manager/user-directory', icon: Users },
-        { name: 'Attendance', path: '/cafeteria-manager/attendance', icon: CalendarCheck },
-        { name: 'Approvals', path: '/cafeteria-manager/approvals', icon: CalendarCheck }, // Using similar icon or distinct one
         { name: 'Holidays', path: '/cafeteria-manager/holidays', icon: CalendarDays },
     ];
 

@@ -1,9 +1,17 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { LayoutDashboard, Users, CalendarCheck, CalendarDays, Zap, LogOut, CheckSquare } from 'lucide-react';
 import logo from '../../assets/cygnet-logo.png';
 
 const Sidebar = () => {
     const location = useLocation();
+    const navigate = useNavigate();
+    const { logout } = useAuth();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     // Helper to determine if a route is active
     const isActive = (path) => location.pathname === path;
@@ -78,10 +86,13 @@ const Sidebar = () => {
 
             {/* Footer / Exit Portal */}
             <div className="mt-auto">
-                <Link to="/login" className="flex items-center gap-2.5 text-[#8892b0] text-[0.8rem] font-medium cursor-pointer hover:text-[#1a367c] transition-colors pl-2">
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2.5 text-[#8892b0] text-[0.8rem] font-medium cursor-pointer hover:text-red-500 transition-colors pl-2 w-full text-left"
+                >
                     <LogOut className="w-4 h-4" />
                     EXIT PORTAL
-                </Link>
+                </button>
             </div>
         </aside>
     );

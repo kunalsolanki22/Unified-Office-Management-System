@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -6,44 +6,51 @@ import {
     Bell,
     CalendarDays,
     ArrowRight,
-    Users,
-    CheckCircle,
-    AlertCircle,
-    Clock,
-    Activity,
-    Car,
-    Coffee,
-    Monitor,
-    Video,
-    HardDrive,
-    FileText
+    Loader2
 } from 'lucide-react';
+import { leaveService } from '../../services/leaveService';
+import { holidayService } from '../../services/holidayService';
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const [pendingCount, setPendingCount] = useState('—');
+    const [holidays, setHolidays] = useState([]);
+    const [loadingHolidays, setLoadingHolidays] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const leaveRes = await leaveService.getPendingLeaves({ page_size: 1 });
+                setPendingCount(leaveRes?.total ?? 0);
+            } catch { setPendingCount(0); }
+
+            try {
+                setLoadingHolidays(true);
+                const holRes = await holidayService.getHolidays({ upcoming_only: true, page_size: 3 });
+                setHolidays(holRes?.data ?? []);
+            } catch { setHolidays([]); }
+            finally { setLoadingHolidays(false); }
+        };
+        fetchData();
+    }, []);
+
+    const formatHolidayDate = (dateStr) => {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
+    };
 
     const containerVariants = {
         hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1
-            }
-        }
+        visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
     };
-
     const itemVariants = {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0 }
     };
 
     return (
-        <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="space-y-8"
-        >
+        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Project Requests Card */}
                 <motion.div
@@ -51,20 +58,22 @@ const Dashboard = () => {
                     className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 flex flex-col justify-between min-h-[320px] relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                 >
                     <div className="absolute top-0 right-0 w-40 h-40 bg-orange-50 rounded-bl-full -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
-
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 text-[#8892b0] font-bold text-sm tracking-widest mb-4">
                             <CalendarCheck className="w-4 h-4 text-[#f9b012]" />
-                            PROJECT REQUESTS
+                            LEAVE APPROVALS
                         </div>
                         <div className="text-[2.2rem] font-extrabold text-[#1a367c] leading-tight mb-2 bg-gradient-to-r from-[#1a367c] to-[#2c4a96] bg-clip-text text-transparent">
-                            3 Pending<br />Approvals
+                            {pendingCount === '—' ? (
+                                <span className="text-3xl text-slate-300">—</span>
+                            ) : (
+                                <>{pendingCount} Pending<br />Approval{pendingCount !== 1 ? 's' : ''}</>
+                            )}
                         </div>
                         <p className="text-[#8892b0] text-[0.95rem] leading-relaxed max-w-[90%]">
-                            Review resource allocation and project initiation requests from Team Leads.
+                            Review leave requests submitted by your team members.
                         </p>
                     </div>
-
                     <div className="relative z-10">
                         <button
                             onClick={() => navigate('/reporting-manager/approvals')}
@@ -86,20 +95,10 @@ const Dashboard = () => {
                         <Bell className="w-4 h-4 text-[#f9b012]" />
                         ORGANIZATION ANNOUNCEMENTS
                     </div>
-
-                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                        {[
-                            { date: 'FEB 10', title: 'Town Hall Meeting', desc: 'Quadrimester updates with CEO. 4:00 PM IST.' },
-                            { date: 'FEB 08', title: 'Policy Update: Remote Work', desc: 'Revised guidelines available in HR Registry.' }
-                        ].map((ann, idx) => (
-                            <div key={idx} className="flex gap-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0 last:mb-0">
-                                <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">{ann.date}</div>
-                                <div className="flex-1">
-                                    <div className="font-bold text-[#1a367c] text-sm mb-1">{ann.title}</div>
-                                    <div className="text-xs text-[#8892b0]">{ann.desc}</div>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="flex-1 flex flex-col items-center justify-center text-center text-[#8892b0]">
+                        <Bell className="w-10 h-10 mb-3 opacity-15" />
+                        <p className="text-sm font-medium">No announcements at this time.</p>
+                        <p className="text-xs mt-1 opacity-70">Check back later for updates.</p>
                     </div>
                     <div className="h-1 w-10 bg-[#f9b012] mt-6 rounded-full transition-all duration-300 group-hover:w-20"></div>
                 </motion.div>
@@ -115,18 +114,28 @@ const Dashboard = () => {
                     </div>
 
                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                        {[
-                            { date: 'FEB 26', title: 'Maha Shivratri', desc: 'Public Holiday' },
-                            { date: 'MAR 14', title: 'Holi', desc: 'Festival of Colors' }
-                        ].map((holiday, idx) => (
-                            <div key={idx} className="flex gap-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0 last:mb-0">
-                                <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">{holiday.date}</div>
-                                <div className="flex-1">
-                                    <div className="font-bold text-[#1a367c] text-sm mb-1">{holiday.title}</div>
-                                    <div className="text-xs text-[#8892b0]">{holiday.desc}</div>
-                                </div>
+                        {loadingHolidays ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-5 h-5 animate-spin text-slate-300" />
                             </div>
-                        ))}
+                        ) : holidays.length > 0 ? (
+                            holidays.map((h) => (
+                                <div key={h.id} className="flex gap-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0">
+                                    <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">
+                                        {formatHolidayDate(h.date)}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="font-bold text-[#1a367c] text-sm mb-1">{h.name}</div>
+                                        <div className="text-xs text-[#8892b0]">{h.holiday_type || 'Public Holiday'}</div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-8 text-[#8892b0]">
+                                <CalendarDays className="w-8 h-8 mb-2 opacity-20" />
+                                <p className="text-xs font-medium">No upcoming holidays</p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-auto pt-4 border-t border-slate-50">
@@ -138,54 +147,8 @@ const Dashboard = () => {
                             <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
                         </button>
                     </div>
-
                     <div className="h-1 w-10 bg-[#f9b012] mt-6 rounded-full transition-all duration-300 group-hover:w-20"></div>
                 </motion.div>
-            </div>
-
-
-
-            {/* Quick Actions */}
-            <div>
-                <motion.div
-                    variants={itemVariants}
-                    className="flex items-center justify-between mb-6"
-                >
-                    <h3 className="text-sm font-bold text-[#1a367c] tracking-widest">QUICK ACTIONS</h3>
-                </motion.div>
-
-                <div className="flex flex-wrap justify-center gap-6">
-                    {[
-                        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
-                        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
-                        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation' },
-                        { icon: Video, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling' },
-                        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment' },
-                    ].map((action, idx) => (
-                        <motion.div
-                            key={idx}
-                            variants={itemVariants}
-                            whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)' }}
-                            onClick={() => navigate('/reporting-manager/placeholder')}
-                            className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group"
-                        >
-                            <div className="absolute inset-0 bg-radial-gradient from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-                            <div className="w-16 h-16 bg-[#f8f9fa] rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:text-[#f9b012] transition-colors relative z-10">
-                                <action.icon className="w-7 h-7" strokeWidth={1.5} />
-                            </div>
-
-                            <h3 className="text-sm font-bold text-[#1a367c] tracking-wide mb-2 leading-tight relative z-10">
-                                {action.label.split(' ').map((line, i) => (
-                                    <span key={i} className="block">{line}</span>
-                                ))}
-                            </h3>
-                            <p className="text-[0.65rem] text-[#8892b0] font-medium relative z-10">{action.sub}</p>
-
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-[#f9b012] rounded-t-lg transition-all duration-300 group-hover:w-full group-hover:rounded-none"></div>
-                        </motion.div>
-                    ))}
-                </div>
             </div>
         </motion.div>
     );

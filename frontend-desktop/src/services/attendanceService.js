@@ -25,4 +25,12 @@ export const attendanceService = {
         const res = await api.post(`/attendance/${id}/approve`, { action, notes, rejection_reason });
         return res.data;
     },
+    getMyStatus: async () => {
+        const res = await api.get('/attendance/my-status');
+        return res.data;
+    },
+    submitAttendance: async (attendanceId) => {
+        const res = await api.post(`/attendance/submit`);
+        return res.data;
+    },
 };

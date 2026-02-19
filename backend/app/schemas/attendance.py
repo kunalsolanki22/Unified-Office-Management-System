@@ -65,11 +65,13 @@ class AttendanceResponse(BaseModel):
         from_attributes = True
 
 
+
+from ..schemas.user import UserMinimalResponse
+
 class AttendanceDetailResponse(AttendanceResponse):
     """Detailed attendance response with user info."""
-    user_name: Optional[str] = None
-    user_email: Optional[str] = None
-    approver_name: Optional[str] = None
+    user: Optional[UserMinimalResponse] = None
+    approver: Optional[UserMinimalResponse] = None
     
     class Config:
         from_attributes = True

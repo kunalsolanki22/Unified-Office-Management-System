@@ -629,6 +629,17 @@ class LeaveService:
                 count_query = count_query.where(
                     LeaveRequest.status.in_([LeaveStatus.PENDING, LeaveStatus.APPROVED_BY_TEAM_LEAD])
                 )
+        elif approver.role == UserRole.ADMIN:
+            # See pending approvals from ALL Managers (regardless of specific assignment)
+            # This ensures any Admin can pick up the request
+            base_query = base_query.join(User, LeaveRequest.user_code == User.user_code).where(
+                User.role == UserRole.MANAGER,
+                LeaveRequest.status.in_([LeaveStatus.PENDING, LeaveStatus.APPROVED_BY_TEAM_LEAD])
+            )
+            count_query = count_query.join(User, LeaveRequest.user_code == User.user_code).where(
+                User.role == UserRole.MANAGER,
+                LeaveRequest.status.in_([LeaveStatus.PENDING, LeaveStatus.APPROVED_BY_TEAM_LEAD])
+            )
         elif approver.role == UserRole.MANAGER:
             # See final approvals where they are the final approver
             base_query = base_query.where(
@@ -642,11 +653,11 @@ class LeaveService:
         elif approver.role == UserRole.TEAM_LEAD:
             # See Level 1 approvals where they are the level1 approver
             base_query = base_query.where(
-                LeaveRequest.level1_approver_code == approver.user_code,
+                LeaveRequest.final_approver_code == approver.user_code,
                 LeaveRequest.status == LeaveStatus.PENDING
             )
             count_query = count_query.where(
-                LeaveRequest.level1_approver_code == approver.user_code,
+                LeaveRequest.final_approver_code == approver.user_code,
                 LeaveRequest.status == LeaveStatus.PENDING
             )
         else:

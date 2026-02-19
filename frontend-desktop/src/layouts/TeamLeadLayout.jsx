@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import logo from '../assets/cygnet-logo.png';
 
-const ReportingManagerLayout = () => {
+const TeamLeadLayout = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -36,17 +36,15 @@ const ReportingManagerLayout = () => {
     const isActive = (path) => location.pathname.includes(path);
 
     const navItems = [
-        { path: '/reporting-manager/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/reporting-manager/user-directory', label: 'User Directory', icon: Users },
-        { path: '/reporting-manager/attendance-validation', label: 'Attendance', icon: CalendarCheck },
-        { path: '/reporting-manager/approvals', label: 'Approvals', icon: CheckSquare },
-        { path: '/reporting-manager/project-proposal', label: 'Projects', icon: Briefcase },
-        { path: '/reporting-manager/holidays', label: 'Holidays', icon: Calendar },
+        { path: '/team-lead/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        // { path: '/team-lead/user-directory', label: 'User Directory', icon: Users },
+        { path: '/team-lead/approvals', label: 'Approvals', icon: CalendarCheck },
+        // { path: '/team-lead/holidays', label: 'Holidays', icon: Calendar },
     ];
 
     const accessTools = [
-        { path: '/reporting-manager/my-attendance', label: 'My Attendance', icon: ClipboardList },
-        { path: '/reporting-manager/action-hub', label: 'Services', icon: Zap },
+        { path: '/team-lead/my-attendance', label: 'My Attendance', icon: ClipboardList },
+        // { path: '/team-lead/action-hub', label: 'Services', icon: Zap },
     ];
 
     return (
@@ -111,7 +109,7 @@ const ReportingManagerLayout = () => {
                 <header className="h-[90px] flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-50 border-b border-transparent pt-5">
                     <div>
                         <p className="text-[0.65rem] uppercase tracking-[1.5px] text-[#8892b0] mb-0.5">
-                            Reporting Manager Portal
+                            Team Lead Portal
                         </p>
                         <h2 className="text-[1.1rem] text-[#1e3a8a] font-bold">
                             Have a good day, {user?.name?.split(' ')[0] || 'User'} 😊
@@ -127,7 +125,7 @@ const ReportingManagerLayout = () => {
                         <div className="flex items-center gap-3 pl-5 border-l border-slate-200">
                             <div className="text-right hidden sm:block">
                                 <div className="text-xs font-bold text-[#1e3a8a]">{user?.name || 'User'}</div>
-                                <div className="text-[0.65rem] text-[#FFB012] font-semibold">Reporting Manager</div>
+                                <div className="text-[0.65rem] text-[#FFB012] font-semibold">Team Lead</div>
                             </div>
                             <div className="w-10 h-10 bg-[#1e3a8a] text-white rounded-full flex items-center justify-center font-bold shadow-md ring-2 ring-offset-2 ring-[#FFB012]/20">
                                 {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
@@ -144,4 +142,4 @@ const ReportingManagerLayout = () => {
     );
 };
 
-export default ReportingManagerLayout;
+export default TeamLeadLayout;

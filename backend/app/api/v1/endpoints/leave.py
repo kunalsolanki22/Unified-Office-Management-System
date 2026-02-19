@@ -114,8 +114,9 @@ async def list_leave_requests(
     """List leave requests."""
     from ....models.enums import UserRole
     
-    # Non-managers can only see their own requests
-    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEAM_LEAD]:
+    # If no specific user_id is requested, default to current user (My Leaves)
+    # This ensures "Leave Proposal" page shows only own history for everyone
+    if not user_id:
         user_id = current_user.id
     
     leave_service = LeaveService(db)
@@ -343,6 +344,38 @@ async def get_my_leave_balance(
     return create_response(
         data=balance_responses,
         message="Leave balance retrieved successfully"
+    )
+
+
+@router.get("/approvals", response_model=PaginatedResponse[LeaveRequestResponse])
+async def get_pending_approvals(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    level: str = Query("all", regex="^(all|level1|final)$"),
+    current_user: User = Depends(require_team_lead_or_above),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get pending leave approvals based on hierarchy.
+    
+    - SUPER_ADMIN: See all pending approvals
+    - MANAGER: See Level 2 approvals (Team Lead approved) for their team leads
+    - TEAM_LEAD: See Level 1 approvals for their employees
+    """
+    leave_service = LeaveService(db)
+    requests, total = await leave_service.get_pending_approvals(
+        approver=current_user,
+        level=level,
+        page=page,
+        page_size=page_size
+    )
+    
+    return create_paginated_response(
+        data=[build_leave_request_response(r) for r in requests],
+        total=total,
+        page=page,
+        page_size=page_size,
+        message="Pending approvals retrieved successfully"
     )
 
 

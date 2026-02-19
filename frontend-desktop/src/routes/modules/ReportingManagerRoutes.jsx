@@ -3,7 +3,7 @@ import ReportingManagerLayout from '../../layouts/ReportingManagerLayout';
 import Dashboard from '../../pages/reporting-manager/Dashboard';
 import UserDirectory from '../../pages/reporting-manager/UserDirectory';
 import AttendanceValidation from '../../pages/reporting-manager/AttendanceValidation';
-import ApprovalsHub from '../../pages/reporting-manager/ApprovalsHub';
+import Approvals from '../../pages/reporting-manager/Approvals';
 import ProjectProposal from '../../pages/reporting-manager/ProjectProposal';
 import Holidays from '../../pages/reporting-manager/Holidays';
 import PlaceholderPage from '../../pages/reporting-manager/PlaceholderPage';
@@ -17,7 +17,7 @@ const ReportingManagerRoutes = () => {
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="user-directory" element={<UserDirectory />} />
                 <Route path="attendance-validation" element={<AttendanceValidation />} />
-                <Route path="approvals" element={<ApprovalsHub />} />
+                <Route path="approvals" element={<Approvals />} />
                 <Route path="project-proposal" element={<ProjectProposal />} />
                 <Route path="holidays" element={<Holidays />} />
                 <Route path="action-hub" element={<ActionHub />} />
