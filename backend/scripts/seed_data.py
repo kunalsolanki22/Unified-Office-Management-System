@@ -442,16 +442,16 @@ async def seed_food_items(db: AsyncSession, users: list):
     cafeteria_manager = next((u for u in users if u.manager_type == ManagerType.CAFETERIA), users[0])
     
     food_items = [
-        {"name": "Butter Chicken", "description": "Creamy tomato-based curry with tender chicken", "price": Decimal("12.99"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 450},
-        {"name": "Paneer Tikka", "description": "Grilled cottage cheese with spices", "price": Decimal("9.99"), "category": "Starters", "tags": ["vegetarian", "high-protein"], "calories": 280},
-        {"name": "Masala Dosa", "description": "Crispy rice crepe with potato filling", "price": Decimal("7.99"), "category": "South Indian", "tags": ["vegetarian", "vegan"], "calories": 320},
-        {"name": "Chicken Biryani", "description": "Aromatic basmati rice with spiced chicken", "price": Decimal("14.99"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 520},
-        {"name": "Dal Makhani", "description": "Creamy black lentils slow-cooked", "price": Decimal("8.99"), "category": "Main Course", "tags": ["vegetarian"], "calories": 350},
-        {"name": "Mango Lassi", "description": "Sweet mango yogurt drink", "price": Decimal("3.99"), "category": "Beverages", "tags": ["vegetarian", "sweet"], "calories": 180},
-        {"name": "Coffee", "description": "Fresh brewed hot coffee", "price": Decimal("2.49"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 5},
-        {"name": "Tea", "description": "Hot brewed masala chai", "price": Decimal("1.99"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 25},
-        {"name": "Veg Sandwich", "description": "Fresh vegetable grilled sandwich", "price": Decimal("4.99"), "category": "Snacks", "tags": ["vegetarian", "healthy"], "calories": 250},
-        {"name": "Samosa", "description": "Crispy fried pastry with potato filling", "price": Decimal("2.99"), "category": "Snacks", "tags": ["vegetarian", "spicy"], "calories": 150},
+        {"name": "Butter Chicken", "description": "Creamy tomato-based curry with tender chicken", "price": Decimal("180.00"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 450},
+        {"name": "Paneer Tikka", "description": "Grilled cottage cheese with spices", "price": Decimal("150.00"), "category": "Starters", "tags": ["vegetarian", "high-protein"], "calories": 280},
+        {"name": "Masala Dosa", "description": "Crispy rice crepe with potato filling", "price": Decimal("80.00"), "category": "South Indian", "tags": ["vegetarian", "vegan"], "calories": 320},
+        {"name": "Chicken Biryani", "description": "Aromatic basmati rice with spiced chicken", "price": Decimal("160.00"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 520},
+        {"name": "Dal Makhani", "description": "Creamy black lentils slow-cooked", "price": Decimal("120.00"), "category": "Main Course", "tags": ["vegetarian"], "calories": 350},
+        {"name": "Mango Lassi", "description": "Sweet mango yogurt drink", "price": Decimal("50.00"), "category": "Beverages", "tags": ["vegetarian", "sweet"], "calories": 180},
+        {"name": "Coffee", "description": "Fresh brewed hot coffee", "price": Decimal("30.00"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 5},
+        {"name": "Tea", "description": "Hot brewed masala chai", "price": Decimal("15.00"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 25},
+        {"name": "Veg Sandwich", "description": "Fresh vegetable grilled sandwich", "price": Decimal("60.00"), "category": "Snacks", "tags": ["vegetarian", "healthy"], "calories": 250},
+        {"name": "Samosa", "description": "Crispy fried pastry with potato filling", "price": Decimal("20.00"), "category": "Snacks", "tags": ["vegetarian", "spicy"], "calories": 150},
     ]
     
     for item_data in food_items:
