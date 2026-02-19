@@ -8,11 +8,15 @@ const ProtectedRoutes = ({ allowedRoles, allowedManagerTypes }) => {
         return <Navigate to="/login" replace />;
     }
 
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // Normalize to lowercase for comparison (login() uppercases values)
+    const userRole = (user.role || '').toLowerCase();
+    const userManagerType = (user.manager_type || '').toLowerCase();
+
+    if (allowedRoles && !allowedRoles.includes(userRole)) {
         return <Navigate to="/unauthorized" replace />;
     }
 
-    if (allowedManagerTypes && !allowedManagerTypes.includes(user.manager_type)) {
+    if (allowedManagerTypes && !allowedManagerTypes.includes(userManagerType)) {
         return <Navigate to="/unauthorized" replace />;
     }
 

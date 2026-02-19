@@ -38,7 +38,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # Exception handlers
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):

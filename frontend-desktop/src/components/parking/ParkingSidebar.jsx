@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-    LayoutDashboard, Users, Clock, CheckSquare,
+    LayoutDashboard, Users, CheckSquare,
     CalendarDays, User, Zap, LogOut
 } from 'lucide-react';
 import logo from '../../assets/cygnet-logo.png';
@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 const corePillars = [
     { name: 'Dashboard', path: '/parking/dashboard', icon: LayoutDashboard },
     { name: 'User Directory', path: '/parking/user-directory', icon: Users },
-    { name: 'Attendance', path: '/parking/attendance', icon: Clock },
+
     { name: 'Approvals', path: '/parking/requests', icon: CheckSquare },
     { name: 'Holidays', path: '/parking/holidays', icon: CalendarDays },
 ];

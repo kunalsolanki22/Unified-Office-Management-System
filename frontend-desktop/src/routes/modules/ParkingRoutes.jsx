@@ -8,9 +8,9 @@ import ParkingRequests from '../../pages/parking/ParkingRequests';
 import Holidays from '../../pages/parking/Holidays';
 
 // Shared pages from reporting-manager (reuse Akanksha's work)
-import UserDirectory from '../../pages/reporting-manager/UserDirectory';
+import UserDirectory from '../../pages/shared/UserDirectory';
 import Attendance from '../../pages/reporting-manager/AttendanceValidation';
-import MyAttendance from '../../pages/reporting-manager/MyAttendance';
+import MyAttendance from '../../pages/parking/MyAttendance';
 import Services from '../../pages/reporting-manager/ActionHub';
 
 const ParkingRoutes = () => {

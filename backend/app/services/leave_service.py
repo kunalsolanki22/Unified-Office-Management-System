@@ -593,7 +593,7 @@ class LeaveService:
         query = query.order_by(LeaveRequest.created_at.desc())
         
         result = await self.db.execute(query)
-        requests = result.scalars().all()
+        requests = result.unique().scalars().all()
         
         return list(requests), total
     
@@ -635,7 +635,7 @@ class LeaveService:
             base_query = base_query.join(User, LeaveRequest.user_code == User.user_code).where(
                 User.role == UserRole.MANAGER,
                 LeaveRequest.status.in_([LeaveStatus.PENDING, LeaveStatus.APPROVED_BY_TEAM_LEAD])
-            )
+            ).distinct()
             count_query = count_query.join(User, LeaveRequest.user_code == User.user_code).where(
                 User.role == UserRole.MANAGER,
                 LeaveRequest.status.in_([LeaveStatus.PENDING, LeaveStatus.APPROVED_BY_TEAM_LEAD])
@@ -672,11 +672,12 @@ class LeaveService:
             selectinload(LeaveRequest.final_approver),
             selectinload(LeaveRequest.rejected_by)
         )
-        query = query.offset((page - 1) * page_size).limit(page_size)
         query = query.order_by(LeaveRequest.created_at.desc())
+        query = query.offset((page - 1) * page_size).limit(page_size)
         
         result = await self.db.execute(query)
-        requests = result.scalars().all()
+        # Use .unique() to deduplicate rows caused by relationship loading + joins
+        requests = result.unique().scalars().all()
         
         return list(requests), total
     

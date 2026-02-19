@@ -21,6 +21,11 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('access_token', data.data.access_token);
         const meData = await authService.me();
         const userData = meData.data;
+
+        // Normalize to uppercase to match frontend constants
+        if (userData.role) userData.role = userData.role.toUpperCase();
+        if (userData.manager_type) userData.manager_type = userData.manager_type.toUpperCase();
+
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
         return userData;
@@ -34,8 +39,9 @@ export const AuthProvider = ({ children }) => {
     const getRedirectPath = (userData) => {
         if (!userData) return '/login';
 
-        const role = userData.role;
-        const managerType = userData.manager_type;
+        // Normalize to lowercase for comparison (login() uppercases them)
+        const role = (userData.role || '').toLowerCase();
+        const managerType = (userData.manager_type || '').toLowerCase();
 
         // Super Admin
         if (role === 'super_admin') return '/super-admin/dashboard';
@@ -45,8 +51,8 @@ export const AuthProvider = ({ children }) => {
 
         // Managers
         if (role === 'manager') {
-            if (managerType === 'parking') return '/parking-manager/dashboard';
-            if (managerType === 'it_support') return '/hardware-manager/dashboard';
+            if (managerType === 'parking') return '/parking/dashboard';
+            if (managerType === 'it_support') return '/hardware/dashboard';
             if (managerType === 'attendance') return '/attendance-manager/dashboard';
             if (managerType === 'cafeteria') return '/cafeteria-manager/dashboard';
             if (managerType === 'desk_conference') return '/conference-desk-manager/dashboard';
