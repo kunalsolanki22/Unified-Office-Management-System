@@ -9,6 +9,7 @@ import ActionHub from '../../pages/conference-desk-manager/ActionHub';
 import MyAttendance from '../../pages/conference-desk-manager/MyAttendance';
 import DeskBooking from '../../pages/conference-desk-manager/DeskBooking';
 import ConferenceBooking from '../../pages/conference-desk-manager/ConferenceBooking';
+import ServiceBooking from '../../pages/shared/ServiceBooking';
 
 const ConferenceDeskManagerRoutes = () => {
     return (
@@ -21,6 +22,7 @@ const ConferenceDeskManagerRoutes = () => {
                 <Route path="holidays" element={<Holidays />} />
                 <Route path="action-hub" element={<ActionHub />} />
                 <Route path="my-attendance" element={<MyAttendance />} />
+                <Route path="service-booking" element={<ServiceBooking />} />
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Route>
         </Routes>

@@ -13,7 +13,9 @@ import {
     Plus,
     Loader2
 } from 'lucide-react';
-import { holidayService } from '../../services/holidayService';
+import ActionHub from './ActionHub';
+
+// ... (imports remain the same, ensure ActionHub is imported)
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -169,48 +171,10 @@ const Dashboard = () => {
                 </motion.div>
             </div>
 
-            {/* Quick Actions */}
-            <div>
-                <motion.div
-                    variants={itemVariants}
-                    className="flex items-center justify-between mb-6"
-                >
-                    <h3 className="text-sm font-bold text-[#1a367c] tracking-widest">QUICK ACTIONS</h3>
-                </motion.div>
-
-                <div className="flex flex-wrap justify-center gap-6">
-                    {[
-                        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls' },
-                        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight' },
-                        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation' },
-                        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling' },
-                        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment' },
-                    ].map((action, idx) => (
-                        <motion.div
-                            key={idx}
-                            variants={itemVariants}
-                            whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)' }}
-                            onClick={() => navigate('/admin/action-hub')}
-                            className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group"
-                        >
-                            <div className="absolute inset-0 bg-radial-gradient from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-                            <div className="w-16 h-16 bg-[#f8f9fa] rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:text-[#f9b012] transition-colors relative z-10">
-                                <action.icon className="w-7 h-7" strokeWidth={1.5} />
-                            </div>
-
-                            <h3 className="text-sm font-bold text-[#1a367c] tracking-wide mb-2 leading-tight relative z-10">
-                                {action.label.split(' ').map((line, i) => (
-                                    <span key={i} className="block">{line}</span>
-                                ))}
-                            </h3>
-                            <p className="text-[0.65rem] text-[#8892b0] font-medium relative z-10">{action.sub}</p>
-
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-[#f9b012] rounded-t-lg transition-all duration-300 group-hover:w-full group-hover:rounded-none"></div>
-                        </motion.div>
-                    ))}
-                </div>
-            </div>
+            {/* Quick Actions - Replaced with Shared Component */}
+            <motion.div variants={itemVariants}>
+                <ActionHub />
+            </motion.div>
         </motion.div>
     );
 };

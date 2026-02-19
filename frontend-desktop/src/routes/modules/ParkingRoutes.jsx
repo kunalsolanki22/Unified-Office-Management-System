@@ -12,6 +12,7 @@ import UserDirectory from '../../pages/shared/UserDirectory';
 import Attendance from '../../pages/reporting-manager/AttendanceValidation';
 import MyAttendance from '../../pages/parking/MyAttendance';
 import Services from '../../pages/reporting-manager/ActionHub';
+import ServiceBooking from '../../pages/shared/ServiceBooking';
 
 const ParkingRoutes = () => {
     return (
@@ -25,6 +26,7 @@ const ParkingRoutes = () => {
                 <Route path="holidays" element={<Holidays />} />
                 <Route path="my-attendance" element={<MyAttendance />} />
                 <Route path="services" element={<Services />} />
+                <Route path="service-booking" element={<ServiceBooking />} />
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Route>
         </Routes>

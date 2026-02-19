@@ -9,6 +9,7 @@ import Holidays from '../../pages/reporting-manager/Holidays';
 import PlaceholderPage from '../../pages/reporting-manager/PlaceholderPage';
 import ActionHub from '../../pages/reporting-manager/ActionHub';
 import MyAttendance from '../../pages/reporting-manager/MyAttendance';
+import ServiceBooking from '../../pages/shared/ServiceBooking';
 
 const ReportingManagerRoutes = () => {
     return (
@@ -22,6 +23,7 @@ const ReportingManagerRoutes = () => {
                 <Route path="holidays" element={<Holidays />} />
                 <Route path="action-hub" element={<ActionHub />} />
                 <Route path="my-attendance" element={<MyAttendance />} />
+                <Route path="service-booking" element={<ServiceBooking />} />
                 <Route path="placeholder" element={<PlaceholderPage />} />
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Route>

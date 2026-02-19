@@ -1,59 +1,52 @@
-import { motion } from 'framer-motion';
-import { Car, Coffee, Monitor, Users, HardDrive } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Car, Coffee, Monitor, Users, HardDrive, ArrowRight } from 'lucide-react';
 
 const ActionHub = () => {
     const navigate = useNavigate();
 
     const actions = [
-        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls', path: '/admin/parking' },
-        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: '/admin/cafeteria' },
-        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation', path: '/admin/desks' },
-        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling', path: '/admin/rooms' },
-        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment', path: '/admin/assets' },
+        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: '/admin/service-booking' },
+        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation', path: '/admin/service-booking?tab=desk' },
+        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls', path: '/admin/service-booking?tab=parking' },
+        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling', path: '/admin/service-booking?tab=conference' },
+        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment', path: '/admin/service-booking?tab=hardware' },
     ];
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-8"
-        >
-            <div className="mb-2">
-                <h1 className="text-2xl font-bold text-[#1a367c] mb-1">
-                    ACTION <span className="text-[#f9b012]">HUB</span>
-                </h1>
-                <p className="text-sm text-[#8892b0] font-medium tracking-wide uppercase">
-                    Centralized Controls for Operational Modules
-                </p>
+        <div className="space-y-8">
+            <div className="flex items-center justify-between mb-2">
+                <h1 className="text-sm font-bold text-[#1a367c] tracking-widest">SERVICES</h1>
             </div>
 
             <div className="flex flex-wrap justify-center gap-6">
                 {actions.map((action, idx) => (
-                    <motion.div
+                    <div
                         key={idx}
-                        whileHover={{ y: -5, boxShadow: '0 10px 30px rgba(0, 0, 0, 0.06)' }}
-                        onClick={() => navigate(action.path || 'dashboard')}
-                        className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center cursor-pointer relative overflow-hidden group min-h-[250px] justify-center transition-all duration-300"
+                        onClick={() => action.path ? navigate(action.path) : null}
+                        className={`w-full md:w-[calc(50%-12px)] lg:w-[calc(33.33%-16px)] bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col items-center text-center relative overflow-hidden group hover:-translate-y-2 hover:shadow-xl transition-all duration-300 ${action.path ? 'cursor-pointer' : 'cursor-default opacity-60'}`}
                     >
-                        <div className="absolute inset-0 bg-radial-gradient from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-                        <div className="w-16 h-16 bg-[#f8f9fa] rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:text-[#f9b012] transition-colors relative z-10">
+                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-[#1a367c] group-hover:bg-[#1a367c] group-hover:text-white transition-colors duration-300">
                             <action.icon className="w-7 h-7" strokeWidth={1.5} />
                         </div>
 
-                        <h3 className="text-sm font-bold text-[#1a367c] tracking-wide mb-2 leading-tight relative z-10 w-full">
+                        <h3 className="text-sm font-bold text-[#1a367c] tracking-wide mb-2 group-hover:text-[#1a367c] transition-colors">
                             {action.label.split(' ').map((line, i) => (
                                 <span key={i} className="block">{line}</span>
                             ))}
                         </h3>
-                        <p className="text-[0.65rem] text-[#8892b0] font-medium relative z-10">{action.sub}</p>
+                        <div className="text-xs text-[#8892b0] leading-relaxed mb-6 px-4">{action.sub}</div>
 
-                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-[#f9b012] rounded-t-lg transition-all duration-300 group-hover:w-full group-hover:rounded-none"></div>
-                    </motion.div>
+                        <div className="mt-auto opacity-0 transform translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                            <span className="text-xs font-bold text-[#f9b012] flex items-center gap-1">
+                                LAUNCH <ArrowRight className="w-3 h-3" />
+                            </span>
+                        </div>
+
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#f9b012] rounded-t-lg transition-all duration-300 group-hover:w-full group-hover:rounded-none"></div>
+                    </div>
                 ))}
             </div>
-        </motion.div>
+        </div>
     );
 };
 
