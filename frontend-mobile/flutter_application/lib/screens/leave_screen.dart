@@ -320,7 +320,9 @@ class _LeaveScreenState extends State<LeaveScreen>
                         DataColumn(label: Text('Available')),
                         DataColumn(label: Text('Total')),
                       ],
-                      rows: _leaveBalances.map<DataRow>((balance) {
+                      rows: _leaveBalances
+                          .where((balance) => (balance['leave_type']?.toString().toLowerCase() ?? '') != 'unpaid')
+                          .map<DataRow>((balance) {
                         final leaveType = balance['leave_type']?.toString().toUpperCase() ?? 'N/A';
                         final available = double.tryParse(balance['available_days'].toString())?.toInt() ?? 0;
                         final total = double.tryParse(balance['total_days'].toString())?.toInt() ?? 0;
@@ -407,22 +409,26 @@ class _LeaveScreenState extends State<LeaveScreen>
             ),
             const SizedBox(height: 16),
             // Calendar range picker
-            CalendarDatePicker2(
-              config: CalendarDatePicker2Config(
-                calendarType: CalendarDatePicker2Type.range,
-                firstDate: DateTime.now(),
-                lastDate: DateTime(2030),
-                selectedDayHighlightColor: const Color(0xFF1A237E),
+              CalendarDatePicker2(
+                config: CalendarDatePicker2Config(
+                  calendarType: CalendarDatePicker2Type.range,
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime(2030),
+                  selectedDayHighlightColor: const Color(0xFF1A237E),
+                  selectedDayTextStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                value: _selectedRange,
+                onValueChanged: (dates) {
+                  setState(() {
+                    _selectedRange = dates;
+                    if (dates.isNotEmpty) _startDate = dates[0];
+                    if (dates.length > 1) _endDate = dates[1];
+                  });
+                },
               ),
-              value: _selectedRange,
-              onValueChanged: (dates) {
-                setState(() {
-                  _selectedRange = dates;
-                  if (dates.isNotEmpty) _startDate = dates[0];
-                  if (dates.length > 1) _endDate = dates[1];
-                });
-              },
-            ),
             const SizedBox(height: 12),
             // Show selected dates in boxes
             if (_startDate != null && _endDate != null) ...[
