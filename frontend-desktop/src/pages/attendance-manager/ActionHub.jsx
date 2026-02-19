@@ -13,13 +13,8 @@ const ActionHub = () => {
 
     return (
         <div className="space-y-8">
-            <div className="flex flex-col gap-1">
-                <h1 className="text-2xl font-bold text-[#1a367c]">
-                    QUICK <span className="text-[#f9b012]">ACTIONS</span>
-                </h1>
-                <p className="text-xs uppercase tracking-wider text-[#8892b0] font-medium">
-                    Access Frequently Used Services
-                </p>
+            <div className="flex items-center justify-between mb-2">
+                <h1 className="text-sm font-bold text-[#1a367c] tracking-widest">QUICK ACTIONS</h1>
             </div>
 
             <div className="flex flex-wrap justify-center gap-6">

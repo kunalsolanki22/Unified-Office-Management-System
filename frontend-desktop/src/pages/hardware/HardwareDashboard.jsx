@@ -219,13 +219,8 @@ const HardwareDashboard = () => {
             </div>
 
             <div>
-                <motion.div variants={itemVariants} className="flex flex-col gap-1 mb-6">
-                    <h3 className="text-2xl font-bold text-[#1a367c]">
-                        QUICK <span className="text-[#f9b012]">ACTIONS</span>
-                    </h3>
-                    <p className="text-xs uppercase tracking-wider text-[#8892b0] font-medium">
-                        Access Frequently Used Services
-                    </p>
+                <motion.div variants={itemVariants} className="flex items-center justify-between mb-6">
+                    <h3 className="text-sm font-bold text-[#1a367c] tracking-widest">QUICK ACTIONS</h3>
                 </motion.div>
                 <div className="flex flex-wrap justify-center gap-6">
                     {quickActions.map((action, idx) => (
