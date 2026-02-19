@@ -133,6 +133,8 @@ async def create_desk_booking(
         "user_code": booking.user_code,
         "start_date": booking.start_date,
         "end_date": booking.end_date,
+        "start_time": booking.start_time,
+        "end_time": booking.end_time,
         "status": booking.status,
         "checked_in_at": booking.checked_in_at,
         "checked_out_at": booking.checked_out_at,
@@ -178,6 +180,8 @@ async def list_desk_bookings(
             "user_code": booking.user_code,
             "start_date": booking.start_date,
             "end_date": booking.end_date,
+            "start_time": booking.start_time,
+            "end_time": booking.end_time,
             "status": booking.status,
             "checked_in_at": booking.checked_in_at,
             "checked_out_at": booking.checked_out_at,
@@ -185,7 +189,6 @@ async def list_desk_bookings(
             "created_at": booking.created_at,
             "updated_at": booking.updated_at
         })
-    
     return create_paginated_response(
         data=response_data,
         total=total,
@@ -219,6 +222,8 @@ async def get_my_desk_bookings(
             "user_code": booking.user_code,
             "start_date": booking.start_date,
             "end_date": booking.end_date,
+            "start_time": booking.start_time,
+            "end_time": booking.end_time,
             "status": booking.status,
             "checked_in_at": booking.checked_in_at,
             "checked_out_at": booking.checked_out_at,
@@ -226,7 +231,6 @@ async def get_my_desk_bookings(
             "created_at": booking.created_at,
             "updated_at": booking.updated_at
         })
-    
     return create_response(
         data=response_data,
         message="My desk bookings retrieved successfully"

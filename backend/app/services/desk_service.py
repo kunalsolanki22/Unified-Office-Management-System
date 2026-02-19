@@ -175,10 +175,11 @@ class DeskService:
         desk_id: UUID,
         start_date: date,
         end_date: date,
+        start_time: time = None,
+        end_time: time = None,
         exclude_booking_id: Optional[UUID] = None
     ) -> bool:
-        """Check if there's an overlapping booking for the date range."""
-        # Date ranges overlap if: start1 <= end2 AND end1 >= start2
+        """Check if there's an overlapping active booking for the date/time range."""
         query = select(DeskBooking).where(
             and_(
                 DeskBooking.desk_id == desk_id,
@@ -209,20 +210,24 @@ class DeskService:
         if desk.status == DeskStatus.MAINTENANCE:
             return None, "Desk is under maintenance"
         
-        # Check for overlapping bookings
+       # Check for overlapping bookings
         has_overlap = await self.check_booking_overlap(
             booking_data.desk_id,
             booking_data.start_date,
-            booking_data.end_date
+            booking_data.end_date,
+            booking_data.start_time,
+            booking_data.end_time
         )
         if has_overlap:
             return None, "Date range overlaps with existing booking"
-        
+
         booking = DeskBooking(
             desk_id=booking_data.desk_id,
             user_code=user.user_code,
             start_date=booking_data.start_date,
             end_date=booking_data.end_date,
+            start_time=booking_data.start_time,
+            end_time=booking_data.end_time,
             status=BookingStatus.CONFIRMED,
             notes=booking_data.notes
         )

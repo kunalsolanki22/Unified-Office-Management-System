@@ -9,7 +9,6 @@ import { useAuth } from '../../context/AuthContext';
 const corePillars = [
     { name: 'Dashboard', path: '/hardware/dashboard', icon: LayoutDashboard },
     { name: 'User Directory', path: '/hardware/user-directory', icon: Users },
-    { name: 'Attendance', path: '/hardware/attendance', icon: Clock },
     { name: 'Approvals', path: '/hardware/requests', icon: CheckSquare },
     { name: 'Vendors', path: '/hardware/vendors', icon: Building2 },
     { name: 'Holidays', path: '/hardware/holidays', icon: CalendarDays },

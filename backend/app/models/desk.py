@@ -80,9 +80,11 @@ class DeskBooking(Base, TimestampMixin):
     # User reference - using user_code
     user_code = Column(String(10), ForeignKey("users.user_code"), nullable=False)
     
-    # Booking details - date range
+    # Booking details - date range with time slots
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
+    start_time = Column(Time, nullable=False, server_default="09:00:00")
+    end_time = Column(Time, nullable=False, server_default="18:00:00")
     
     # Status
     status = Column(Enum(BookingStatus), default=BookingStatus.CONFIRMED)

@@ -108,8 +108,15 @@ async def root():
 @app.on_event("startup")
 async def startup_event():
     """Application startup event."""
+    import asyncio
+    from .services.booking_cleanup_service import run_cleanup_scheduler
+    
     logger.info(f"Starting {settings.APP_NAME}")
     logger.info(f"Debug mode: {settings.DEBUG}")
+    
+    # Start background cleanup scheduler (runs every 5 minutes)
+    asyncio.create_task(run_cleanup_scheduler(interval_minutes=5))
+    logger.info("Booking cleanup scheduler initialized")
 
 
 # Shutdown event

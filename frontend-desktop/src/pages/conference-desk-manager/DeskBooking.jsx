@@ -10,7 +10,7 @@ const DeskBooking = () => {
     const [loading, setLoading] = useState(true);
     const [selectedDesk, setSelectedDesk] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [bookingDates, setBookingDates] = useState({ start_date: '', end_date: '' });
+    const [bookingDates, setBookingDates] = useState({ start_date: '', end_date: '', start_time: '09:00', end_time: '18:00' });
     const [submitting, setSubmitting] = useState(false);
 
     // Rejection modal
@@ -55,12 +55,16 @@ const DeskBooking = () => {
         setSelectedDesk(desk);
         setIsModalOpen(true);
         const today = new Date().toISOString().split('T')[0];
-        setBookingDates({ start_date: today, end_date: today });
+        setBookingDates({ start_date: today, end_date: today, start_time: '09:00', end_time: '18:00' });
     };
 
     const handleAllocate = async () => {
-        if (!bookingDates.start_date || !bookingDates.end_date) {
-            toast.error('Please select dates');
+        if (!bookingDates.start_date || !bookingDates.end_date || !bookingDates.start_time || !bookingDates.end_time) {
+            toast.error('Please select dates and times');
+            return;
+        }
+        if (bookingDates.start_time >= bookingDates.end_time && bookingDates.start_date === bookingDates.end_date) {
+            toast.error('End time must be after start time');
             return;
         }
         try {
@@ -69,6 +73,8 @@ const DeskBooking = () => {
                 desk_id: selectedDesk.id,
                 start_date: bookingDates.start_date,
                 end_date: bookingDates.end_date,
+                start_time: bookingDates.start_time,
+                end_time: bookingDates.end_time,
             });
             toast.success(`Desk ${selectedDesk.desk_code} booked successfully!`);
             setIsModalOpen(false);
@@ -411,6 +417,26 @@ const DeskBooking = () => {
                                                         value={bookingDates.end_date}
                                                         onChange={e => setBookingDates({ ...bookingDates, end_date: e.target.value })}
                                                         min={bookingDates.start_date}
+                                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1a367c] text-sm font-medium"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-xs font-bold text-[#1a367c] uppercase tracking-wider mb-2">Start Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={bookingDates.start_time}
+                                                        onChange={e => setBookingDates({ ...bookingDates, start_time: e.target.value })}
+                                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1a367c] text-sm font-medium"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-[#1a367c] uppercase tracking-wider mb-2">End Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={bookingDates.end_time}
+                                                        onChange={e => setBookingDates({ ...bookingDates, end_time: e.target.value })}
                                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1a367c] text-sm font-medium"
                                                     />
                                                 </div>

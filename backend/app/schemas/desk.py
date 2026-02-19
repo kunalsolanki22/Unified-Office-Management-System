@@ -69,7 +69,17 @@ class DeskBookingBase(BaseModel):
     """
     start_date: date
     end_date: date
+    start_time: time = time(9, 0)
+    end_time: time = time(18, 0)
     notes: Optional[str] = Field(None, max_length=500)
+
+    @field_validator('end_time')
+    @classmethod
+    def validate_time_range(cls, v, info):
+        start = info.data.get('start_time')
+        if start and v <= start:
+            raise ValueError('End time must be after start time')
+        return v
     
     @field_validator('end_date')
     @classmethod
@@ -126,6 +136,8 @@ class DeskBookingResponse(BaseModel):
     user_name: Optional[str] = None
     start_date: date
     end_date: date
+    start_time: time
+    end_time: time
     status: BookingStatus
     checked_in_at: Optional[datetime] = None
     checked_out_at: Optional[datetime] = None
