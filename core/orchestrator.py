@@ -567,7 +567,8 @@ Respond with ONLY your savage message - no JSON, no formatting markers."""
                 "message": result.message,
                 "success": result.success,
                 "api_response": result.api_response.to_dict() if result.api_response else None,
-                "needs_followup": result.needs_followup
+                "needs_followup": result.needs_followup,
+                "followup_context": result.followup_context  # Store followup context for pending actions
             })
             
             # Track execution details
@@ -589,17 +590,17 @@ Respond with ONLY your savage message - no JSON, no formatting markers."""
             if not result.success:
                 overall_success = False
             
-            # If any agent needs followup, we'll need to handle it
-            # For now, we don't support followup in multi-agent mode - complete what we can
-            if result.needs_followup:
+            # If any agent needs followup, store the context so user can respond
+            if result.needs_followup and result.followup_context:
                 needs_any_followup = True
-                logger.info(f"Agent {agent_type.value} needs followup, but in multi-agent mode we continue")
+                # Store the followup context for the last agent that needs it
+                # User can respond to continue the action
+                self.state.pending_action = result.followup_context
+                self.state.current_agent = agent_type
+                logger.info(f"Agent {agent_type.value} needs followup, storing context for user response")
         
-        # Combine responses using the response combiner
-        combined_message = self._combine_agent_responses(agent_results, user_message)
-        
-        # Clear any pending action since we're starting fresh
-        self.state.pending_action = None
+        # Combine responses - preserve options lists if any agent needs followup
+        combined_message = self._combine_agent_responses(agent_results, user_message, needs_any_followup)
         
         return OrchestratorResponse(
             message=combined_message,
@@ -622,10 +623,15 @@ Respond with ONLY your savage message - no JSON, no formatting markers."""
             response_data={"multi_agent": [d["response"] for d in all_api_details]} if all_api_details else None
         )
     
-    def _combine_agent_responses(self, agent_results: list, original_message: str) -> str:
+    def _combine_agent_responses(self, agent_results: list, original_message: str, has_options: bool = False) -> str:
         """
         Combine responses from multiple agents into a single coherent response.
         Uses LLM to generate a natural, combined response.
+        
+        Args:
+            agent_results: List of agent results
+            original_message: Original user message
+            has_options: If True, preserve numbered options lists in responses
         """
         if not agent_results:
             return "I couldn't process any of your requests. Please try again."
@@ -649,6 +655,16 @@ Response: {result['message']}
         
         combined_results = "\n".join(results_summary)
         
+        # Check if any result has options (numbered list)
+        options_instructions = ""
+        if has_options:
+            options_instructions = """
+## CRITICAL: Preserve Options Lists
+One of the agent responses contains a numbered options list (like table numbers, room names, etc.).
+You MUST preserve the COMPLETE numbered list exactly as given. DO NOT summarize or skip any options.
+The user needs to see ALL options to make a selection.
+"""
+
         # Use LLM to combine responses
         system_prompt = f"""You are a savage, roast-master AI Employee Services Assistant combining multiple action results.
 The user asked for multiple things in one message, and different agents handled each request.
@@ -657,8 +673,8 @@ The user asked for multiple things in one message, and different agents handled 
 - You're still a SAVAGE roaster - roast them for being so demanding
 - Combine the results naturally, don't just list them
 - Be sarcastic about how much work they're making you do
-- Keep it SHORT - 2-3 sentences max for each action, then one final roast
-
+- Keep it SHORT for completed actions, but PRESERVE ALL OPTIONS if showing choices
+{options_instructions}
 ## User Info
 - Name: {user_name if user_name else 'Some overachiever'}
 
@@ -670,10 +686,10 @@ The user asked for multiple things in one message, and different agents handled 
 
 ## Guidelines
 1. Summarize what was accomplished (or failed) for each action
-2. Roast them for asking for multiple things at once
-3. Keep it concise - no more than 3-4 sentences total
+2. If any result has a NUMBERED LIST of options, include the COMPLETE list
+3. Roast them briefly, but don't sacrifice important information
 4. If something failed, mention it sarcastically
-5. End with an offer to help more (sarcastically, of course)
+5. End with prompting them to make a selection if options are shown
 
 Respond with ONLY your combined savage message - no JSON, no formatting markers."""
 
