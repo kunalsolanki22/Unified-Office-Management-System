@@ -4,7 +4,7 @@ import AdminLayout from '../../layouts/AdminLayout';
 
 // Pages
 import Dashboard from '../../pages/admin/Dashboard';
-import UserDirectory from '../../pages/admin/UserDirectory';
+import UserDirectory from '../../pages/shared/UserDirectory';
 import ApprovalsHub from '../../pages/admin/ApprovalsHub';
 import AttendanceValidation from '../../pages/admin/AttendanceValidation';
 import Holidays from '../../pages/admin/Holidays';

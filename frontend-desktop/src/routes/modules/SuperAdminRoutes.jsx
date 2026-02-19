@@ -11,6 +11,7 @@ import Holidays from '../../pages/super-admin/Holidays';
 import ActionHub from '../../pages/super-admin/ActionHub';
 import Analytics from '../../pages/super-admin/Analytics';
 import MyAttendance from '../../pages/super-admin/MyAttendance';
+import UserDirectory from '../../pages/shared/UserDirectory';
 
 const SuperAdminRoutes = () => {
     return (
@@ -24,6 +25,7 @@ const SuperAdminRoutes = () => {
                 <Route path="actions" element={<ActionHub />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="my-attendance" element={<MyAttendance />} />
+                <Route path="user-directory" element={<UserDirectory />} />
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Route>
         </Routes>

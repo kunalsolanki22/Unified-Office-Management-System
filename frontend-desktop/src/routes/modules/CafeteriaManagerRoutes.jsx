@@ -5,7 +5,7 @@ import CafeteriaManagerLayout from '../../layouts/CafeteriaManagerLayout';
 import Dashboard from '../../pages/cafeteria-manager/Dashboard';
 import FoodManagement from '../../pages/cafeteria-manager/FoodManagement';
 import DeskManagement from '../../pages/cafeteria-manager/DeskManagement';
-import UserDirectory from '../../pages/cafeteria-manager/UserDirectory';
+import UserDirectory from '../../pages/shared/UserDirectory';
 import Attendance from '../../pages/super-admin/Attendance'; // Reused for Attendance
 import Approvals from '../../pages/attendance-manager/Approvals'; // Reused for Approvals
 import Holidays from '../../pages/cafeteria-manager/Holidays'; // Dedicated Page

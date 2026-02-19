@@ -1,34 +1,76 @@
-import { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, ChevronLeft, ChevronRight, Bookmark, Search } from 'lucide-react';
-
+import { CalendarDays, Bookmark, Search, Loader2 } from 'lucide-react';
 import Calendar from '../../components/ui/Calendar';
+import { holidayService } from '../../services/holidayService';
 
 const Holidays = () => {
-    // const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-    // const dates = Array.from({ length: 28 }, (_, i) => i + 1);
-
-    const [holidays] = useState([
-        { date: 'Jan 26, 2026', name: 'Republic Day', day: 'Monday', category: 'NATIONAL', status: 'COMPLETED', color: 'text-green-500' },
-        { date: 'Feb 26, 2026', name: 'Maha Shivratri', day: 'Thursday', category: 'RELIGIOUS', status: 'UPCOMING', color: 'text-[#f9b012]' },
-        { date: 'Mar 14, 2026', name: 'Holi', day: 'Saturday', category: 'FESTIVAL', status: 'SCHEDULED', color: 'text-slate-400' },
-        { date: 'Mar 29, 2026', name: 'Ram Navami', day: 'Sunday', category: 'RELIGIOUS', status: 'SCHEDULED', color: 'text-slate-400' },
-        { date: 'Apr 10, 2026', name: 'Good Friday', day: 'Friday', category: 'RELIGIOUS', status: 'SCHEDULED', color: 'text-slate-400' },
-    ]);
+    const [holidays, setHolidays] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
+    const fetchHolidays = useCallback(async () => {
+        try {
+            setLoading(true);
+            const res = await holidayService.getHolidays({ upcoming_only: false, page_size: 100 });
+            setHolidays(res?.data ?? []);
+        } catch {
+            setHolidays([]);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchHolidays(); }, [fetchHolidays]);
+
+    const getStatus = (dateStr) => {
+        if (!dateStr) return 'SCHEDULED';
+        const d = new Date(dateStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (d < today) return 'COMPLETED';
+        const diff = (d - today) / (1000 * 60 * 60 * 24);
+        if (diff <= 30) return 'UPCOMING';
+        return 'SCHEDULED';
+    };
+
+    const getStatusColor = (status) => {
+        if (status === 'COMPLETED') return 'text-green-500';
+        if (status === 'UPCOMING') return 'text-[#f9b012]';
+        return 'text-slate-400';
+    };
+
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '—';
+        return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    const getDayName = (dateStr) => {
+        if (!dateStr) return '—';
+        return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' });
+    };
+
+    const nextHoliday = holidays
+        .filter(h => new Date(h.date) >= new Date(new Date().setHours(0, 0, 0, 0)))
+        .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+
+    const calendarEvents = holidays.map(h => ({
+        date: formatDate(h.date),
+        name: h.name,
+        day: getDayName(h.date),
+        category: h.holiday_type || 'PUBLIC',
+        status: getStatus(h.date),
+        color: getStatusColor(getStatus(h.date))
+    }));
+
     const filteredHolidays = holidays.filter(h =>
-        h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.date.toLowerCase().includes(searchQuery.toLowerCase())
+        h.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (h.holiday_type || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        formatDate(h.date).toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-8"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
             <div className="mb-2">
                 <h1 className="text-2xl font-bold text-[#1a367c] mb-1">
                     HOLIDAY <span className="text-[#f9b012]">REGISTRY</span>
@@ -39,17 +81,27 @@ const Holidays = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
-                {/* Calendar Card */}
-                <Calendar events={holidays} />
+                <Calendar events={calendarEvents} />
 
-                {/* Info Card or Empty space filler based on needs - keeping it to match layout structure */}
                 <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 flex flex-col justify-center items-center text-center">
                     <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-[#1a367c]">
                         <CalendarDays className="w-8 h-8" />
                     </div>
-                    <h3 className="text-lg font-bold text-[#1a367c] mb-2">Upcoming Holiday</h3>
-                    <p className="text-sm text-[#f9b012] font-bold uppercase tracking-widest mb-1">Maha Shivratri</p>
-                    <p className="text-xs text-[#8892b0]">February 26, 2026</p>
+                    {loading ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
+                    ) : nextHoliday ? (
+                        <>
+                            <h3 className="text-lg font-bold text-[#1a367c] mb-2">Next Holiday</h3>
+                            <p className="text-sm text-[#f9b012] font-bold uppercase tracking-widest mb-1">{nextHoliday.name}</p>
+                            <p className="text-xs text-[#8892b0]">{formatDate(nextHoliday.date)}</p>
+                            <p className="text-xs text-[#8892b0] mt-1">{getDayName(nextHoliday.date)}</p>
+                        </>
+                    ) : (
+                        <>
+                            <h3 className="text-lg font-bold text-[#1a367c] mb-2">No Upcoming Holidays</h3>
+                            <p className="text-xs text-[#8892b0]">All holidays for this year have passed.</p>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -60,7 +112,6 @@ const Holidays = () => {
                         <Bookmark className="w-5 h-5" />
                         ANNOUNCED HOLIDAYS
                     </div>
-                    {/* Search Bar */}
                     <div className="flex items-center bg-white border border-slate-200 rounded-full px-4 py-2 shadow-sm w-[250px]">
                         <Search className="w-4 h-4 text-slate-400" />
                         <input
@@ -85,26 +136,35 @@ const Holidays = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredHolidays.length > 0 ? (
-                                filteredHolidays.map((h, i) => (
-                                    <tr key={i} className="border-b border-slate-50 hover:bg-[#fafbfb] transition-colors last:border-none">
-                                        <td className="p-6 text-sm font-bold text-[#1a367c]">{h.date}</td>
-                                        <td className="p-6 text-sm font-medium text-[#1a367c]">{h.name}</td>
-                                        <td className="p-6 text-sm text-[#8892b0]">{h.day}</td>
-                                        <td className="p-6">
-                                            <span className="inline-block px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide bg-[#f9b012]/10 text-[#f9b012] uppercase">
-                                                {h.category}
-                                            </span>
-                                        </td>
-                                        <td className={`p-6 text-xs font-bold tracking-wide uppercase ${h.color}`}>
-                                            {h.status}
-                                        </td>
-                                    </tr>
-                                ))
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="5" className="p-8 text-center">
+                                        <Loader2 className="w-6 h-6 animate-spin text-slate-300 mx-auto" />
+                                    </td>
+                                </tr>
+                            ) : filteredHolidays.length > 0 ? (
+                                filteredHolidays.map((h) => {
+                                    const status = getStatus(h.date);
+                                    return (
+                                        <tr key={h.id} className="border-b border-slate-50 hover:bg-[#fafbfb] transition-colors last:border-none">
+                                            <td className="p-6 text-sm font-bold text-[#1a367c]">{formatDate(h.date)}</td>
+                                            <td className="p-6 text-sm font-medium text-[#1a367c]">{h.name}</td>
+                                            <td className="p-6 text-sm text-[#8892b0]">{getDayName(h.date)}</td>
+                                            <td className="p-6">
+                                                <span className="inline-block px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide bg-[#f9b012]/10 text-[#f9b012] uppercase">
+                                                    {h.holiday_type || 'PUBLIC'}
+                                                </span>
+                                            </td>
+                                            <td className={`p-6 text-xs font-bold tracking-wide uppercase ${getStatusColor(status)}`}>
+                                                {status}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan="5" className="p-8 text-center text-slate-400 text-sm font-medium italic">
-                                        No holidays match your search.
+                                        {searchQuery ? 'No holidays match your search.' : 'No holidays found.'}
                                     </td>
                                 </tr>
                             )}

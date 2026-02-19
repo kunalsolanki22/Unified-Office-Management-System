@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CalendarDays, ArrowRight, HardDrive, Car, Coffee, Monitor, Users } from 'lucide-react';
+import { Bell, CalendarDays, ArrowRight, HardDrive, Car, Coffee, Monitor, Users, Loader2 } from 'lucide-react';
 import { hardwareService } from '../../services/hardwareService';
+import { holidayService } from '../../services/holidayService';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -17,6 +18,14 @@ const HardwareDashboard = () => {
     const navigate = useNavigate();
     const [stats, setStats] = useState({ total: 0, available: 0, assigned: 0, maintenance: 0, pending_requests: 0 });
     const [loading, setLoading] = useState(true);
+    const [holidays, setHolidays] = useState([]);
+    const [loadingHolidays, setLoadingHolidays] = useState(true);
+
+    const formatHolidayDate = (dateStr) => {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
+    };
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -47,6 +56,17 @@ const HardwareDashboard = () => {
             }
         };
         fetchDashboardData();
+
+        // Fetch holidays
+        const fetchHolidays = async () => {
+            try {
+                setLoadingHolidays(true);
+                const res = await holidayService.getHolidays({ upcoming_only: true, page_size: 3 });
+                setHolidays(res?.data ?? []);
+            } catch { setHolidays([]); }
+            finally { setLoadingHolidays(false); }
+        };
+        fetchHolidays();
     }, []);
 
     const quickActions = [
@@ -133,18 +153,28 @@ const HardwareDashboard = () => {
                         UPCOMING HOLIDAYS
                     </div>
                     <div className="flex-1 space-y-4">
-                        {[
-                            { date: 'FEB 26', title: 'Maha Shivratri', desc: 'Public Holiday' },
-                            { date: 'MAR 14', title: 'Holi', desc: 'Festival of Colors' },
-                        ].map((holiday, idx) => (
-                            <div key={idx} className="flex gap-4 pb-4 border-b border-slate-100 last:border-0">
-                                <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">{holiday.date}</div>
-                                <div>
-                                    <div className="font-bold text-[#1a367c] text-sm mb-1">{holiday.title}</div>
-                                    <div className="text-xs text-[#8892b0]">{holiday.desc}</div>
-                                </div>
+                        {loadingHolidays ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-5 h-5 animate-spin text-slate-300" />
                             </div>
-                        ))}
+                        ) : holidays.length > 0 ? (
+                            holidays.map((h) => (
+                                <div key={h.id} className="flex gap-4 pb-4 border-b border-slate-100 last:border-0">
+                                    <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">
+                                        {formatHolidayDate(h.date)}
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-[#1a367c] text-sm mb-1">{h.name}</div>
+                                        <div className="text-xs text-[#8892b0]">{h.holiday_type || 'Public Holiday'}</div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-8 text-[#8892b0]">
+                                <CalendarDays className="w-8 h-8 mb-2 opacity-20" />
+                                <p className="text-xs font-medium">No upcoming holidays</p>
+                            </div>
+                        )}
                     </div>
                     <div className="mt-auto pt-4 border-t border-slate-50">
                         <button

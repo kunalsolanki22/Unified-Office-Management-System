@@ -37,7 +37,7 @@ const TeamLeadLayout = () => {
 
     const navItems = [
         { path: '/team-lead/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        // { path: '/team-lead/user-directory', label: 'User Directory', icon: Users },
+        { path: '/team-lead/user-directory', label: 'User Directory', icon: Users },
         { path: '/team-lead/approvals', label: 'Approvals', icon: CalendarCheck },
         // { path: '/team-lead/holidays', label: 'Holidays', icon: Calendar },
     ];

@@ -3,7 +3,7 @@ import AttendanceManagerLayout from '../../layouts/AttendanceManagerLayout';
 
 // Pages
 import Dashboard from '../../pages/attendance-manager/Dashboard';
-import UserDirectory from '../../pages/attendance-manager/UserDirectory';
+import UserDirectory from '../../pages/shared/UserDirectory';
 import Attendance from '../../pages/attendance-manager/Attendance';
 import Approvals from '../../pages/attendance-manager/Approvals';
 import Holidays from '../../pages/attendance-manager/Holidays';

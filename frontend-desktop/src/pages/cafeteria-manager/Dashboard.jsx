@@ -3,8 +3,10 @@ import {
     Activity,
     Megaphone,
     Calendar as CalendarIcon,
+    CalendarDays,
     ArrowRight,
     Plus,
+    Loader2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DashboardCard from '../../components/cafeteria-manager/DashboardCard';
@@ -14,6 +16,7 @@ import SeatingReservations from '../../components/cafeteria-manager/SeatingReser
 import RecentActivity from '../../components/cafeteria-manager/RecentActivity';
 import Button from '../../components/ui/Button';
 import { cafeteriaService } from '../../services/cafeteriaService';
+import { holidayService } from '../../services/holidayService';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -26,6 +29,15 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
 
     const [reservations, setReservations] = useState([]);
+
+    const [holidays, setHolidays] = useState([]);
+    const [loadingHolidays, setLoadingHolidays] = useState(true);
+
+    const formatHolidayDate = (dateStr) => {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
+    };
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -109,6 +121,17 @@ const Dashboard = () => {
         };
 
         fetchDashboardData();
+
+        // Fetch holidays separately
+        const fetchHolidays = async () => {
+            try {
+                setLoadingHolidays(true);
+                const res = await holidayService.getHolidays({ upcoming_only: true, page_size: 3 });
+                setHolidays(res?.data ?? []);
+            } catch { setHolidays([]); }
+            finally { setLoadingHolidays(false); }
+        };
+        fetchHolidays();
     }, []);
 
     return (
@@ -157,28 +180,36 @@ const Dashboard = () => {
                 {/* Upcoming Holidays */}
                 <DashboardCard title="UPCOMING HOLIDAYS" icon={CalendarIcon}>
                     <div className="space-y-4 mt-4 mb-auto">
-                        <div className="flex gap-3 pb-3 border-b border-slate-100">
-                            <div className="text-[0.7rem] font-bold text-[#f9b012] min-w-[45px] pt-1">FEB 26</div>
-                            <div className="space-y-0.5">
-                                <div className="text-sm font-bold text-[#1a367c] leading-snug">Maha Shivratri</div>
-                                <div className="text-xs text-[#8892b0]">Public Holiday</div>
+                        {loadingHolidays ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-5 h-5 animate-spin text-slate-300" />
                             </div>
-                        </div>
-                        <div className="flex gap-3">
-                            <div className="text-[0.7rem] font-bold text-[#f9b012] min-w-[45px] pt-1">MAR 14</div>
-                            <div className="space-y-0.5">
-                                <div className="text-sm font-bold text-[#1a367c] leading-snug">Holi</div>
-                                <div className="text-xs text-[#8892b0]">Festival of Colors</div>
+                        ) : holidays.length > 0 ? (
+                            holidays.map((h) => (
+                                <div key={h.id} className="flex gap-3 pb-3 border-b border-slate-100 last:border-0">
+                                    <div className="text-[0.7rem] font-bold text-[#f9b012] min-w-[45px] pt-1">
+                                        {formatHolidayDate(h.date)}
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <div className="text-sm font-bold text-[#1a367c] leading-snug">{h.name}</div>
+                                        <div className="text-xs text-[#8892b0]">{h.holiday_type || 'Public Holiday'}</div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-8 text-[#8892b0]">
+                                <CalendarDays className="w-8 h-8 mb-2 opacity-20" />
+                                <p className="text-xs font-medium">No upcoming holidays</p>
                             </div>
-                        </div>
+                        )}
                     </div>
-                    <Button
-                        variant="outline"
-                        className="w-full justify-center gap-2 mt-6"
+                    <button
                         onClick={() => navigate('/cafeteria-manager/holidays')}
+                        className="w-full bg-[#f8f9fa] text-[#1a367c] py-3 rounded-xl text-xs font-bold tracking-widest flex items-center justify-center gap-2 hover:bg-[#1a367c] hover:text-white transition-all group/btn mt-6"
                     >
-                        VIEW CALENDAR <ArrowRight className="w-4 h-4" />
-                    </Button>
+                        VIEW CALENDAR
+                        <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                    </button>
                 </DashboardCard>
             </div>
 

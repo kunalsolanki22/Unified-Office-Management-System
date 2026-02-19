@@ -17,6 +17,7 @@ const Sidebar = () => {
         { name: 'Attendance', path: '/super-admin/attendance', icon: CalendarCheck },
         { name: 'Approvals', path: '/super-admin/approvals', icon: FileText },
         { name: 'Holidays', path: '/super-admin/holidays', icon: CalendarDays },
+        { name: 'User Directory', path: '/super-admin/user-directory', icon: Users },
     ];
 
     const accessTools = [

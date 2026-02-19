@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -12,11 +12,33 @@ import {
     Monitor,
     Users,
     HardDrive,
-    ArrowRight
+    ArrowRight,
+    Loader2
 } from 'lucide-react';
+import { holidayService } from '../../services/holidayService';
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const [holidays, setHolidays] = useState([]);
+    const [loadingHolidays, setLoadingHolidays] = useState(true);
+
+    useEffect(() => {
+        const fetchHolidays = async () => {
+            try {
+                setLoadingHolidays(true);
+                const res = await holidayService.getHolidays({ upcoming_only: true, page_size: 3 });
+                setHolidays(res?.data ?? []);
+            } catch { setHolidays([]); }
+            finally { setLoadingHolidays(false); }
+        };
+        fetchHolidays();
+    }, []);
+
+    const formatHolidayDate = (dateStr) => {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
+    };
     const [announcements, setAnnouncements] = useState([
         { id: 1, date: 'FEB 10', title: 'Town Hall Meeting', desc: 'Quadrimester updates with CEO. 4:00 PM IST.' },
         { id: 2, date: 'FEB 08', title: 'Policy Update: Remote Work', desc: 'Revised guidelines available in HR Registry.' }
@@ -203,18 +225,28 @@ const Dashboard = () => {
                     </div>
 
                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                        {[
-                            { date: 'FEB 26', title: 'Maha Shivratri', desc: 'Public Holiday' },
-                            { date: 'MAR 14', title: 'Holi', desc: 'Festival of Colors' }
-                        ].map((holiday, idx) => (
-                            <div key={idx} className="flex gap-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0 last:mb-0">
-                                <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">{holiday.date}</div>
-                                <div className="flex-1">
-                                    <div className="font-bold text-[#1a367c] text-sm mb-1">{holiday.title}</div>
-                                    <div className="text-xs text-[#8892b0]">{holiday.desc}</div>
-                                </div>
+                        {loadingHolidays ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-5 h-5 animate-spin text-slate-300" />
                             </div>
-                        ))}
+                        ) : holidays.length > 0 ? (
+                            holidays.map((h) => (
+                                <div key={h.id} className="flex gap-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0">
+                                    <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">
+                                        {formatHolidayDate(h.date)}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="font-bold text-[#1a367c] text-sm mb-1">{h.name}</div>
+                                        <div className="text-xs text-[#8892b0]">{h.holiday_type || 'Public Holiday'}</div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-8 text-[#8892b0]">
+                                <CalendarDays className="w-8 h-8 mb-2 opacity-20" />
+                                <p className="text-xs font-medium">No upcoming holidays</p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-auto pt-4 border-t border-slate-50">
