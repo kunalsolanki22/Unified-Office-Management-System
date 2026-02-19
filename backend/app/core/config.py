@@ -5,8 +5,8 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@office_management:5432/office_db"
-    DATABASE_URL_SYNC: str = "postgresql://postgres:postgres@office_management:5432/office_db"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/office_management"
+    DATABASE_URL_SYNC: str = "postgresql://postgres:postgres@127.0.0.1:5432/office_management"
     
     # Security
     SECRET_KEY: str = "your-super-secret-key-change-in-production-minimum-32-chars"

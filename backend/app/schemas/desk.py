@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List
 from datetime import datetime, date, time
 from uuid import UUID
@@ -69,15 +69,28 @@ class DeskBookingBase(BaseModel):
     """
     start_date: date
     end_date: date
+    start_time: Optional[time] = None
+    end_time: Optional[time] = None
     notes: Optional[str] = Field(None, max_length=500)
     
-    @field_validator('end_date')
-    @classmethod
-    def validate_date_range(cls, v, info):
-        start = info.data.get('start_date')
-        if start and v < start:
-            raise ValueError('End date must be on or after start date')
-        return v
+    @model_validator(mode='after')
+    def validate_dates_and_times(self):
+        start_d = self.start_date
+        end_d = self.end_date
+        start_t = self.start_time
+        end_t = self.end_time
+
+        if start_d and end_d and end_d < start_d:
+             raise ValueError('End date must be on or after start date')
+        
+        # Time validation
+        # If single day, end_time <= start_time implies overnight booking (e.g. 23:00 to 06:00)
+        # We allow this now to support night shifts.
+        # if start_d == end_d and start_t and end_t:
+        #     if end_t <= start_t:
+        #         raise ValueError('End time must be after start time for single-day bookings')
+        
+        return self
 
 
 class DeskBookingCreate(DeskBookingBase):
@@ -126,6 +139,8 @@ class DeskBookingResponse(BaseModel):
     user_name: Optional[str] = None
     start_date: date
     end_date: date
+    start_time: Optional[time] = None
+    end_time: Optional[time] = None
     status: BookingStatus
     checked_in_at: Optional[datetime] = None
     checked_out_at: Optional[datetime] = None

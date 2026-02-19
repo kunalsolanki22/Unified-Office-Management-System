@@ -8,6 +8,8 @@ import '../manager_profile_screen.dart';
 import '../cafeteria_screen.dart';
 import '../parking_screen.dart';
 import '../leave_screen.dart';
+import 'attendance_review_screen.dart';
+import 'leave_review_screen.dart';
 
 
 class ManagerDashboard extends StatefulWidget {
@@ -130,8 +132,20 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
   DateTime? _tryParseDate(dynamic dateStr) {
     if (dateStr == null) return null;
     if (dateStr is! String) return null;
+    if (dateStr.isEmpty) return null;
+
     try {
-      return DateTime.parse(dateStr);
+      final parsed = DateTime.tryParse(dateStr);
+      if (parsed != null) return parsed;
+      
+      // If tryParse fails, try adding today's date if it's a time string
+      if (dateStr.contains(':')) {
+        final now = DateTime.now();
+        final formattedDate = 
+            "${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+        return DateTime.tryParse('${formattedDate} $dateStr');
+      }
+      return null;
     } catch (e) {
       print('Error parsing date: $dateStr - $e');
       return null;
@@ -389,7 +403,6 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-            const SizedBox(height: 24),
             _buildAttendanceCard(),
             const SizedBox(height: 24),
             Row(
@@ -783,6 +796,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     required String subtitle,
     required Color color,
     required Color iconColor,
+    VoidCallback? onTap,
   }) {
     return _HoverableCard(
       icon: icon,
@@ -790,7 +804,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
       subtitle: subtitle,
       color: color,
       iconColor: iconColor,
-      onTap: () async {
+      onTap: onTap ?? () async {
         if (title == 'Cafeteria') {
           final result = await Navigator.push(
             context,
@@ -1042,6 +1056,8 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     );
   }
 }
+
+
 
 class _HoverableCard extends StatefulWidget {
   final IconData icon;

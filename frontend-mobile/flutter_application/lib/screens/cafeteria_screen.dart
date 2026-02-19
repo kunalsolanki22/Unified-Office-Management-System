@@ -39,7 +39,7 @@ class CartItem {
     this.quantity = 1,
   });
 
-  double get priceValue => double.parse(price.replaceAll('\$', ''));
+  double get priceValue => double.parse(price.replaceAll('₹', ''));
   double get totalPrice => priceValue * quantity;
 }
 
@@ -69,7 +69,8 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
   late Map<String, _DeskItem> _desks;
   String? _selectedDeskId;
   String? _selectedTableUuid;
-  String? _userBookedDeskId; // The desk this user has booked
+  String? _userBookedDeskId; // The table ID this user has booked
+  String? _userBookingId; // The booking ID for the current user's booking
 
   int get _totalCartItems => _cart.values.fold(0, (sum, item) => sum + item.quantity);
   double get _totalCartPrice => _cart.values.fold(0.0, (sum, item) => sum + item.totalPrice);
@@ -178,12 +179,16 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       setState(() => _isBookingDesk = false);
 
       if (result['success']) {
+        final bookingData = result['data'];
+        final bookingId = bookingData?['id']?.toString();
+        
         setState(() {
           final desk = _desks[_selectedDeskId!];
           if (desk != null) {
             desk.freezeTimer?.cancel();
-            desk.status = DeskStatus.booked;
+            desk.status = DeskStatus.yours;
             _userBookedDeskId = _selectedDeskId;
+            _userBookingId = bookingId;
             _selectedDeskId = null;
             _selectedTableUuid = null;
           }
@@ -191,6 +196,47 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
         SnackbarHelper.showSuccess(context, 'Desk ${_getDeskDisplayLabel(_userBookedDeskId)} booked successfully!');
       } else {
         SnackbarHelper.showError(context, result['message'] ?? 'Failed to book desk');
+      }
+    }
+  }
+
+  // Release (cancel) table booking
+  Future<void> _releaseTable() async {
+    if (_userBookingId == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Release Table'),
+        content: const Text('Are you sure you want to release this table?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('RELEASE'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isPlacingOrder = true); // Using this as general loading state for now
+
+    final result = await _cafeteriaService.cancelTableBooking(_userBookingId!);
+
+    if (mounted) {
+      setState(() => _isPlacingOrder = false);
+
+      if (result['success']) {
+        SnackbarHelper.showSuccess(context, 'Table released successfully');
+        _fetchTables(); // Refresh everything
+      } else {
+        SnackbarHelper.showError(context, result['message'] ?? 'Failed to release table');
       }
     }
   }
@@ -281,10 +327,15 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       final myBookings = List<Map<String, dynamic>>.from(myBookingsResult['data'] ?? []);
       final today = DateTime.now().toIso8601String().split('T')[0];
       String? userBookedTableId;
+      String? userBookingId;
       for (final booking in myBookings) {
-        final bookingDate = booking['booking_date']?.toString().split('T')[0] ?? '';
-        if (bookingDate == today) {
+        final bookingDate = (booking['booking_date'] ?? '').toString().split('T')[0];
+        final bookingStatus = (booking['status'] ?? '').toString().toLowerCase();
+        
+        // Only consider active/confirmed bookings for today
+        if (bookingDate == today && !bookingStatus.contains('cancel') && !bookingStatus.contains('reject')) {
           userBookedTableId = booking['table_id']?.toString();
+          userBookingId = booking['id']?.toString();
           break;
         }
       }
@@ -325,6 +376,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
         _tables = tables;
         _bookedTableIds = bookedIds;
         _userBookedDeskId = userBookedTableId;
+        _userBookingId = userBookingId;
         _isLoadingTables = false;
       });
     }
@@ -626,6 +678,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
         children: [
           Expanded(
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 setState(() {
                   _isOrderingFood = true;
@@ -646,7 +699,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                           ),
                         ],
                       )
-                    : null,
+                    : const BoxDecoration(color: Colors.transparent),
                 child: Center(
                   child: Text(
                     'ORDER FOOD',
@@ -663,6 +716,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
           ),
           Expanded(
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 setState(() {
                   _isOrderingFood = false;
@@ -683,7 +737,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                           ),
                         ],
                       )
-                    : null,
+                    : const BoxDecoration(color: Colors.transparent),
                 child: Center(
                   child: Text(
                     'BOOK DESK',
@@ -744,7 +798,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                 iconColor: iconColor,
                 iconBgColor: iconColor.withValues(alpha: 0.1),
                 name: item['name'] ?? '',
-                price: '\$${price.toStringAsFixed(2)}',
+                price: '₹${price.toStringAsFixed(2)}',
                 isLunch: category == 'lunch',
                 subtitle: category.toUpperCase(),
               ),
@@ -926,10 +980,14 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
               ],
             ),
           ),
-          const Icon(
-            Icons.table_restaurant,
-            color: Colors.white,
-            size: 32,
+          IconButton(
+            icon: const Icon(
+              Icons.cancel_outlined,
+              color: Colors.redAccent,
+              size: 28,
+            ),
+            onPressed: _releaseTable,
+            tooltip: 'Release Table',
           ),
         ],
       ),
@@ -1116,9 +1174,11 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: (hasSelection && !alreadyBooked) ? _confirmDeskBooking : null,
+        onPressed: alreadyBooked 
+            ? _releaseTable 
+            : (hasSelection ? _confirmDeskBooking : null),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1A237E),
+          backgroundColor: alreadyBooked ? Colors.red.shade700 : const Color(0xFF1A237E),
           foregroundColor: Colors.white,
           disabledBackgroundColor: Colors.grey[300],
           disabledForegroundColor: Colors.grey[500],
@@ -1130,7 +1190,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
         ),
         child: Text(
           alreadyBooked 
-            ? 'DESK ${_getDeskDisplayLabel(_userBookedDeskId)} BOOKED'
+            ? 'RELEASE TABLE'
               : hasSelection 
               ? 'CONFIRM DESK ${_getDeskDisplayLabel(_selectedDeskId)} BOOKING'
                   : 'SELECT A DESK TO BOOK',
@@ -1463,7 +1523,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                             ),
                           ),
                           Text(
-                            '\$${_totalCartPrice.toStringAsFixed(2)}',
+                            '₹${_totalCartPrice.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -1544,7 +1604,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '\$${item.totalPrice.toStringAsFixed(2)}',
+                '₹${item.totalPrice.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,

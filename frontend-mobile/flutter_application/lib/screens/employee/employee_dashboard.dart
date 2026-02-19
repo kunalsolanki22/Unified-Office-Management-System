@@ -121,8 +121,20 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
   DateTime? _tryParseDate(dynamic dateStr) {
     if (dateStr == null) return null;
     if (dateStr is! String) return null;
+    if (dateStr.isEmpty) return null;
+
     try {
-      return DateTime.parse(dateStr);
+      final parsed = DateTime.tryParse(dateStr);
+      if (parsed != null) return parsed;
+      
+      // If tryParse fails, try adding today's date if it's a time string
+      if (dateStr.contains(':')) {
+        final now = DateTime.now();
+        final formattedDate = 
+            "${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+        return DateTime.tryParse('${formattedDate} $dateStr');
+      }
+      return null;
     } catch (e) {
       print('Error parsing date: $dateStr - $e');
       return null;
@@ -300,7 +312,16 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
 
   String _getHolidayStatus(String dateStr) {
     try {
-      final holidayDate = DateTime.parse(dateStr);
+      DateTime? holidayDate;
+      // Handle "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS"
+      if (dateStr.contains('T')) {
+        holidayDate = DateTime.tryParse(dateStr);
+      } else {
+        holidayDate = DateTime.tryParse(dateStr);
+      }
+      
+      if (holidayDate == null) return 'SCHEDULED';
+
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
       final hDate = DateTime(holidayDate.year, holidayDate.month, holidayDate.day);

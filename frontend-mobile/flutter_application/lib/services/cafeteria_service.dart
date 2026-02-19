@@ -188,7 +188,13 @@ class CafeteriaService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return {'success': true, 'data': data['data'] ?? []};
+        final rawList = List<Map<String, dynamic>>.from(data['data'] ?? []);
+        // Filter for active bookings only
+        final bookings = rawList.where((b) {
+          final status = (b['status'] ?? '').toString().toLowerCase();
+          return status == 'confirmed' || status == 'pending' || status == 'approved';
+        }).toList();
+        return {'success': true, 'data': bookings};
       } else {
         final errorData = json.decode(response.body);
         return {'success': false, 'message': errorData['detail'] ?? 'Failed to fetch bookings'};
@@ -213,6 +219,26 @@ class CafeteriaService {
       } else {
         final errorData = json.decode(response.body);
         return {'success': false, 'message': errorData['detail'] ?? 'Failed to fetch bookings'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  /// Cancel a cafeteria table booking
+  Future<Map<String, dynamic>> cancelTableBooking(String bookingId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/cafeteria/bookings/$bookingId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': 'Booking cancelled successfully'};
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'message': errorData['detail'] ?? 'Failed to cancel booking'};
       }
     } catch (e) {
       return {'success': false, 'message': 'Connection error: $e'};

@@ -3,7 +3,7 @@ from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 from typing import Optional, List, Tuple
 from uuid import UUID
-from datetime import date, time, datetime, timezone
+from datetime import date, time, datetime, timezone, timedelta
 
 from ..models.desk import Desk, DeskBooking, ConferenceRoom, ConferenceRoomBooking
 from ..models.user import User
@@ -54,10 +54,13 @@ class DeskService:
         self,
         status: Optional[DeskStatus] = None,
         is_active: Optional[bool] = True,
+        booking_date: Optional[date] = None,
+        start_time: Optional[time] = None,
+        end_time: Optional[time] = None,
         page: int = 1,
         page_size: int = 20
     ) -> Tuple[List[Desk], int]:
-        """List desks with filtering."""
+        """List desks with filtering and dynamic status update based on booking time."""
         query = select(Desk)
         count_query = select(func.count(Desk.id))
         
@@ -77,8 +80,63 @@ class DeskService:
         
         # Get paginated results
         query = query.offset((page - 1) * page_size).limit(page_size)
+        query = query.execution_options(populate_existing=True)  # Refresh from DB to avoid stale in-memory edits
         result = await self.db.execute(query)
         desks = list(result.scalars().all())
+        
+        # Check for active bookings if date/time provided
+        if booking_date:
+            # Check which desks are booked during this time
+            booking_query = select(DeskBooking).where(
+                and_(
+                    DeskBooking.desk_id.in_([d.id for d in desks]),
+                    DeskBooking.status == BookingStatus.CONFIRMED,
+                    DeskBooking.start_date <= booking_date,
+                    DeskBooking.end_date >= booking_date
+                )
+            )
+            
+            booking_result = await self.db.execute(booking_query)
+            active_bookings = booking_result.scalars().all()
+            
+            # Prepare request intervals
+            # list_desks filters by a single date usually, but we treat it as a Start/End booking request of 1 day.
+            req_intervals = self._get_booking_intervals(
+                booking_date, 
+                booking_date, 
+                start_time, 
+                end_time
+            )
+
+            booked_desk_ids = set()
+            for booking in active_bookings:
+                # Get intervals for this booking
+                booking_intervals = self._get_booking_intervals(
+                    booking.start_date,
+                    booking.end_date,
+                    booking.start_time,
+                    booking.end_time
+                )
+                
+                # Check Overlap
+                is_overlap = False
+                for r_start, r_end in req_intervals:
+                    for b_start, b_end in booking_intervals:
+                        if r_start < b_end and b_start < r_end:
+                            is_overlap = True
+                            break
+                    if is_overlap:
+                        break
+                
+                if is_overlap:
+                    booked_desk_ids.add(booking.desk_id)
+            
+            # Update status for booked desks (InMemory only, not persisted)
+            for desk in desks:
+                if desk.id in booked_desk_ids:
+                    # Expunge from session to prevent persistence of the manual status change
+                    self.db.expunge(desk)
+                    desk.status = DeskStatus.BOOKED
         
         return desks, total
     
@@ -170,30 +228,132 @@ class DeskService:
         )
         return result.scalar_one_or_none()
     
+    def _get_booking_intervals(
+        self,
+        start_date: date,
+        end_date: date,
+        start_time: Optional[time] = None,
+        end_time: Optional[time] = None
+    ) -> List[Tuple[datetime, datetime]]:
+        """
+        Convert a booking request into a list of specific datetime intervals.
+        Handles:
+        1. Full day bookings (no time specified) -> One continuous interval per day (or huge block).
+        2. Single day time-bound -> One interval.
+        3. Multi-day time-bound (Recurring) -> Multiple intervals (e.g. 9am-5pm each day).
+        4. Multi-day Overnight (e.g. 9pm-10am) -> Multiple intervals spanning days.
+        """
+        intervals = []
+        
+        # Case 1: Full Day (No time specified)
+        # Treat as continuous block from start_date 00:00 to end_date 23:59:59
+        if not start_time or not end_time:
+            start_dt = datetime.combine(start_date, time(0, 0, 0))
+            end_dt = datetime.combine(end_date, time(23, 59, 59))
+            intervals.append((start_dt, end_dt))
+            return intervals
+
+        # Case 2: Time Specified
+        # We iterate through the days.
+        from datetime import timedelta
+        
+        current_date = start_date
+        
+        # Check standard vs overnight
+        if start_time < end_time:
+            # Daily slot (e.g. 09:00 to 17:00)
+            # Occurs on EVERY day from start_date to end_date (Inclusive)
+            while current_date <= end_date:
+                s_dt = datetime.combine(current_date, start_time)
+                e_dt = datetime.combine(current_date, end_time)
+                intervals.append((s_dt, e_dt))
+                current_date += timedelta(days=1)
+                
+        else:
+            # Overnight slot (e.g. 21:00 to 09:00)
+            # Starts on Day N, Ends on Day N+1
+            # Occurs from start_date until... end_date.
+            # If user says 18/2 to 20/2, 21:00-09:00.
+            # Implicitly means:
+            # 18/2 21:00 -> 19/2 09:00
+            # 19/2 21:00 -> 20/2 09:00
+            # So we iterate start dates from start_date to (end_date - 1 day)
+            
+            # Special Handling: If start_date == end_date and start_time > end_time.
+            # This implies a single overnight slot: Start Day N, End Day N+1.
+            # But the "end_date" field in DB usually encompasses the full range.
+            # If user selects single day 18/2 in UI, but times 21:00-09:00, 
+            # they likely expect it to end on 19/2. The UI might send end_date=18/2 or 19/2.
+            # Assuming strictly: Loop until start_date_of_interval < end_date.
+            
+            while current_date < end_date:
+                s_dt = datetime.combine(current_date, start_time)
+                e_dt = datetime.combine(current_date + timedelta(days=1), end_time)
+                intervals.append((s_dt, e_dt))
+                current_date += timedelta(days=1)
+                
+            # Edge case: If start_date == end_date, the loop above doesn't run.
+            # But specific overnight on single date (start PM, end AM next day) 
+            # might come in as start=18/2, end=19/2.
+            # If it comes as start=18/2, end=18/2, we should probably allow one slot if that's what UI sends.
+            if start_date == end_date:
+                 s_dt = datetime.combine(start_date, start_time)
+                 e_dt = datetime.combine(start_date + timedelta(days=1), end_time)
+                 intervals.append((s_dt, e_dt))
+
+        return intervals
+
     async def check_booking_overlap(
         self,
         desk_id: UUID,
         start_date: date,
         end_date: date,
+        start_time: Optional[time] = None,
+        end_time: Optional[time] = None,
         exclude_booking_id: Optional[UUID] = None
     ) -> bool:
-        """Check if there's an overlapping booking for the date range."""
-        # Date ranges overlap if: start1 <= end2 AND end1 >= start2
-        query = select(DeskBooking).where(
-            and_(
-                DeskBooking.desk_id == desk_id,
-                DeskBooking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
-                DeskBooking.start_date <= end_date,
-                DeskBooking.end_date >= start_date
-            )
-        )
+        """Check if there's an overlapping booking using interval intersection."""
+        
+        # 1. Base query: Get ALL bookings that overlap the broad DATE range.
+        # We cast a wide net here.
+        base_conditions = [
+            DeskBooking.desk_id == desk_id,
+            DeskBooking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+            # Standard Date Overlap: Start1 <= End2 AND End1 >= Start2
+            DeskBooking.start_date <= end_date,
+            DeskBooking.end_date >= start_date
+        ]
         
         if exclude_booking_id:
-            query = query.where(DeskBooking.id != exclude_booking_id)
-        
+            base_conditions.append(DeskBooking.id != exclude_booking_id)
+            
+        query = select(DeskBooking).where(and_(*base_conditions))
         result = await self.db.execute(query)
-        return result.scalar_one_or_none() is not None
-    
+        potential_conflicts = result.scalars().all()
+        
+        if not potential_conflicts:
+            return False
+            
+        # 2. Refine with specific Interval Intersection
+        req_intervals = self._get_booking_intervals(start_date, end_date, start_time, end_time)
+        
+        for booking in potential_conflicts:
+            existing_intervals = self._get_booking_intervals(
+                booking.start_date, 
+                booking.end_date, 
+                booking.start_time, 
+                booking.end_time
+            )
+            
+            # Check if ANY interval in request overlaps ANY interval in existing
+            for r_start, r_end in req_intervals:
+                for e_start, e_end in existing_intervals:
+                    # Interval Overlap: Start1 < End2 AND Start2 < End1
+                    if r_start < e_end and e_start < r_end:
+                        return True
+                        
+        return False
+
     async def create_booking(
         self,
         booking_data: DeskBookingCreate,
@@ -208,21 +368,108 @@ class DeskService:
             return None, "Desk is not active"
         if desk.status == DeskStatus.MAINTENANCE:
             return None, "Desk is under maintenance"
+
+        # 1. Past Time Validation
+        now = datetime.now()
+        today = now.date()
+        current_time = now.time()
         
+        if booking_data.start_date < today:
+             return None, "Cannot book for past dates"
+        
+        if booking_data.start_date == today:
+             # If booking starts today, check start_time
+             # If start_time is None (full day), we assume 00:00? Or start of day. 
+             # If full day booking attempted NOW (e.g. 2pm), should we allow it?
+             # "time of system is 10:17pm then he/she cannot select time past then"
+             # Implicitly applies to specific time slots.
+             if booking_data.start_time and booking_data.start_time < current_time:
+                 return None, "Cannot book for past time"
+
+        # 2. Max 2 Desks Per Day Validation
+        # Get all active bookings for this user that overlap with the requested DATE range
+        user_bookings_result = await self.db.execute(
+            select(DeskBooking).where(
+                and_(
+                    DeskBooking.user_code == user.user_code,
+                    DeskBooking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+                    DeskBooking.start_date <= booking_data.end_date,
+                    DeskBooking.end_date >= booking_data.start_date
+                )
+            )
+        )
+        existing_bookings = user_bookings_result.scalars().all()
+        
+        # Check daily limits
+        # We iterate through every day of the requested booking
+        # and checking if adding it would exceed 2 bookings for that day.
+        
+        # Helper to span dates
+        def date_range(start, end):
+            curr = start
+            while curr <= end:
+                yield curr
+                curr += timedelta(days=1)
+        
+        # Build frequency map of existing bookings per day
+        # Map: date -> count
+        usage_map = {}
+        for b in existing_bookings:
+            for d in date_range(b.start_date, b.end_date):
+                usage_map[d] = usage_map.get(d, 0) + 1
+                
+        # Check against requested dates
+        for req_d in date_range(booking_data.start_date, booking_data.end_date):
+            current_count = usage_map.get(req_d, 0)
+            if current_count >= 2:
+                return None, f"Booking limit reached (Max 2 desks) for date {req_d}"
+
         # Check for overlapping bookings
         has_overlap = await self.check_booking_overlap(
             booking_data.desk_id,
             booking_data.start_date,
-            booking_data.end_date
+            booking_data.end_date,
+            booking_data.start_time,
+            booking_data.end_time
         )
         if has_overlap:
-            return None, "Date range overlaps with existing booking"
+            return None, "Date/Time range overlaps with existing booking"
+        
+        # 3. User Concurrent Booking Validation
+        # Check if this user already has ANOTHER booking at the same time
+        if booking_data.start_time and booking_data.end_time:
+            req_intervals = self._get_booking_intervals(
+                booking_data.start_date,
+                booking_data.end_date,
+                booking_data.start_time,
+                booking_data.end_time
+            )
+            
+            for b in existing_bookings:
+                # Check if the user is busy on ANY desk.
+                b_intervals = self._get_booking_intervals(
+                    b.start_date, b.end_date, b.start_time, b.end_time
+                )
+                
+                is_overlap = False
+                for r_start, r_end in req_intervals:
+                    for b_start, b_end in b_intervals:
+                        if r_start < b_end and b_start < r_end:
+                            is_overlap = True
+                            break
+                    if is_overlap:
+                        break
+                
+                if is_overlap:
+                    return None, f"You already have a desk booking at this time ({b.start_time} - {b.end_time})"
         
         booking = DeskBooking(
             desk_id=booking_data.desk_id,
             user_code=user.user_code,
             start_date=booking_data.start_date,
             end_date=booking_data.end_date,
+            start_time=booking_data.start_time,
+            end_time=booking_data.end_time,
             status=BookingStatus.CONFIRMED,
             notes=booking_data.notes
         )
@@ -525,36 +772,46 @@ class DeskService:
         booking_date: date,
         start_time: time,
         end_time: time,
-        exclude_booking_id: Optional[UUID] = None
+        exclude_booking_id: Optional[UUID] = None,
+        user_code: Optional[str] = None
     ) -> bool:
         """Check if there's an overlapping room booking."""
         # Only CONFIRMED bookings should block new bookings. Pending requests
         # are allowed to coexist (multiple pending requests for the same slot).
-        query = select(ConferenceRoomBooking).where(
-            and_(
-                ConferenceRoomBooking.room_id == room_id,
-                ConferenceRoomBooking.booking_date == booking_date,
-                ConferenceRoomBooking.status == BookingStatus.CONFIRMED,
-                or_(
-                    and_(
-                        ConferenceRoomBooking.start_time <= start_time,
-                        ConferenceRoomBooking.end_time > start_time
-                    ),
-                    and_(
-                        ConferenceRoomBooking.start_time < end_time,
-                        ConferenceRoomBooking.end_time >= end_time
-                    ),
-                    and_(
-                        ConferenceRoomBooking.start_time >= start_time,
-                        ConferenceRoomBooking.end_time <= end_time
-                    )
+        status_condition = ConferenceRoomBooking.status == BookingStatus.CONFIRMED
+        if user_code:
+            status_condition = or_(
+                status_condition,
+                and_(
+                    ConferenceRoomBooking.user_code == user_code,
+                    ConferenceRoomBooking.status == BookingStatus.PENDING
                 )
             )
-        )
+
+        conditions = [
+            ConferenceRoomBooking.room_id == room_id,
+            ConferenceRoomBooking.booking_date == booking_date,
+            status_condition,
+            or_(
+                and_(
+                    ConferenceRoomBooking.start_time <= start_time,
+                    ConferenceRoomBooking.end_time > start_time
+                ),
+                and_(
+                    ConferenceRoomBooking.start_time < end_time,
+                    ConferenceRoomBooking.end_time >= end_time
+                ),
+                and_(
+                    ConferenceRoomBooking.start_time >= start_time,
+                    ConferenceRoomBooking.end_time <= end_time
+                )
+            )
+        ]
         
         if exclude_booking_id:
-            query = query.where(ConferenceRoomBooking.id != exclude_booking_id)
-        
+            conditions.append(ConferenceRoomBooking.id != exclude_booking_id)
+            
+        query = select(ConferenceRoomBooking).where(and_(*conditions))
         result = await self.db.execute(query)
         return result.scalar_one_or_none() is not None
     
@@ -577,14 +834,17 @@ class DeskService:
             return None, f"Attendees count exceeds room capacity ({room.capacity})"
         
         # Check for overlapping bookings
+        # We pass user.user_code to ensure they can't book the same slot twice
+        # (even if it's just PENDING)
         has_overlap = await self.check_room_booking_overlap(
             booking_data.room_id,
             booking_data.booking_date,
             booking_data.start_time,
-            booking_data.end_time
+            booking_data.end_time,
+            user_code=user.user_code
         )
         if has_overlap:
-            return None, "Time slot overlaps with existing booking"
+            return None, "Time slot overlaps with an existing confirmed booking or your own pending request"
         
         booking = ConferenceRoomBooking(
             room_id=booking_data.room_id,
@@ -595,7 +855,7 @@ class DeskService:
             title=booking_data.title,
             description=booking_data.description,
             attendees_count=booking_data.attendees_count,
-            status=BookingStatus.PENDING,  # Requires manager approval
+            status=BookingStatus.PENDING,  # Default to PENDING for approval workflow
             notes=booking_data.notes
         )
         

@@ -98,4 +98,79 @@ class AttendanceService {
       return {'success': false, 'message': 'Connection error: $e'};
     }
   }
+
+  // Manager methods
+
+  Future<Map<String, dynamic>> getPendingApprovals({int page = 1, int pageSize = 50}) async {
+    try {
+      final headers = await _getHeaders();
+      final uri = Uri.parse('$baseUrl/attendance/pending-approvals').replace(queryParameters: {
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+      });
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data'] ?? []};
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'message': errorData['detail'] ?? 'Failed to fetch pending approvals'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> approveAttendance(String attendanceId, {String? notes}) async {
+    try {
+      final headers = await _getHeaders();
+      final body = {
+        'action': 'approve',
+        'notes': notes,
+      };
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/attendance/$attendanceId/approve'),
+        headers: headers,
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data']};
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'message': errorData['detail'] ?? 'Approval failed'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> rejectAttendance(String attendanceId, String reason) async {
+    try {
+      final headers = await _getHeaders();
+      final body = {
+        'action': 'reject',
+        'rejection_reason': reason,
+      };
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/attendance/$attendanceId/approve'),
+        headers: headers,
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data']};
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'message': errorData['detail'] ?? 'Rejection failed'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
 }
