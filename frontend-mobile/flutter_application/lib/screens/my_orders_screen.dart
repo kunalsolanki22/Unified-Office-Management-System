@@ -182,7 +182,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                                             ),
                                           ),
                                           Text(
-                                            '\$${item['total_price']}',
+                                            '₹${item['total_price']}',
                                             style: TextStyle(
                                               color: Colors.grey[800],
                                               fontWeight: FontWeight.w500,
@@ -206,7 +206,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                                       ),
                                     ),
                                     Text(
-                                      '\$${total.toStringAsFixed(2)}',
+                                      '₹${total.toStringAsFixed(2)}',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,

@@ -532,6 +532,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
         children: [
           Expanded(
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () => setState(() {
                 _isLevel1 = true;
               }),
@@ -549,7 +550,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
                           ),
                         ],
                       )
-                    : null,
+                    : const BoxDecoration(color: Colors.transparent),
                 child: Center(
                   child: Text(
                     'CARS',
@@ -564,6 +565,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
           ),
           Expanded(
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () => setState(() {
                 _isLevel1 = false;
               }),
@@ -581,7 +583,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
                           ),
                         ],
                       )
-                    : null,
+                    : const BoxDecoration(color: Colors.transparent),
                 child: Center(
                   child: Text(
                     'BIKES',

@@ -26,17 +26,24 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
   bool _isBooking = false;
 
   // Booking form state
-  DateTime _selectedDate = DateTime.now();
-  int _selectedDuration = 0; // 0 = Full Day, 1 = Morning, 2 = Evening
+  DateTimeRange _selectedDateRange = DateTimeRange(
+    start: DateTime.now(),
+    end: DateTime.now(),
+  );
+  TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _endTime = const TimeOfDay(hour: 18, minute: 0);
   int _selectedFloor = 0;
   String _currentBookingItem = '';
   String _currentBookingType = '';
   String _currentBookingItemId = ''; // Store desk/room ID for API
+  int _roomCapacity = 0;
+  final TextEditingController _attendeesController = TextEditingController(text: '1');
 
   // Dynamic data from API
   List<Map<String, dynamic>> _allDesks = [];
   Map<String, bool> _deskAvailability = {};
   Map<String, String> _deskIds = {}; // Map desk code to desk ID for API
+  List<Map<String, dynamic>> _bookingsForSelectedDate = [];
 
   List<Map<String, dynamic>> _meetingRooms = [];
   List<Map<String, dynamic>> _myRoomBookings = [];
@@ -54,12 +61,23 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Load desks, rooms and bookings in parallel (include today's room bookings)
+      final start = _selectedDateRange.start;
+      final dateStr = '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
+      
+      final startTimeStr = '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}:00';
+      final endTimeStr = '${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}:00';
+
+      // Load desks, rooms and bookings in parallel
       final results = await Future.wait([
-        _deskService.getDesks(pageSize: 100),
-        _deskService.getTodaysBookings(),
+        _deskService.getDesks(
+          pageSize: 100,
+          bookingDate: dateStr,
+          startTime: startTimeStr,
+          endTime: endTimeStr,
+        ),
+        _deskService.getBookingsForDate(dateStr),
         _deskService.getConferenceRooms(pageSize: 50),
-        _deskService.getTodaysRoomBookings(),
+        _deskService.getRoomBookingsForDate(dateStr),
         _deskService.getMyRoomBookings(),
         _deskService.getMyBookings(),
       ]);
@@ -78,36 +96,12 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
         final desks = List<Map<String, dynamic>>.from(desksResult['data'] ?? []);
         _allDesks = desks;
         
-        final bookedDeskIds = <String>{};
-        
-        // Get booked desk IDs for today
+        _bookingsForSelectedDate = [];
         if (bookingsResult['success'] == true) {
-          final bookings = List<Map<String, dynamic>>.from(bookingsResult['data'] ?? []);
-          for (final booking in bookings) {
-            final deskId = booking['desk_id']?.toString() ?? '';
-            if (deskId.isNotEmpty) bookedDeskIds.add(deskId);
-          }
+          _bookingsForSelectedDate = List<Map<String, dynamic>>.from(bookingsResult['data'] ?? []);
         }
 
-        // Build availability map
-        final availability = <String, bool>{};
-        final deskIdMap = <String, String>{};
-        
-        for (final desk in desks) {
-          final deskCode = desk['desk_code']?.toString() ?? 'D-${desk['id']}';
-          final deskId = desk['id']?.toString() ?? '';
-          
-          // Desk is available if not booked for today and status is AVAILABLE
-          final isBooked = bookedDeskIds.contains(deskId);
-          final status = desk['status']?.toString().toUpperCase() ?? 'AVAILABLE';
-          availability[deskCode] = !isBooked && status == 'AVAILABLE';
-          deskIdMap[deskCode] = deskId;
-        }
-
-        setState(() {
-          _deskAvailability = availability;
-          _deskIds = deskIdMap;
-        });
+        _calculateAvailability();
       } else {
         SnackbarHelper.showError(context, desksResult['message'] ?? 'Failed to load desks');
       }
@@ -122,10 +116,9 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
           'capacity': room['capacity'] ?? 10,
           'available': (room['status']?.toString().toUpperCase() ?? 'AVAILABLE') == 'AVAILABLE',
           'amenities': List<String>.from(room['amenities'] ?? ['Whiteboard']),
-          'amenities': List<String>.from(room['amenities'] ?? ['Whiteboard']),
         }).toList();
 
-        // Process today's room bookings to find pending requests for rooms
+        // Process room bookings to find pending requests
         _pendingRoomIds.clear();
         if (todaysRoomBookingsResult['success'] == true) {
           final rawRoomBookings = List<Map<String, dynamic>>.from(todaysRoomBookingsResult['data'] ?? []);
@@ -138,15 +131,32 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
           }
         }
 
-        // Process my room bookings - only keep pending requests
+        // Process my room bookings - Show PENDING and CONFIRMED
         if (myRoomBookingsResult['success'] == true) {
           final raw = List<Map<String, dynamic>>.from(myRoomBookingsResult['data'] ?? []);
-          final pending = raw.where((b) {
+          final active = raw.where((b) {
             final s = (b['status'] ?? '').toString().toLowerCase();
-            return s.contains('pend');
+            return s.contains('pend') || s.contains('confirm') || s.contains('approv');
           }).toList();
+          
+          // Sort: Pending first, then by date
+          active.sort((a, b) {
+            final statusA = (a['status'] ?? '').toString().toLowerCase();
+            final statusB = (b['status'] ?? '').toString().toLowerCase();
+            final isPendingA = statusA.contains('pend');
+            final isPendingB = statusB.contains('pend');
+            
+            if (isPendingA && !isPendingB) return -1;
+            if (!isPendingA && isPendingB) return 1;
+            
+            // Secondary sort by date
+            final dateA = (a['booking_date'] ?? '').toString();
+            final dateB = (b['booking_date'] ?? '').toString();
+            return dateA.compareTo(dateB);
+          });
+
           setState(() {
-            _myRoomBookings = pending;
+            _myRoomBookings = active;
           });
         }
 
@@ -154,15 +164,15 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
           _meetingRooms = List<Map<String, dynamic>>.from(roomList);
         });
       }
-      // Process my desk bookings - only keep pending requests
+      // Process my desk bookings - keep pending and confirmed
       if (myDeskBookingsResult['success'] == true) {
         final raw = List<Map<String, dynamic>>.from(myDeskBookingsResult['data'] ?? []);
-        final pending = raw.where((b) {
+        final active = raw.where((b) {
           final s = (b['status'] ?? '').toString().toLowerCase();
-          return s.contains('pend');
+          return s.contains('pend') || s.contains('confirm') || s.contains('approv');
         }).toList();
         setState(() {
-          _myDeskBookings = pending;
+          _myDeskBookings = active;
         });
       }
     } catch (e) {
@@ -176,13 +186,61 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     }
   }
 
-  void _openBookingModal(String itemName, String itemType, {String itemId = ''}) {
+  // Helper to parse "HH:MM:SS.mmmm" or "HH:MM" to double hours
+  double _parseTimeToDouble(String? timeStr) {
+    if (timeStr == null || timeStr.isEmpty) return 0.0;
+    try {
+      final parts = timeStr.split(':');
+      final hour = double.parse(parts[0]);
+      final minute = double.parse(parts[1]);
+      return hour + minute / 60.0;
+    } catch (e) {
+      return 0.0;
+    }
+  }
+
+  void _calculateAvailability() {
+    // Build availability map
+    final availability = <String, bool>{};
+    final deskIdMap = <String, String>{};
+    
+    for (final desk in _allDesks) {
+      final deskCode = desk['desk_code']?.toString() ?? 'D-${desk['id']}';
+      final deskId = desk['id']?.toString() ?? '';
+      
+      final status = desk['status']?.toString().toUpperCase() ?? 'AVAILABLE';
+
+      // Backend now sets status to BOOKED if there is an overlap
+      final isBooked = status == 'BOOKED';
+      final isOperational = status != 'MAINTENANCE' && status != 'INACTIVE';
+      
+      availability[deskCode] = !isBooked && isOperational;
+      deskIdMap[deskCode] = deskId;
+    }
+
     setState(() {
-      _currentBookingItem = itemName;
-      _currentBookingType = itemType;
-      _currentBookingItemId = itemId;
-      _isModalVisible = true;
+      _deskAvailability = availability;
+      _deskIds = deskIdMap;
     });
+  }
+
+  bool _isOverlapping(double start1, double end1, double start2, double end2) {
+    // Strict inequality handles adjacent slots (e.g. 10-11 and 11-12 do NOT overlap)
+    // Also handle 0.0 case (parse error) safely
+    if (start2 == 0.0 && end2 == 0.0) return false;
+    return start1 < end2 && start2 < end1;
+  }
+
+
+  void _onDateRangeSelected(DateTimeRange range) {
+    setState(() {
+      _selectedDateRange = range;
+    });
+    _loadData(); // Reload bookings for new start date
+  }
+
+  void _onTimeChanged() {
+    _loadData(); // Reload from backend with new time params
   }
 
   void _closeModal() {
@@ -206,75 +264,152 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
       return;
     }
 
-    // Format date
-    final dateStr = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+    // Format times
+    final startTimeFormatted = '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}:00';
+    final endTimeFormatted = '${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}:00';
     
-    // Determine time based on duration selection
-    String startTime, endTime;
-    switch (_selectedDuration) {
-      case 1: // Morning
-        startTime = '09:00:00';
-        endTime = '13:00:00';
-        break;
-      case 2: // Evening
-        startTime = '14:00:00';
-        endTime = '18:00:00';
-        break;
-      default: // Full Day
-        startTime = '09:00:00';
-        endTime = '18:00:00';
-    }
+    // Time constraint check setup
+    final newStart = _startTime.hour + _startTime.minute / 60.0;
+    final newEnd = _endTime.hour + _endTime.minute / 60.0;
 
-    Map<String, dynamic> result;
-    if (_currentBookingType == 'Workstation') {
-      result = await _deskService.createDeskBooking(
-        deskId: itemId,
-        bookingDate: dateStr,
-        startTime: startTime,
-        endTime: endTime,
-        purpose: 'Workstation booking',
-      );
-    } else {
-      result = await _deskService.createRoomBooking(
-        roomId: itemId,
-        bookingDate: dateStr,
-        startTime: startTime,
-        endTime: endTime,
-        meetingTitle: 'Meeting Room Booking',
-        description: 'Booked via mobile app',
-      );
+    int successCount = 0;
+    List<String> failDates = [];
+    
+    // Calculate total days
+    final days = _selectedDateRange.end.difference(_selectedDateRange.start).inDays + 1;
+
+    for (int i = 0; i < days; i++) {
+      final date = _selectedDateRange.start.add(Duration(days: i));
+      final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+      // Constraint Check: Max 2 bookings per day (Workstation only)
+      if (_currentBookingType == 'Workstation') {
+        final myBookingsForDate = _myDeskBookings.where((b) {
+           final bDate = (b['start_date'] ?? b['booking_date'] ?? '').toString().split('T')[0];
+           final status = (b['status'] ?? '').toString().toLowerCase();
+           return bDate == dateStr && (status == 'confirmed' || status == 'pending' || status == 'approved');
+        }).toList();
+
+        if (myBookingsForDate.length >= 2) {
+          failDates.add('$dateStr (Limit reached)');
+          continue; 
+        }
+
+        // Constraint Check: Self-Overlap (cannot book same time twice)
+        bool hasOverlap = false;
+        for (final booking in myBookingsForDate) {
+          final bStartStr = booking['start_time']?.toString() ?? '09:00:00';
+          final bEndStr = booking['end_time']?.toString() ?? '18:00:00';
+          
+          final bStartParts = bStartStr.split(':');
+          final bEndParts = bEndStr.split(':');
+          
+          final bStart = double.parse(bStartParts[0]) + double.parse(bStartParts[1]) / 60.0;
+          final bEnd = double.parse(bEndParts[0]) + double.parse(bEndParts[1]) / 60.0;
+          
+          if (_isOverlapping(newStart, newEnd, bStart, bEnd)) {
+               hasOverlap = true;
+               break;
+          }
+        }
+        
+        if (hasOverlap) {
+          failDates.add('$dateStr (Overlap)');
+          continue;
+        }
+      }
+
+      // API Call
+      Map<String, dynamic> result;
+      if (_currentBookingType == 'Workstation') {
+        result = await _deskService.createDeskBooking(
+          deskId: itemId,
+          bookingDate: dateStr,
+          startTime: startTimeFormatted,
+          endTime: endTimeFormatted,
+          purpose: 'Workstation booking',
+        );
+      } else {
+        // Constraint Check: Self-Overlap (Room)
+        final myRoomBookingsForDate = _myRoomBookings.where((b) {
+           final bDate = (b['booking_date'] ?? '').toString().split('T')[0];
+           final bRoomId = (b['room_id'] ?? '').toString();
+           final status = (b['status'] ?? '').toString().toLowerCase();
+           return bDate == dateStr && bRoomId == itemId && (status == 'confirmed' || status == 'pending' || status == 'approved');
+        }).toList();
+
+        bool hasRoomOverlap = false;
+        for (final booking in myRoomBookingsForDate) {
+          final bStartStr = booking['start_time']?.toString() ?? '09:00:00';
+          final bEndStr = booking['end_time']?.toString() ?? '18:00:00';
+          
+          final bStart = _parseTimeToDouble(bStartStr);
+          final bEnd = _parseTimeToDouble(bEndStr);
+          
+          if (_isOverlapping(newStart, newEnd, bStart, bEnd)) {
+               hasRoomOverlap = true;
+               break;
+          }
+        }
+
+        if (hasRoomOverlap) {
+          failDates.add('$dateStr (Already requested)');
+          continue;
+        }
+
+        // Validate Attendees
+        int attendees = int.tryParse(_attendeesController.text) ?? 1;
+        if (attendees > _roomCapacity) {
+          failDates.add("Attendees ($attendees) exceed capacity ($_roomCapacity)");
+          continue;
+        }
+
+        result = await _deskService.createRoomBooking(
+          roomId: itemId,
+          bookingDate: dateStr,
+          startTime: startTimeFormatted,
+          endTime: endTimeFormatted,
+          meetingTitle: 'Meeting Room Booking',
+          description: 'Booked via mobile app',
+          expectedAttendees: attendees,
+        );
+      }
+
+      if (result['success'] == true) {
+        successCount++;
+        // Optimistic update for UI if it's the start date
+        if (i == 0) {
+           if (_currentBookingType == 'Workstation' && _deskAvailability.containsKey(_currentBookingItem)) {
+             _deskAvailability[_currentBookingItem] = false;
+           }
+           if (_currentBookingType == 'Meeting Room') {
+             _pendingRoomIds.add(_currentBookingItemId);
+           }
+        }
+      } else {
+        failDates.add('$dateStr (${result['message']})');
+      }
     }
 
     if (!mounted) return;
     setState(() => _isBooking = false);
+    _closeModal();
+    _loadData(); // Refresh data
 
-    if (result['success'] == true) {
-      // Mark as occupied locally to give instant feedback
-      if (_currentBookingType == 'Workstation' && _deskAvailability.containsKey(_currentBookingItem)) {
-        setState(() {
-          _deskAvailability[_currentBookingItem] = false;
-          _selectedDesk = null;
-        });
-      }
-
-      // If booking a meeting room, mark the room as having a pending request locally
-      if (_currentBookingType == 'Meeting Room' && _currentBookingItemId.isNotEmpty) {
-        setState(() {
-          _pendingRoomIds.add(_currentBookingItemId);
-        });
-      }
-
-      SnackbarHelper.showSuccess(
-        context,
-        "$_currentBookingType reserved successfully!",
-      );
-      _closeModal();
-      _loadData(); // Refresh data to be sure
+    if (successCount == days) {
+       String msg = _currentBookingType == 'Workstation' 
+           ? 'All $successCount bookings confirmed!'
+           : 'Request Sent! Waiting for manager approval.';
+       SnackbarHelper.showSuccess(context, msg);
+    } else if (successCount > 0) {
+       final failReason = failDates.isNotEmpty ? failDates.first : 'Unknown error';
+       SnackbarHelper.showSuccess(context, '$successCount succeeded. Failed: $failReason');
     } else {
-      SnackbarHelper.showError(
-        context,
-        result['message'] ?? 'Failed to create booking',
-      );
+       if (failDates.isNotEmpty) {
+          SnackbarHelper.showError(context, 'Failed: ${failDates.first}${failDates.length > 1 ? ' (+${failDates.length - 1} others)' : ''}');
+       } else {
+          SnackbarHelper.showError(context, 'Booking failed');
+       }
     }
   }
 
@@ -311,8 +446,8 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
         backgroundColor: navyColor,
         icon: Icon(_selectedTabIndex == 0 ? Icons.desk : Icons.list_alt, color: Colors.white),
         label: Text(
-          _selectedTabIndex == 0 ? 'My Desk' : 'My Bookings',
-          style: const TextStyle(
+          _selectedTabIndex == 0 ? 'My Active Desks' : 'My Bookings',
+                  style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -322,6 +457,48 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
   }
 
   void _showMyDeskModal() {
+    final now = DateTime.now();
+
+    // Filter for Active Desks:
+    // 1. Status is CONFIRMED, PENDING, or APPROVED (not CANCELLED/REJECTED)
+    // 2. End time has not passed (Automatic Release logic)
+    final activeBookings = _myDeskBookings.where((b) {
+      final status = (b['status'] ?? '').toString().toLowerCase();
+      if (status.contains('cancel') || status.contains('reject')) return false;
+
+      final dateStr = (b['start_date'] ?? b['booking_date'] ?? '').toString().split('T')[0];
+      final endTimeStr = b['end_time']?.toString() ?? '18:00:00';
+      
+      try {
+        final dateParts = dateStr.split('-');
+        
+        // Handle HH:MM:SS.mmmm safely by taking substring or splitting
+        final timeParts = endTimeStr.split(':');
+        final hour = int.parse(timeParts[0]);
+        final minute = int.parse(timeParts[1]);
+        // Note: We ignore seconds/microseconds for the "isAfter" check typically, 
+        // or we can parse them if strictly needed. 
+        // But invalid format error happens if we assume strict HH:MM:SS and it has microseconds?
+        // Actually, Time in Dart is usually just DateTime. 
+        // If the string is "10:31:39.745611", split returns 3 parts.
+        // int.parse(timeParts[1]) works matching "31".
+        // But if I want to be safe, I should just use the helper or robust parsing.
+        
+        final endDateTime = DateTime(
+          int.parse(dateParts[0]),
+          int.parse(dateParts[1]),
+          int.parse(dateParts[2]),
+          hour,
+          minute,
+        );
+        
+        return endDateTime.isAfter(now);
+      } catch (e) {
+        // Fallback: If strict parsing fails (e.g. seconds), try to parse just the hour/minute
+        return true; 
+      }
+    }).toList();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -342,7 +519,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'My Active Desk',
+                  'My Active Desks',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -357,7 +534,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: _myDeskBookings.isEmpty
+              child: activeBookings.isEmpty
                   ? const Center(
                       child: Text(
                         'No active desk bookings found',
@@ -365,13 +542,15 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                       ),
                     )
                   : ListView.builder(
-                      itemCount: _myDeskBookings.length,
+                      itemCount: activeBookings.length,
                       itemBuilder: (context, index) {
-                        final booking = _myDeskBookings[index];
+                        final booking = activeBookings[index];
                         final String deskLabel = booking['desk_label']?.toString() ?? 'Desk';
                         final String deskCode = booking['desk_code']?.toString() ?? '';
                         final String date = booking['start_date']?.toString() ?? '';
                         final String status = booking['status']?.toString() ?? 'CONFIRMED';
+                        final String startTime = booking['start_time']?.toString().substring(0, 5) ?? '09:00';
+                        final String endTime = booking['end_time']?.toString().substring(0, 5) ?? '18:00';
                         
                         Color _statusColor(String s) {
                           final st = s.toLowerCase();
@@ -421,7 +600,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      'Date: $date',
+                                      'Date: $date • Time: $startTime - $endTime',
                                       style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                                     ),
                                   ),
@@ -657,6 +836,32 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     }
   }
 
+  List<Map<String, dynamic>> _getBookingsForSelectedDate() {
+    final start = _selectedDateRange.start;
+    final dateStr = '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
+    
+    try {
+      return _myDeskBookings.where((b) {
+        final bDate = (b['start_date'] ?? b['booking_date'] ?? '').toString().split('T')[0];
+        final status = (b['status'] ?? '').toString().toLowerCase();
+        return bDate == dateStr && (status == 'confirmed' || status == 'pending' || status == 'approved');
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  void _openBookingModal(String title, String type, {String itemId = '', int capacity = 0}) {
+    setState(() {
+      _currentBookingItem = title;
+      _currentBookingType = type;
+      _currentBookingItemId = itemId;
+      _roomCapacity = capacity;
+      _attendeesController.text = '1';
+      _isModalVisible = true;
+    });
+  }
+
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
@@ -713,21 +918,22 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
           children: [
             Expanded(
               child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () => setState(() => _selectedTabIndex = 0),
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: _selectedTabIndex == 0 ? Colors.white : null,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: _selectedTabIndex == 0
-                        ? [
+                  decoration: _selectedTabIndex == 0
+                      ? BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 12,
                             ),
-                          ]
-                        : null,
-                  ),
+                          ],
+                        )
+                      : const BoxDecoration(color: Colors.transparent),
                   child: Text(
                     'WORKSTATION',
                     textAlign: TextAlign.center,
@@ -742,21 +948,22 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
             ),
             Expanded(
               child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () => setState(() => _selectedTabIndex = 1),
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: _selectedTabIndex == 1 ? Colors.white : null,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: _selectedTabIndex == 1
-                        ? [
+                  decoration: _selectedTabIndex == 1
+                      ? BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 12,
                             ),
-                          ]
-                        : null,
-                  ),
+                          ],
+                        )
+                      : const BoxDecoration(color: Colors.transparent),
                   child: Text(
                     'MEETING ROOM',
                     textAlign: TextAlign.center,
@@ -797,124 +1004,243 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
 
     final floors = desktopsByFloor.keys.toList()..sort();
 
+    // Check for booked desks
+    final bookedDesks = _getBookingsForSelectedDate();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
-        children: floors.map((floor) {
-          final desks = desktopsByFloor[floor]!;
-
-          // Group desks by detected area (based on desk_label) and sort by desk_label
-          String _detectArea(String label) {
-            final l = label.toLowerCase();
-            if (l.contains('window')) return 'WINDOW';
-            if (l.contains('corner')) return 'CORNER';
-            if (l.contains('open area') || l.contains('open')) return 'OPEN';
-            if (l.contains('quiet')) return 'QUIET';
-            return 'OTHER';
-          }
-
-          final Map<String, List<Map<String, dynamic>>> areas = {};
-          for (final d in desks) {
-            final label = (d['desk_label'] ?? d['desk_code'] ?? '').toString();
-            final area = _detectArea(label);
-            areas.putIfAbsent(area, () => []).add(d);
-          }
-
-          // Define ordering and prefix letters per area
-          final areaOrder = ['WINDOW', 'CORNER', 'OPEN', 'QUIET', 'OTHER'];
-          final areaLetter = {'WINDOW': 'A', 'CORNER': 'B', 'OPEN': 'C', 'QUIET': 'D', 'OTHER': 'E'};
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 24),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(
-                color: const Color(0xFFCBD5E1),
-                width: 2,
-                style: BorderStyle.solid,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$floor Layout',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.grey.shade400,
-                    letterSpacing: 1.5,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Booked Desk Cards
+          if (bookedDesks.isNotEmpty) ...[
+            ...bookedDesks.map((bookedDesk) => Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+                boxShadow: [
+                  BoxShadow(
+                    color: navyColor.withValues(alpha: 0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                ),
-                const SizedBox(height: 20),
-                // Render areas in preferred order
-                ...areaOrder.where((a) => areas.containsKey(a)).map((areaKey) {
-                  final list = areas[areaKey]!;
-                  // sort by desk_label
-                  list.sort((a, b) => (a['desk_label'] ?? a['desk_code'] ?? '').toString().compareTo((b['desk_label'] ?? b['desk_code'] ?? '').toString()));
-                  final prefix = areaLetter[areaKey] ?? 'Z';
-                  // assign labels A1, A2.. per area
-                  final displayItems = <Map<String, dynamic>>[];
-                  for (var i = 0; i < list.length; i++) {
-                    final item = list[i];
-                    final deskId = item['id']?.toString() ?? '';
-                    final assigned = '$prefix${i + 1}';
-                    displayItems.add({
-                      'assigned': assigned,
-                      'label': (item['desk_label'] ?? item['desk_code'] ?? '').toString(),
-                      'deskId': deskId,
-                      'deskCode': (item['desk_code'] ?? '').toString(),
-                    });
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
                     children: [
-                      Text(
-                        areaKey == 'WINDOW'
-                            ? 'Window Desks'
-                            : areaKey == 'CORNER'
-                                ? 'Corner Desks'
-                                : areaKey == 'OPEN'
-                                    ? 'Open Area'
-                                    : areaKey == 'QUIET'
-                                        ? 'Quiet Zone'
-                                        : 'Other Desks',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                             BoxShadow(
+                               color: Colors.black.withValues(alpha: 0.05),
+                               blurRadius: 4,
+                             )
+                          ]
                         ),
-                        child: Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: displayItems.map((it) {
-                            final assigned = it['assigned'] as String;
-                            final deskId = it['deskId'] as String;
-                            final deskCode = it['deskCode'] as String;
-                            final isAvailable = _deskAvailability[deskCode] ?? false;
-                            return _buildDeskAssigned(assigned, isAvailable, deskId);
-                          }).toList(),
+                        child: const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Your Desk Booking',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: navyColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${bookedDesk['desk_label'] ?? 'Desk'} (${bookedDesk['desk_code'] ?? ''})',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                color: navyColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${(bookedDesk['start_time'] ?? '09:00:00').toString().length >= 5 ? (bookedDesk['start_time'] ?? '09:00:00').toString().substring(0, 5) : '09:00'} - ${(bookedDesk['end_time'] ?? '18:00:00').toString().length >= 5 ? (bookedDesk['end_time'] ?? '18:00:00').toString().substring(0, 5) : '18:00'}',
+                               style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF16A34A),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          (bookedDesk['status'] ?? 'Confirmed').toString().toUpperCase(),
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      )
                     ],
-                  );
-                }).toList(),
-              ],
-            ),
-          );
-        }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _confirmDeskCancellation(bookedDesk['id'].toString()),
+                      icon: const Icon(Icons.exit_to_app, size: 18),
+                      label: const Text('Release Desk'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFFEF4444),
+                        elevation: 0,
+                        side: const BorderSide(color: Color(0xFFEF4444)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )).toList(),
+          ],
+
+          // Floor Layouts (Only show if no desk is booked? Or show anyway but disabled? Single desk booking implies we shouldn't book another. But showing layout is fine.)
+          // The prompt says "when the desk is book, show the booked desk below the layout."
+          // So the layout should STILL BE VISIBLE.
+          ...floors.map((floor) {
+            final desks = desktopsByFloor[floor]!;
+
+            // Group desks by detected area (based on desk_label) and sort by desk_label
+            String _detectArea(String label) {
+              final l = label.toLowerCase();
+              if (l.contains('window')) return 'WINDOW';
+              if (l.contains('corner')) return 'CORNER';
+              if (l.contains('open area') || l.contains('open')) return 'OPEN';
+              if (l.contains('quiet')) return 'QUIET';
+              return 'OTHER';
+            }
+
+            final Map<String, List<Map<String, dynamic>>> areas = {};
+            for (final d in desks) {
+              final label = (d['desk_label'] ?? d['desk_code'] ?? '').toString();
+              final area = _detectArea(label);
+              areas.putIfAbsent(area, () => []).add(d);
+            }
+
+            // Define ordering and prefix letters per area
+            final areaOrder = ['WINDOW', 'CORNER', 'OPEN', 'QUIET', 'OTHER'];
+            final areaLetter = {'WINDOW': 'A', 'CORNER': 'B', 'OPEN': 'C', 'QUIET': 'D', 'OTHER': 'E'};
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: const Color(0xFFCBD5E1),
+                  width: 2,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$floor Layout',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.grey.shade400,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Render areas in preferred order
+                  ...areaOrder.where((a) => areas.containsKey(a)).map((areaKey) {
+                    final list = areas[areaKey]!;
+                    // sort by desk_label
+                    list.sort((a, b) => (a['desk_label'] ?? a['desk_code'] ?? '').toString().compareTo((b['desk_label'] ?? b['desk_code'] ?? '').toString()));
+                    // Use real labels from backend
+                    final displayItems = <Map<String, dynamic>>[];
+                    for (var i = 0; i < list.length; i++) {
+                      final item = list[i];
+                      final deskId = item['id']?.toString() ?? '';
+                      
+                      String fullLabel = (item['desk_label'] ?? item['desk_code'] ?? '').toString();
+                      // Extract short version (e.g., "A1" from "Window Desk A1")
+                      String shortLabel = fullLabel;
+                      if (fullLabel.contains(' ')) {
+                        shortLabel = fullLabel.split(' ').last;
+                      }
+
+                      displayItems.add({
+                        'assigned': shortLabel,
+                        'label': fullLabel,
+                        'deskId': deskId,
+                        'deskCode': (item['desk_code'] ?? '').toString(),
+                      });
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          areaKey == 'WINDOW'
+                              ? 'Window Desks'
+                              : areaKey == 'CORNER'
+                                  ? 'Corner Desks'
+                                  : areaKey == 'OPEN'
+                                      ? 'Open Area'
+                                      : areaKey == 'QUIET'
+                                          ? 'Quiet Zone'
+                                          : 'Other Desks',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: displayItems.map((it) {
+                              final assigned = it['assigned'] as String;
+                              final deskId = it['deskId'] as String;
+                              final deskCode = it['deskCode'] as String;
+                              final isAvailable = _deskAvailability[deskCode] ?? false;
+                              return _buildDeskAssigned(assigned, isAvailable, deskId);
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
       ),
     );
   }
@@ -967,10 +1293,13 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
               Text(
                 assignedLabel,
                 textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: assignedLabel.length > 4 ? 9 : 11,
                   fontWeight: FontWeight.w800,
                   color: isSelected ? yellowAccent : navyColor,
+                  height: 1.1,
                 ),
               ),
           ],
@@ -1065,9 +1394,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     final bool hasPending = _pendingRoomIds.contains(roomId);
 
     return GestureDetector(
-      onTap: (isAvailable || hasPending)
-          ? () => _openBookingModal(roomName, 'Meeting Room', itemId: roomId)
-          : null,
+      onTap: () => _openBookingModal(roomName, 'Meeting Room', itemId: roomId, capacity: room['capacity'] ?? 10),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -1133,28 +1460,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: hasPending
-                              ? const Color(0xFFFFF7ED)
-                              : (isAvailable ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2)),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          hasPending ? 'PENDING' : (isAvailable ? 'AVAILABLE' : 'BOOKED'),
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                            color: hasPending
-                                ? const Color(0xFFB45309)
-                                : (isAvailable ? const Color(0xFF16A34A) : const Color(0xFFEF4444)),
-                          ),
-                        ),
-                      ),
+
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -1243,6 +1549,18 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                             color: Colors.grey.shade500,
                           ),
                         ),
+                        if (_currentBookingType == 'Meeting Room')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Max Capacity: $_roomCapacity',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFEF4444),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                     IconButton(
@@ -1251,15 +1569,14 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                // Date Picker
+                const SizedBox(height: 24),    // Date Picker
                 GestureDetector(
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    final picked = await showDateRangePicker(
                       context: context,
-                      initialDate: _selectedDate,
+                      initialDateRange: _selectedDateRange,
                       firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 30)),
+                      lastDate: DateTime.now().add(const Duration(days: 180)), // Max 6 months
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
@@ -1273,7 +1590,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                       },
                     );
                     if (picked != null) {
-                      setState(() => _selectedDate = picked);
+                      _onDateRangeSelected(picked);
                     }
                   },
                   child: Container(
@@ -1287,7 +1604,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Date',
+                          'Dates',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: textMuted,
@@ -1296,7 +1613,11 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                         Row(
                           children: [
                             Text(
-                              '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                              _selectedDateRange.start.year == _selectedDateRange.end.year && 
+                              _selectedDateRange.start.month == _selectedDateRange.end.month &&
+                              _selectedDateRange.start.day == _selectedDateRange.end.day 
+                                  ? '${_selectedDateRange.start.day}/${_selectedDateRange.start.month}/${_selectedDateRange.start.year}'
+                                  : '${_selectedDateRange.start.day}/${_selectedDateRange.start.month} - ${_selectedDateRange.end.day}/${_selectedDateRange.end.month}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: navyColor,
@@ -1315,16 +1636,133 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Duration Cards
-                Row(
-                  children: [
-                    Expanded(child: _buildDurationCard(1, 'Morning', '9AM - 1PM')),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildDurationCard(2, 'Evening', '2PM - 6PM')),
-                  ],
+                const Text(
+                  'Select Time Slot',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: navyColor,
+                  ),
                 ),
                 const SizedBox(height: 12),
-                _buildDurationCard(0, 'Full Day', '9AM - 6PM'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('From', style: TextStyle(color: textMuted, fontSize: 12)),
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: () async {
+                              final time = await showTimePicker(
+                                context: context,
+                                initialTime: _startTime,
+                              );
+                              if (time != null) {
+                                setState(() {
+                                  _startTime = time;
+                                });
+                                _onTimeChanged();
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.access_time, size: 16, color: navyColor),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _startTime.format(context),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: navyColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('To', style: TextStyle(color: textMuted, fontSize: 12)),
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: () async {
+                              final time = await showTimePicker(
+                                context: context,
+                                initialTime: _endTime,
+                              );
+                              if (time != null) {
+                                setState(() {
+                                  _endTime = time;
+                                });
+                                _onTimeChanged();
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.access_time, size: 16, color: navyColor),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _endTime.format(context),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: navyColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                if (_currentBookingType == 'Meeting Room') ...[
+                  const Text(
+                    'Number of Attendees',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: navyColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _attendeesController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: 'Enter number of attendees',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                        borderSide: BorderSide(color: navyColor, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
                 const SizedBox(height: 32),
                 // Confirm Button
                 SizedBox(
@@ -1348,9 +1786,9 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
-                            'CONFIRM BOOKING',
-                            style: TextStyle(
+                        : Text(
+                            _currentBookingType == 'Meeting Room' ? 'REQUEST BOOKING' : 'CONFIRM BOOKING',
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
@@ -1367,53 +1805,4 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     );
   }
 
-  Widget _buildDurationCard(int index, String title, String time) {
-    final bool isSelected = _selectedDuration == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedDuration = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? navyColor : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: isSelected
-              ? null
-              : Border.all(color: Colors.grey.shade200),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: navyColor.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: isSelected ? Colors.white : navyColor,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              time,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: isSelected
-                    ? Colors.white.withValues(alpha: 0.7)
-                    : textMuted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

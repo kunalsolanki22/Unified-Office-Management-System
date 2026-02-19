@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from uuid import UUID
-from datetime import date
+from datetime import date, time
 
 from ....core.database import get_db
 from ....core.dependencies import get_current_active_user, require_admin_or_above
@@ -78,6 +78,9 @@ async def list_desks(
     page_size: int = Query(20, ge=1, le=100),
     status: Optional[DeskStatus] = None,
     is_active: Optional[bool] = True,
+    booking_date: Optional[date] = None,
+    start_time: Optional[time] = None,
+    end_time: Optional[time] = None,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -86,6 +89,9 @@ async def list_desks(
     desks, total = await desk_service.list_desks(
         status=status,
         is_active=is_active,
+        booking_date=booking_date,
+        start_time=start_time,
+        end_time=end_time,
         page=page,
         page_size=page_size
     )

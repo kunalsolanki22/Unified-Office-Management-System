@@ -84,6 +84,10 @@ class DeskBooking(Base, TimestampMixin):
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     
+    # Booking details - time range (Created for time-based booking)
+    start_time = Column(Time, nullable=True) # Nullable for legacy data
+    end_time = Column(Time, nullable=True)   # Nullable for legacy data
+    
     # Status
     status = Column(Enum(BookingStatus), default=BookingStatus.CONFIRMED)
     

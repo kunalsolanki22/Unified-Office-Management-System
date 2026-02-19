@@ -15,13 +15,16 @@ class DeskService {
   }
 
   // ==================== DESK APIs ====================
-
+  
   /// Get list of desks
   Future<Map<String, dynamic>> getDesks({
     int page = 1,
     int pageSize = 100,
     String? status,
     bool isActive = true,
+    String? bookingDate,
+    String? startTime,
+    String? endTime,
   }) async {
     try {
       final headers = await _getHeaders();
@@ -31,6 +34,9 @@ class DeskService {
         'is_active': isActive.toString(),
       };
       if (status != null) queryParams['status'] = status;
+      if (bookingDate != null) queryParams['booking_date'] = bookingDate;
+      if (startTime != null) queryParams['start_time'] = startTime;
+      if (endTime != null) queryParams['end_time'] = endTime;
 
       final uri = Uri.parse('$baseUrl/desks').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: headers);
@@ -51,13 +57,12 @@ class DeskService {
     }
   }
 
-  /// Get today's desk bookings
-  Future<Map<String, dynamic>> getTodaysBookings() async {
+  /// Get desk bookings for a specific date
+  Future<Map<String, dynamic>> getBookingsForDate(String date) async {
     try {
       final headers = await _getHeaders();
-      final today = DateTime.now().toIso8601String().split('T')[0];
       final uri = Uri.parse('$baseUrl/desks/bookings').replace(queryParameters: {
-        'booking_date': today,
+        'booking_date': date,
         'page_size': '100',
         'status': 'confirmed',
       });
@@ -68,7 +73,7 @@ class DeskService {
         final rawList = data['data'] as List? ?? [];
         final bookings = rawList.where((b) {
           final status = b['status']?.toString().toLowerCase();
-          return status == 'confirmed' || status == 'pending';
+          return status == 'confirmed' || status == 'pending' || status == 'approved';
         }).toList();
         return {'success': true, 'data': bookings};
       } else {
@@ -115,6 +120,8 @@ class DeskService {
         'desk_id': deskId,
         'start_date': bookingDate,
         'end_date': bookingDate,
+        'start_time': startTime,
+        'end_time': endTime,
         if (purpose != null) 'notes': purpose,
       });
 
@@ -192,13 +199,12 @@ class DeskService {
     }
   }
 
-  /// Get conference room bookings for today
-  Future<Map<String, dynamic>> getTodaysRoomBookings() async {
+  /// Get conference room bookings for a specific date
+  Future<Map<String, dynamic>> getRoomBookingsForDate(String date) async {
     try {
       final headers = await _getHeaders();
-      final today = DateTime.now().toIso8601String().split('T')[0];
       final uri = Uri.parse('$baseUrl/desks/rooms/bookings').replace(queryParameters: {
-        'booking_date': today,
+        'booking_date': date,
         'page_size': '100',
       });
       final response = await http.get(uri, headers: headers);
@@ -293,6 +299,84 @@ class DeskService {
       } else {
         final errorData = json.decode(response.body);
         return {'success': false, 'message': errorData['detail'] ?? 'Failed to cancel room booking'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  // ==================== MANAGER Room Action APIs ====================
+
+  /// List pending room bookings (Manager only)
+  Future<Map<String, dynamic>> getPendingRoomBookings({int page = 1, int pageSize = 50}) async {
+    try {
+      final headers = await _getHeaders();
+      final uri = Uri.parse('$baseUrl/desks/rooms/bookings/pending').replace(queryParameters: {
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+      });
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true, 
+          'data': data['data'] ?? [],
+          'total': data['total'] ?? 0,
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'message': errorData['detail'] ?? 'Failed to fetch pending bookings'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  /// Approve a room booking (Manager only)
+  Future<Map<String, dynamic>> approveRoomBooking(String bookingId, {String? notes}) async {
+    try {
+      final headers = await _getHeaders();
+      final body = json.encode({
+        if (notes != null) 'notes': notes,
+      });
+      final response = await http.post(
+        Uri.parse('$baseUrl/desks/rooms/bookings/$bookingId/approve'),
+        headers: headers,
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data']};
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'message': errorData['detail'] ?? 'Failed to approve booking'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  /// Reject a room booking (Manager only)
+  Future<Map<String, dynamic>> rejectRoomBooking(String bookingId, String reason) async {
+    try {
+      final headers = await _getHeaders();
+      final body = json.encode({
+        'reason': reason,
+      });
+      final response = await http.post(
+        Uri.parse('$baseUrl/desks/rooms/bookings/$bookingId/reject'),
+        headers: headers,
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data']};
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'message': errorData['detail'] ?? 'Failed to reject booking'};
       }
     } catch (e) {
       return {'success': false, 'message': 'Connection error: $e'};
