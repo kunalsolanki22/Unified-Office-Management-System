@@ -332,6 +332,11 @@ async def create_room_booking(
     Book a conference room.
     
     Available to all authenticated users.
+    
+    **Note:** Multiple users can request the same room/time slot even if it's 
+    already booked or has pending requests. The conference manager will decide
+    which request to approve. Bookings start with PENDING status and require
+    manager approval.
     """
     desk_service = DeskService(db)
     booking, error = await desk_service.create_room_booking(booking_data, current_user)
@@ -626,6 +631,76 @@ async def reject_room_booking(
     return create_response(
         data=response_data,
         message="Conference room booking rejected"
+    )
+
+
+@router.get("/rooms/bookings/{booking_id}/conflicts", response_model=APIResponse)
+async def get_conflicting_room_bookings(
+    booking_id: UUID,
+    current_user: User = Depends(require_desk_manager),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all pending bookings that conflict with the specified booking's time slot.
+    
+    **DESK_CONFERENCE Manager only**
+    
+    This helps managers see all competing requests for the same room/time
+    when deciding which booking to approve.
+    """
+    desk_service = DeskService(db)
+    
+    # Get the booking to find its time slot
+    booking = await desk_service.get_room_booking_by_id(booking_id)
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Booking not found"
+        )
+    
+    # Get all conflicting pending bookings
+    conflicting_bookings = await desk_service.get_conflicting_pending_bookings(
+        room_id=booking.room_id,
+        booking_date=booking.booking_date,
+        start_time=booking.start_time,
+        end_time=booking.end_time,
+        exclude_booking_id=booking_id
+    )
+    
+    # Build response with room details
+    response_data = []
+    for conf_booking in conflicting_bookings:
+        response_data.append({
+            "id": conf_booking.id,
+            "room_id": conf_booking.room_id,
+            "room_code": conf_booking.room.room_code,
+            "room_label": conf_booking.room.room_label,
+            "capacity": conf_booking.room.capacity,
+            "user_code": conf_booking.user_code,
+            "booking_date": conf_booking.booking_date,
+            "start_time": conf_booking.start_time,
+            "end_time": conf_booking.end_time,
+            "title": conf_booking.title,
+            "description": conf_booking.description,
+            "attendees_count": conf_booking.attendees_count,
+            "status": conf_booking.status,
+            "notes": conf_booking.notes,
+            "created_at": conf_booking.created_at,
+            "updated_at": conf_booking.updated_at
+        })
+    
+    return create_response(
+        data={
+            "booking_id": str(booking_id),
+            "room_code": booking.room.room_code,
+            "room_label": booking.room.room_label,
+            "booking_date": str(booking.booking_date),
+            "start_time": str(booking.start_time),
+            "end_time": str(booking.end_time),
+            "conflicting_bookings": response_data,
+            "total_conflicts": len(response_data)
+        },
+        message=f"Found {len(response_data)} other pending booking(s) for this time slot"
     )
 
 

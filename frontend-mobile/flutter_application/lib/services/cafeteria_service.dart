@@ -61,7 +61,7 @@ class CafeteriaService {
           'food_item_id': item['food_item_id'],
           'quantity': item['quantity'],
         }).toList(),
-        if (notes != null) 'notes': notes,
+        'notes': notes,
       });
 
       final response = await http.post(
@@ -154,7 +154,7 @@ class CafeteriaService {
         'start_time': startTime,
         'end_time': endTime,
         'guest_count': guestCount,
-        if (notes != null) 'notes': notes,
+        'notes': notes,
       });
 
       final response = await http.post(
@@ -188,16 +188,31 @@ class CafeteriaService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final rawList = List<Map<String, dynamic>>.from(data['data'] ?? []);
-        // Filter for active bookings only
-        final bookings = rawList.where((b) {
-          final status = (b['status'] ?? '').toString().toLowerCase();
-          return status == 'confirmed' || status == 'pending' || status == 'approved';
-        }).toList();
-        return {'success': true, 'data': bookings};
+        return {'success': true, 'data': data['data'] ?? []};
       } else {
         final errorData = json.decode(response.body);
         return {'success': false, 'message': errorData['detail'] ?? 'Failed to fetch bookings'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  /// Cancel a cafeteria table booking
+  Future<Map<String, dynamic>> cancelTableBooking(String bookingId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/cafeteria/bookings/$bookingId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data']};
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'message': errorData['detail'] ?? 'Failed to cancel booking'};
       }
     } catch (e) {
       return {'success': false, 'message': 'Connection error: $e'};
@@ -225,23 +240,5 @@ class CafeteriaService {
     }
   }
 
-  /// Cancel a cafeteria table booking
-  Future<Map<String, dynamic>> cancelTableBooking(String bookingId) async {
-    try {
-      final headers = await _getHeaders();
-      final response = await http.delete(
-        Uri.parse('$baseUrl/cafeteria/bookings/$bookingId'),
-        headers: headers,
-      );
-
-      if (response.statusCode == 200) {
-        return {'success': true, 'message': 'Booking cancelled successfully'};
-      } else {
-        final errorData = json.decode(response.body);
-        return {'success': false, 'message': errorData['detail'] ?? 'Failed to cancel booking'};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Connection error: $e'};
-    }
-  }
+  
 }

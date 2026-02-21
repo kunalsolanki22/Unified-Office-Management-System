@@ -1,0 +1,29 @@
+const Header = () => {
+    return (
+        <header className="h-[90px] flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-40 border-b border-transparent pt-2.5 mb-8">
+            <div>
+                <p className="text-[0.65rem] uppercase tracking-[1.5px] text-[#8892b0] mb-0.5 font-bold">
+                    ADMIN PORTAL
+                </p>
+                <h2 className="text-[1.1rem] text-[#1a367c] font-bold">Have a good day 😊</h2>
+            </div>
+
+            {/* User Actions */}
+            <div className="flex items-center gap-6 ml-2">
+
+
+                <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                    <div className="text-right hidden sm:block">
+                        <div className="text-[0.75rem] font-bold text-[#1a367c]">ADMIN</div>
+                        <div className="text-[0.65rem] text-[#f9b012] font-semibold text-right">System Administrator</div>
+                    </div>
+                    <div className="w-10 h-10 bg-[#1a367c] text-white rounded-full flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-blue-50">
+                        M
+                    </div>
+                </div>
+            </div>
+        </header>
+    );
+};
+
+export default Header;

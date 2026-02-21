@@ -1,0 +1,12 @@
+{
+    "include": [
+        "backend"
+    ],
+    "pythonVersion": "3.11",
+    "pythonPlatform": "Linux",
+    "extraPaths": [
+        "./backend"
+    ],
+    "useLibraryCodeForTypes": true,
+    "reportMissingImports": false
+}

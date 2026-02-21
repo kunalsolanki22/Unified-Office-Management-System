@@ -775,52 +775,77 @@ class DeskService:
         exclude_booking_id: Optional[UUID] = None,
         user_code: Optional[str] = None
     ) -> bool:
-        """Check if there's an overlapping room booking."""
-        # Only CONFIRMED bookings should block new bookings. Pending requests
-        # are allowed to coexist (multiple pending requests for the same slot).
-        status_condition = ConferenceRoomBooking.status == BookingStatus.CONFIRMED
-        if user_code:
-            status_condition = or_(
-                status_condition,
-                and_(
-                    ConferenceRoomBooking.user_code == user_code,
-                    ConferenceRoomBooking.status == BookingStatus.PENDING
-                )
-            )
-
-        conditions = [
-            ConferenceRoomBooking.room_id == room_id,
-            ConferenceRoomBooking.booking_date == booking_date,
-            status_condition,
-            or_(
-                and_(
-                    ConferenceRoomBooking.start_time <= start_time,
-                    ConferenceRoomBooking.end_time > start_time
-                ),
-                and_(
-                    ConferenceRoomBooking.start_time < end_time,
-                    ConferenceRoomBooking.end_time >= end_time
-                ),
-                and_(
-                    ConferenceRoomBooking.start_time >= start_time,
-                    ConferenceRoomBooking.end_time <= end_time
-                )
-            )
-        ]
+        """
+        Check if there's an overlapping CONFIRMED room booking,
+        or if the same user already has a PENDING request for this slot.
         
+        This allows multiple different users to request the same time slot,
+        with the manager deciding which one to approve, but prevents a single
+        user from submitting duplicate requests.
+        """
+        time_overlap = or_(
+            and_(
+                ConferenceRoomBooking.start_time <= start_time,
+                ConferenceRoomBooking.end_time > start_time
+            ),
+            and_(
+                ConferenceRoomBooking.start_time < end_time,
+                ConferenceRoomBooking.end_time >= end_time
+            ),
+            and_(
+                ConferenceRoomBooking.start_time >= start_time,
+                ConferenceRoomBooking.end_time <= end_time
+            )
+        )
+
+        # Check 1: Overlapping CONFIRMED bookings (any user)
+        confirmed_query = select(ConferenceRoomBooking).where(
+            and_(
+                ConferenceRoomBooking.room_id == room_id,
+                ConferenceRoomBooking.booking_date == booking_date,
+                ConferenceRoomBooking.status == BookingStatus.CONFIRMED,
+                time_overlap
+            )
+        )
         if exclude_booking_id:
-            conditions.append(ConferenceRoomBooking.id != exclude_booking_id)
+            confirmed_query = confirmed_query.where(ConferenceRoomBooking.id != exclude_booking_id)
+        
+        result = await self.db.execute(confirmed_query)
+        if result.scalar_one_or_none() is not None:
+            return True
+
+        # Check 2: Same user's own PENDING bookings for the same slot
+        if user_code:
+            pending_query = select(ConferenceRoomBooking).where(
+                and_(
+                    ConferenceRoomBooking.room_id == room_id,
+                    ConferenceRoomBooking.booking_date == booking_date,
+                    ConferenceRoomBooking.user_code == user_code,
+                    ConferenceRoomBooking.status == BookingStatus.PENDING,
+                    time_overlap
+                )
+            )
+            if exclude_booking_id:
+                pending_query = pending_query.where(ConferenceRoomBooking.id != exclude_booking_id)
             
-        query = select(ConferenceRoomBooking).where(and_(*conditions))
-        result = await self.db.execute(query)
-        return result.scalar_one_or_none() is not None
+            result = await self.db.execute(pending_query)
+            if result.scalar_one_or_none() is not None:
+                return True
+
+        return False
     
     async def create_room_booking(
         self,
         booking_data: ConferenceRoomBookingCreate,
         user: User
     ) -> Tuple[Optional[ConferenceRoomBooking], Optional[str]]:
-        """Create a new conference room booking."""
+        """
+        Create a new conference room booking.
+        
+        Multiple users can request the same room/time slot even if it's already
+        booked or has pending requests. The conference manager will decide which
+        request to approve. Only one booking can be CONFIRMED for a given time slot.
+        """
         room = await self.get_room_by_id(booking_data.room_id)
         if not room:
             return None, "Conference room not found"
@@ -1012,3 +1037,48 @@ class DeskService:
             page=page,
             page_size=page_size
         )
+    
+    async def get_conflicting_pending_bookings(
+        self,
+        room_id: UUID,
+        booking_date: date,
+        start_time: time,
+        end_time: time,
+        exclude_booking_id: Optional[UUID] = None
+    ) -> List[ConferenceRoomBooking]:
+        """
+        Get all PENDING bookings that conflict with the given time slot.
+        
+        This helps managers see all pending requests for the same room/time
+        when deciding which booking to approve.
+        """
+        query = select(ConferenceRoomBooking).options(
+            selectinload(ConferenceRoomBooking.room)
+        ).where(
+            and_(
+                ConferenceRoomBooking.room_id == room_id,
+                ConferenceRoomBooking.booking_date == booking_date,
+                ConferenceRoomBooking.status == BookingStatus.PENDING,
+                or_(
+                    and_(
+                        ConferenceRoomBooking.start_time <= start_time,
+                        ConferenceRoomBooking.end_time > start_time
+                    ),
+                    and_(
+                        ConferenceRoomBooking.start_time < end_time,
+                        ConferenceRoomBooking.end_time >= end_time
+                    ),
+                    and_(
+                        ConferenceRoomBooking.start_time >= start_time,
+                        ConferenceRoomBooking.end_time <= end_time
+                    )
+                )
+            )
+        )
+        
+        if exclude_booking_id:
+            query = query.where(ConferenceRoomBooking.id != exclude_booking_id)
+        
+        query = query.order_by(ConferenceRoomBooking.created_at)
+        result = await self.db.execute(query)
+        return list(result.scalars().all())

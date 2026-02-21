@@ -387,21 +387,48 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       _searchQuery = query;
       if (query.isEmpty) {
         _filteredFoodItems = _foodItems;
+        return;
+      }
+
+      // Local Filtering by Name or Price (Rupees)
+      final lowercaseQuery = query.toLowerCase();
+      final localResults = _foodItems.where((item) {
+        final name = (item['name'] ?? '').toString().toLowerCase();
+        final price = (item['price'] ?? '').toString();
+        
+        return name.contains(lowercaseQuery) || price.contains(query);
+      }).toList();
+
+      if (localResults.isNotEmpty) {
+        _filteredFoodItems = localResults;
+      } else {
+        _filteredFoodItems = [];
       }
     });
-    if (query.isNotEmpty) {
-      final result = await _searchService.semanticSearch(query: query, searchType: 'food');
-      if (result['success'] == true && result['data'] != null && result['data']['results'] != null) {
-        setState(() {
-          _filteredFoodItems = List<Map<String, dynamic>>.from(
+
+    // Semantic search as fallback/enhancement if local results are limited
+    if (query.isNotEmpty && _filteredFoodItems.length < 3) {
+      try {
+        final result = await _searchService.semanticSearch(query: query, searchType: 'food');
+        if (result['success'] == true && result['data'] != null && result['data']['results'] != null) {
+          final semanticItems = List<Map<String, dynamic>>.from(
             (result['data']['results'] as List).map((e) => e['item'])
           );
-        });
-      } else {
-        setState(() {
-          _filteredFoodItems = [];
-        });
-        SnackbarHelper.showError(context, result['message'] ?? 'Semantic search failed');
+
+          if (mounted) {
+            setState(() {
+              // Merge results, avoiding duplicates
+              final existingIds = _filteredFoodItems.map((i) => i['id']).toSet();
+              for (var item in semanticItems) {
+                if (!existingIds.contains(item['id'])) {
+                  _filteredFoodItems.add(item);
+                }
+              }
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('Semantic search failed: $e');
       }
     }
   }
@@ -664,95 +691,93 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
   Widget _buildToggleButtons() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF1A237E),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                setState(() {
-                  _isOrderingFood = true;
-                });
-              },
-              child: Container(
-                margin: const EdgeInsets.all(4),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: _isOrderingFood
-                    ? BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      )
-                    : const BoxDecoration(color: Colors.transparent),
-                child: Center(
-                  child: Text(
-                    'ORDER FOOD',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: _isOrderingFood
-                          ? const Color(0xFF1A237E)
-                          : Colors.grey,
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  setState(() {
+                    _isOrderingFood = true;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: _isOrderingFood
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : Colors.transparent,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'ORDER FOOD',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: _isOrderingFood
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.6),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                setState(() {
-                  _isOrderingFood = false;
-                });
-              },
-              child: Container(
-                margin: const EdgeInsets.all(4),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: !_isOrderingFood
-                    ? BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      )
-                    : const BoxDecoration(color: Colors.transparent),
-                child: Center(
-                  child: Text(
-                    'BOOK DESK',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: !_isOrderingFood
-                          ? const Color(0xFF1A237E)
-                          : Colors.grey,
+            Container(
+              width: 1,
+              color: Colors.white.withValues(alpha: 0.3),
+            ),
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  setState(() {
+                    _isOrderingFood = false;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: !_isOrderingFood
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : Colors.transparent,
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'BOOK DESK',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: !_isOrderingFood
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.6),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1330,13 +1355,13 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                     backgroundColor: const Color(0xFF1A237E),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    minimumSize: Size.zero, 
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    minimumSize: const Size(80, 40),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('ADD', style: TextStyle(fontSize: 12)),
+                  child: const Text('ADD', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                 ),
         ],
       ),

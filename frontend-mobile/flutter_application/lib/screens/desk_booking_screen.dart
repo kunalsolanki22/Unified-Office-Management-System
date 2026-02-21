@@ -50,6 +50,8 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
   List<Map<String, dynamic>> _myDeskBookings = [];
   // Rooms that currently have pending requests (room_id strings)
   final Set<String> _pendingRoomIds = {};
+  // All room bookings for selected date (to display existing slots)
+  List<Map<String, dynamic>> _allRoomBookingsForDate = [];
 
   @override
   void initState() {
@@ -118,10 +120,11 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
           'amenities': List<String>.from(room['amenities'] ?? ['Whiteboard']),
         }).toList();
 
-        // Process room bookings to find pending requests
+        // Process room bookings to find pending requests and store all bookings
         _pendingRoomIds.clear();
         if (todaysRoomBookingsResult['success'] == true) {
           final rawRoomBookings = List<Map<String, dynamic>>.from(todaysRoomBookingsResult['data'] ?? []);
+          _allRoomBookingsForDate = rawRoomBookings;
           for (final b in rawRoomBookings) {
             final status = (b['status'] ?? '').toString().toLowerCase();
             final roomId = (b['room_id'] ?? '').toString();
@@ -271,6 +274,13 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     // Time constraint check setup
     final newStart = _startTime.hour + _startTime.minute / 60.0;
     final newEnd = _endTime.hour + _endTime.minute / 60.0;
+
+    // Validate time range
+    if (newEnd <= newStart) {
+      SnackbarHelper.showError(context, 'End time must be after start time');
+      setState(() => _isBooking = false);
+      return;
+    }
 
     int successCount = 0;
     List<String> failDates = [];
@@ -441,7 +451,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
           if (_isModalVisible) _buildBookingModal(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: _isModalVisible ? null : FloatingActionButton.extended(
         onPressed: _selectedTabIndex == 0 ? _showMyDeskModal : _showMyBookingsModal,
         backgroundColor: navyColor,
         icon: Icon(_selectedTabIndex == 0 ? Icons.desk : Icons.list_alt, color: Colors.white),
@@ -1500,6 +1510,110 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     );
   }
 
+  Widget _buildExistingRoomBookings() {
+    // Filter bookings for the currently selected room and date
+    final dateStr = '${_selectedDateRange.start.year}-${_selectedDateRange.start.month.toString().padLeft(2, '0')}-${_selectedDateRange.start.day.toString().padLeft(2, '0')}';
+    
+    final roomBookings = _allRoomBookingsForDate.where((b) {
+      final bRoomId = (b['room_id'] ?? '').toString();
+      final bDate = (b['booking_date'] ?? '').toString().split('T')[0];
+      final status = (b['status'] ?? '').toString().toLowerCase();
+      // Show pending and approved/confirmed bookings
+      return bRoomId == _currentBookingItemId && 
+             bDate == dateStr &&
+             (status.contains('pend') || status.contains('confirm') || status.contains('approv'));
+    }).toList();
+
+    if (roomBookings.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.info_outline, size: 16, color: Colors.orange.shade700),
+            const SizedBox(width: 6),
+            Text(
+              'Existing requests for this room:',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Colors.orange.shade700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFBEB),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: roomBookings.map((b) {
+              final startTime = (b['start_time'] ?? '').toString();
+              final endTime = (b['end_time'] ?? '').toString();
+              final status = (b['status'] ?? '').toString().toLowerCase();
+              final userCode = (b['user_code'] ?? '').toString();
+              
+              // Format time display
+              final startDisplay = startTime.length >= 5 ? startTime.substring(0, 5) : startTime;
+              final endDisplay = endTime.length >= 5 ? endTime.substring(0, 5) : endTime;
+              
+              final isPending = status.contains('pend');
+              
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isPending ? Colors.amber.shade50 : Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isPending ? Colors.amber.shade300 : Colors.green.shade300,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isPending ? Icons.hourglass_top : Icons.check_circle,
+                      size: 14,
+                      color: isPending ? Colors.amber.shade700 : Colors.green.shade700,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$startDisplay - $endDisplay',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: isPending ? Colors.amber.shade800 : Colors.green.shade800,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'You can still book overlapping slots — requests require manager approval.',
+          style: TextStyle(
+            fontSize: 10,
+            fontStyle: FontStyle.italic,
+            color: Colors.grey.shade500,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBookingModal() {
     return Stack(
       children: [
@@ -1514,6 +1628,9 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
         Align(
           alignment: Alignment.bottomCenter,
           child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
             padding: const EdgeInsets.all(24),
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -1522,9 +1639,10 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                 topRight: Radius.circular(32),
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1660,6 +1778,13 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                                 initialTime: _startTime,
                               );
                               if (time != null) {
+                                // Validate: start must be before end
+                                final startMinutes = time.hour * 60 + time.minute;
+                                final endMinutes = _endTime.hour * 60 + _endTime.minute;
+                                if (startMinutes >= endMinutes) {
+                                  SnackbarHelper.showError(context, 'Start time must be before end time');
+                                  return;
+                                }
                                 setState(() {
                                   _startTime = time;
                                 });
@@ -1701,6 +1826,13 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                                 initialTime: _endTime,
                               );
                               if (time != null) {
+                                // Validate: end must be after start
+                                final startMinutes = _startTime.hour * 60 + _startTime.minute;
+                                final endMinutes = time.hour * 60 + time.minute;
+                                if (endMinutes <= startMinutes) {
+                                  SnackbarHelper.showError(context, 'End time must be after start time');
+                                  return;
+                                }
                                 setState(() {
                                   _endTime = time;
                                 });
@@ -1731,6 +1863,11 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
+                // Show existing bookings for this room (Meeting Room only)
+                if (_currentBookingType == 'Meeting Room') ...[
+                  _buildExistingRoomBookings(),
+                  const SizedBox(height: 16),
+                ],
                 if (_currentBookingType == 'Meeting Room') ...[
                   const Text(
                     'Number of Attendees',
@@ -1763,7 +1900,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                   ),
                   const SizedBox(height: 24),
                 ],
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
                 // Confirm Button
                 SizedBox(
                   width: double.infinity,
@@ -1798,6 +1935,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                   ),
                 ),
               ],
+              ),
             ),
           ),
         ),

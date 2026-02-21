@@ -4,12 +4,13 @@ from typing import Optional, List
 from uuid import UUID
 
 from ....core.database import get_db
-from ....core.dependencies import get_current_active_user, require_admin_or_above
+from ....core.dependencies import get_current_active_user, require_cafeteria_manager
 from ....models.user import User
 from ....models.enums import OrderStatus, UserRole, ManagerType
 from ....schemas.food import (
     FoodItemCreate, FoodItemUpdate, FoodItemResponse,
-    FoodOrderCreate, FoodOrderResponse, FoodOrderStatusUpdate
+    FoodOrderCreate, FoodOrderResponse, FoodOrderStatusUpdate,
+    FoodCategoryCreate, FoodCategoryUpdate, FoodCategoryResponse
 )
 from ....schemas.base import APIResponse, PaginatedResponse
 from ....services.food_service import FoodService
@@ -18,29 +19,172 @@ from ....utils.response import create_response, create_paginated_response
 router = APIRouter()
 
 
-def require_cafeteria_manager(user: User) -> None:
-    """Check if user is Cafeteria Manager, Admin, or Super Admin."""
-    if user.role == UserRole.SUPER_ADMIN:
-        return
-    if user.role == UserRole.ADMIN:
-        return
-    if user.role == UserRole.MANAGER and user.manager_type == ManagerType.CAFETERIA:
-        return
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Only Cafeteria Manager can perform this action"
+# ==================== Food Categories ====================
+
+@router.post("/categories", response_model=APIResponse[FoodCategoryResponse])
+async def create_food_category(
+    category_data: FoodCategoryCreate,
+    current_user: User = Depends(require_cafeteria_manager),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Create a new food category.
+    
+    **Cafeteria Manager, Admin, or Super Admin only**
+    """
+    food_service = FoodService(db)
+    category, error = await food_service.create_category(category_data)
+    
+    if error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error
+        )
+    
+    return create_response(
+        data=FoodCategoryResponse(
+            id=category.id,
+            name=category.name,
+            description=category.description,
+            display_order=category.display_order,
+            is_active=category.is_active,
+            item_count=0,
+            created_at=category.created_at
+        ),
+        message="Food category created successfully"
     )
 
+
+@router.get("/categories", response_model=APIResponse[List[FoodCategoryResponse]])
+async def list_food_categories(
+    is_active: Optional[bool] = True,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """List all food categories."""
+    food_service = FoodService(db)
+    categories = await food_service.list_categories(is_active=is_active)
+    
+    response_data = [
+        FoodCategoryResponse(
+            id=cat.id,
+            name=cat.name,
+            description=cat.description,
+            display_order=cat.display_order,
+            is_active=cat.is_active,
+            item_count=0,  # Could be computed if needed
+            created_at=cat.created_at
+        )
+        for cat in categories
+    ]
+    
+    return create_response(
+        data=response_data,
+        message="Food categories retrieved successfully"
+    )
+
+
+@router.get("/categories/{category_id}", response_model=APIResponse[FoodCategoryResponse])
+async def get_food_category(
+    category_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get food category by ID."""
+    food_service = FoodService(db)
+    category = await food_service.get_category_by_id(category_id)
+    
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Food category not found"
+        )
+    
+    return create_response(
+        data=FoodCategoryResponse(
+            id=category.id,
+            name=category.name,
+            description=category.description,
+            display_order=category.display_order,
+            is_active=category.is_active,
+            item_count=0,
+            created_at=category.created_at
+        ),
+        message="Food category retrieved successfully"
+    )
+
+
+@router.put("/categories/{category_id}", response_model=APIResponse[FoodCategoryResponse])
+async def update_food_category(
+    category_id: UUID,
+    category_data: FoodCategoryUpdate,
+    current_user: User = Depends(require_cafeteria_manager),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update a food category.
+    
+    **Cafeteria Manager, Admin, or Super Admin only**
+    """
+    food_service = FoodService(db)
+    category, error = await food_service.update_category(category_id, category_data)
+    
+    if error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error
+        )
+    
+    return create_response(
+        data=FoodCategoryResponse(
+            id=category.id,
+            name=category.name,
+            description=category.description,
+            display_order=category.display_order,
+            is_active=category.is_active,
+            item_count=0,
+            created_at=category.created_at
+        ),
+        message="Food category updated successfully"
+    )
+
+
+@router.delete("/categories/{category_id}", response_model=APIResponse)
+async def delete_food_category(
+    category_id: UUID,
+    current_user: User = Depends(require_cafeteria_manager),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Delete a food category (soft delete).
+    
+    **Cafeteria Manager, Admin, or Super Admin only**
+    """
+    food_service = FoodService(db)
+    success, error = await food_service.delete_category(category_id)
+    
+    if error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error
+        )
+    
+    return create_response(
+        data={"deleted": True},
+        message="Food category deleted successfully"
+    )
+
+
+# ==================== Food Items ====================
 
 # Food Items
 @router.post("/items", response_model=APIResponse[FoodItemResponse])
 async def create_food_item(
     item_data: FoodItemCreate,
-    current_user: User = Depends(require_admin_or_above),
+    current_user: User = Depends(require_cafeteria_manager),
     db: AsyncSession = Depends(get_db)
 ):
-    """Create a new food item. Cafeteria Admin only."""
-    require_cafeteria_manager(current_user)
+    """Create a new food item. Cafeteria Manager, Admin, or Super Admin only."""
     food_service = FoodService(db)
     item, error = await food_service.create_food_item(item_data, current_user)
     
@@ -109,11 +253,10 @@ async def get_food_item(
 async def update_food_item(
     item_id: UUID,
     item_data: FoodItemUpdate,
-    current_user: User = Depends(require_admin_or_above),
+    current_user: User = Depends(require_cafeteria_manager),
     db: AsyncSession = Depends(get_db)
 ):
-    """Update a food item. Cafeteria Admin only."""
-    require_cafeteria_manager(current_user)
+    """Update a food item. Cafeteria Manager, Admin, or Super Admin only."""
     food_service = FoodService(db)
     item, error = await food_service.update_food_item(item_id, item_data)
     
@@ -303,12 +446,10 @@ async def cancel_my_order(
 async def update_order_status(
     order_id: UUID,
     status_data: FoodOrderStatusUpdate,
-    current_user: User = Depends(require_admin_or_above),
+    current_user: User = Depends(require_cafeteria_manager),
     db: AsyncSession = Depends(get_db)
 ):
-    """Update food order status. Cafeteria Admin only."""
-    require_cafeteria_manager(current_user)
-    
+    """Update food order status. Cafeteria Manager, Admin, or Super Admin only."""
     food_service = FoodService(db)
     order, error = await food_service.update_order_status(
         order_id,
@@ -330,12 +471,10 @@ async def update_order_status(
 
 @router.get("/dashboard/stats", response_model=APIResponse[dict])
 async def get_cafeteria_stats(
-    current_user: User = Depends(require_admin_or_above),
+    current_user: User = Depends(require_cafeteria_manager),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get cafeteria dashboard statistics. Cafeteria Admin only."""
-    require_cafeteria_manager(current_user)
-    
+    """Get cafeteria dashboard statistics. Cafeteria Manager, Admin, or Super Admin only."""
     food_service = FoodService(db)
     stats = await food_service.get_dashboard_stats()
     

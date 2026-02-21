@@ -17,8 +17,9 @@ class ProjectMemberCreate(BaseModel):
     @field_validator('user_code')
     @classmethod
     def validate_user_code(cls, v):
-        if not re.match(r'^[A-Z]{2}\d{4}$', v.upper()):
-            raise ValueError('Invalid user code format. Expected format: AA0000')
+        # Allow both standard format (AA0000) and seed data format (4 digits)
+        if not re.match(r'^([A-Z]{2}\d{4}|\d{4})$', v.upper()):
+            raise ValueError('Invalid user code format. Expected format: AA0000 or 0000')
         return v.upper()
 
 

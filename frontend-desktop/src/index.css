@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  --color-primary: #8C8D90;
+  /* Deep Blue */
+  --color-primary-light: #3b82f6;
+  /* Lighter Blue */
+  --color-secondary: #FFB012;
+  /* Cygnet Yellow */
+  --color-secondary-light: #ffc24d;
+  /* Lighter Yellow */
+
+  --color-orange-500: #FFB012;
+  --color-orange-600: #db970f;
+
+  --color-background: #f8fafc;
+  /* Slate 50 */
+  --color-surface: #ffffff;
+
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-in: slide-in 0.4s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      transform: translateX(-20px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* Super Admin Colors */
+  --color-primary-dark: #8C8D90;
+  --color-primary-light: #2c4a96;
+  --color-accent-orange: #f9b012;
+  --color-text-light: #ccd6f6;
+  --color-text-muted: #8892b0;
+  --color-bg-light: #f4f7f6;
+
+}
+
+:root {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: #1e293b;
+  /* Slate 800 */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  min-height: 100vh;
+  width: 100vw;
+  overflow-x: hidden;
+}

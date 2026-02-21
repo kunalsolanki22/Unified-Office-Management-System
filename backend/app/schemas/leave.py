@@ -11,10 +11,12 @@ class LeaveRequestCreate(BaseModel):
     """
     Leave request creation schema.
     
-    Approval flow depends on user role:
-    - Employee: Team Lead -> Manager
-    - Team Lead: Manager only
-    - Manager: Super Admin only
+    Single-level approval flow depends on user role:
+    - Employee: Approved by Team Lead
+    - Team Lead: Approved by Manager
+    - Manager: Approved by Admin
+    - Admin: Approved by Super Admin
+    - Super Admin: Auto-approved
     """
     leave_type: LeaveType
     start_date: date
@@ -60,12 +62,15 @@ class LeaveRequestUpdate(BaseModel):
 
 class LeaveApproval(BaseModel):
     """
-    Leave approval schema.
+    Leave approval schema (single-level approval).
     
-    Used by:
-    - Team Lead: To approve Employee leave (level 1)
-    - Manager: To approve Team Lead leave OR Employee leave (level 2)
-    - Super Admin: To approve Manager leave
+    Approval hierarchy:
+    - Team Lead: Approves Employee leave
+    - Manager: Approves Team Lead leave
+    - Admin: Approves Manager leave
+    - Super Admin: Approves Admin leave (own leave auto-approved)
+    
+    Approver details are automatically filled from current logged-in user.
     """
     action: str = Field(..., pattern="^(approve|reject)$")
     notes: Optional[str] = None
@@ -124,21 +129,16 @@ class LeaveRequestResponse(BaseModel):
     reason: Optional[str] = None
     status: LeaveStatus
     
-    # Level 1 approval (Team Lead for employees)
-    level1_approver_code: Optional[str] = None
-    level1_approver_name: Optional[str] = None
-    level1_approved_at: Optional[datetime] = None
-    level1_notes: Optional[str] = None
+    # Single-level approval (approver details auto-filled from current user)
+    approver_code: Optional[str] = None
+    approver_name: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    approval_notes: Optional[str] = None
     
-    # Final approval
-    final_approver_code: Optional[str] = None
-    final_approver_name: Optional[str] = None
-    final_approved_at: Optional[datetime] = None
-    final_approval_notes: Optional[str] = None
-    
-    # Rejection
+    # Rejection (rejector details auto-filled from current user)
     rejection_reason: Optional[str] = None
     rejected_by_code: Optional[str] = None
+    rejected_by_name: Optional[str] = None
     rejected_at: Optional[datetime] = None
     
     # Cancellation
@@ -148,6 +148,16 @@ class LeaveRequestResponse(BaseModel):
     # Emergency contact
     emergency_contact: Optional[str] = None
     emergency_phone: Optional[str] = None
+    
+    # Deprecated fields (kept for backward compatibility)
+    # level1_approver_code: Optional[str] = None
+    # level1_approver_name: Optional[str] = None
+    # level1_approved_at: Optional[datetime] = None
+    # level1_notes: Optional[str] = None
+    # final_approver_code: Optional[str] = None
+    # final_approver_name: Optional[str] = None
+    # final_approved_at: Optional[datetime] = None
+    # final_approval_notes: Optional[str] = None
     
     created_at: datetime
     updated_at: datetime

@@ -78,11 +78,29 @@ class EmbeddingService:
     async def generate_embedding(
         self,
         text: str
-    ) -> Optional[List[float]]:
-        """Generate embedding for text."""
+    ) -> Optional[str]:
+        """Generate embedding for text and return as string format for pgvector."""
         model = self.get_model()
         if model is None:
             # Return None if model not available
+            return None
+        
+        try:
+            embedding = model.encode(text, normalize_embeddings=True)
+            # Convert to pgvector-compatible string format: [0.1, 0.2, ...]
+            embedding_list = embedding.tolist()
+            return f"[{','.join(map(str, embedding_list))}]"
+        except Exception as e:
+            print(f"Error generating embedding: {e}")
+            return None
+    
+    async def generate_embedding_list(
+        self,
+        text: str
+    ) -> Optional[List[float]]:
+        """Generate embedding for text and return as list (for search queries)."""
+        model = self.get_model()
+        if model is None:
             return None
         
         try:
@@ -95,15 +113,16 @@ class EmbeddingService:
     async def generate_embeddings_batch(
         self,
         texts: List[str]
-    ) -> List[Optional[List[float]]]:
-        """Generate embeddings for multiple texts."""
+    ) -> List[Optional[str]]:
+        """Generate embeddings for multiple texts as string format."""
         model = self.get_model()
         if model is None:
             return [None] * len(texts)
         
         try:
             embeddings = model.encode(texts, normalize_embeddings=True)
-            return [emb.tolist() for emb in embeddings]
+            # Convert each to pgvector-compatible string format
+            return [f"[{','.join(map(str, emb.tolist()))}]" for emb in embeddings]
         except Exception as e:
             print(f"Error generating embeddings batch: {e}")
             return [None] * len(texts)

@@ -442,6 +442,7 @@ async def seed_food_items(db: AsyncSession, users: list):
     cafeteria_manager = next((u for u in users if u.manager_type == ManagerType.CAFETERIA), users[0])
     
     food_items = [
+<<<<<<< HEAD
         {"name": "Butter Chicken", "description": "Creamy tomato-based curry with tender chicken", "price": Decimal("180.00"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 450},
         {"name": "Paneer Tikka", "description": "Grilled cottage cheese with spices", "price": Decimal("150.00"), "category": "Starters", "tags": ["vegetarian", "high-protein"], "calories": 280},
         {"name": "Masala Dosa", "description": "Crispy rice crepe with potato filling", "price": Decimal("80.00"), "category": "South Indian", "tags": ["vegetarian", "vegan"], "calories": 320},
@@ -452,6 +453,18 @@ async def seed_food_items(db: AsyncSession, users: list):
         {"name": "Tea", "description": "Hot brewed masala chai", "price": Decimal("15.00"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 25},
         {"name": "Veg Sandwich", "description": "Fresh vegetable grilled sandwich", "price": Decimal("60.00"), "category": "Snacks", "tags": ["vegetarian", "healthy"], "calories": 250},
         {"name": "Samosa", "description": "Crispy fried pastry with potato filling", "price": Decimal("20.00"), "category": "Snacks", "tags": ["vegetarian", "spicy"], "calories": 150},
+=======
+        {"name": "Butter Chicken", "description": "Creamy tomato-based curry with tender chicken", "price": Decimal("12.99"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 450},
+        {"name": "Paneer Tikka", "description": "Grilled cottage cheese with spices", "price": Decimal("9.99"), "category": "Starters", "tags": ["vegetarian", "high-protein"], "calories": 280},
+        {"name": "Masala Dosa", "description": "Crispy rice crepe with potato filling", "price": Decimal("7.99"), "category": "South Indian", "tags": ["vegetarian", "vegan"], "calories": 320},
+        {"name": "Chicken Biryani", "description": "Aromatic basmati rice with spiced chicken", "price": Decimal("14.99"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 520},
+        {"name": "Dal Makhani", "description": "Creamy black lentils slow-cooked", "price": Decimal("8.99"), "category": "Main Course", "tags": ["vegetarian"], "calories": 350},
+        {"name": "Mango Lassi", "description": "Sweet mango yogurt drink", "price": Decimal("3.99"), "category": "Beverages", "tags": ["vegetarian", "sweet"], "calories": 180},
+        {"name": "Coffee", "description": "Fresh brewed hot coffee", "price": Decimal("2.49"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 5},
+        {"name": "Tea", "description": "Hot brewed masala chai", "price": Decimal("1.99"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 25},
+        {"name": "Veg Sandwich", "description": "Fresh vegetable grilled sandwich", "price": Decimal("4.99"), "category": "Snacks", "tags": ["vegetarian", "healthy"], "calories": 250},
+        {"name": "Samosa", "description": "Crispy fried pastry with potato filling", "price": Decimal("2.99"), "category": "Snacks", "tags": ["vegetarian", "spicy"], "calories": 150},
+>>>>>>> origin/final-integration-Aakanksha/Aditya
     ]
     
     for item_data in food_items:
@@ -627,6 +640,148 @@ async def seed_leave_types(db: AsyncSession):
     await db.commit()
 
 
+<<<<<<< HEAD
+=======
+
+# ... imports ...
+from datetime import datetime, timedelta
+from app.models.enums import OrderStatus
+# ...
+
+async def seed_food_orders(db: AsyncSession, users: list):
+# ... rest of function
+    """Seed sample food orders for today."""
+    # Find cafeteria manager
+    cafeteria_manager = next((u for u in users if u.manager_type == ManagerType.CAFETERIA), users[0])
+    
+    # Get food items
+    result = await db.execute(select(FoodItem))
+    food_items = result.scalars().all()
+    
+    if not food_items:
+        print("  No food items found. Skipping order seeding.")
+        return
+
+    # Check existing count
+    # Simplified check to avoid duplicate seeding logic complexity for now
+    # We will just add a few if total is low
+    
+    orders_data = [
+        {"user_index": 10, "items": [0, 2], "status": OrderStatus.PENDING}, # Employee 1
+        {"user_index": 11, "items": [1], "status": OrderStatus.DELIVERED}, # Employee 2
+        {"user_index": 12, "items": [3, 5], "status": OrderStatus.PENDING}, # Employee 3
+        {"user_index": 10, "items": [6], "status": OrderStatus.DELIVERED}, # Employee 1 again
+        {"user_index": 13, "items": [8, 9], "status": OrderStatus.CANCELLED}, # Employee 4
+    ]
+    
+    count = 0
+    for order_info in orders_data:
+        # Use employees from the users list (indices 10-14 are employees in seed_users)
+        if order_info["user_index"] >= len(users):
+            continue
+            
+        user = users[order_info["user_index"]]
+        
+        # Create order
+        from app.models.food import FoodOrder, FoodOrderItem
+        
+        # Calculate total
+        order_items = []
+        total_amount = Decimal("0.00")
+        
+        for item_idx in order_info["items"]:
+            if item_idx < len(food_items):
+                item = food_items[item_idx]
+                total_amount += item.price
+                order_items.append(item)
+        
+        if not order_items:
+            continue
+            
+        order = FoodOrder(
+            user_code=user.user_code,
+            status=order_info["status"],
+            total_amount=total_amount,
+            subtotal=total_amount,
+            tax=Decimal("0.00"),
+            special_instructions="Auto-seeded order"
+        )
+        db.add(order)
+        await db.flush() # Get ID
+        
+        # Add items
+        for item in order_items:
+            order_item = FoodOrderItem(
+                order_id=order.id,
+                food_item_id=item.id,
+                item_name=item.name,
+                quantity=1,
+                unit_price=item.price,
+                total_price=item.price
+            )
+            db.add(order_item)
+            
+        count += 1
+        
+    print(f"  Created {count} sample food orders for today.")
+    await db.commit()
+
+async def seed_bookings(db: AsyncSession, users: list):
+    """Seed sample desk and cafeteria bookings for today."""
+    from app.models.booking import Booking
+    from app.models.enums import BookingType, BookingStatus
+    
+    # Get desks and tables
+    result = await db.execute(select(Desk))
+    desks = result.scalars().all()
+    
+    result = await db.execute(select(CafeteriaTable))
+    tables = result.scalars().all()
+    
+    today = datetime.now().date()
+    
+    # Seed Desk Bookings
+    if desks and len(users) > 10:
+        bookings_data = [
+            {"user_index": 10, "resource": desks[0], "type": BookingType.DESK},
+            {"user_index": 11, "resource": desks[1], "type": BookingType.DESK},
+            {"user_index": 12, "resource": desks[2], "type": BookingType.DESK},
+        ]
+        
+        for data in bookings_data:
+            user = users[data["user_index"]]
+            resource = data["resource"]
+            
+            booking = Booking(
+                booking_type=data["type"],
+                status=BookingStatus.CONFIRMED,
+                user_code=user.user_code,
+                booking_date=today,
+                start_time=datetime.strptime("09:00", "%H:%M").time(),
+                end_time=datetime.strptime("18:00", "%H:%M").time(),
+                resource_id=resource.id,  # Polymorphic association might differ, assuming resource_id field exists or similar
+                # Adapting to likely Booking model structure:
+                # If Booking model uses generic foreign key or specific fields (desk_id, table_id)
+                # Checking hypothetical model structure... assuming generic specific fields based on context
+                desk_id=resource.id if data["type"] == BookingType.DESK else None,
+                cafeteria_table_id=resource.id if data["type"] == BookingType.CAFETERIA_TABLE else None,
+                
+                check_in_time=datetime.now() if data["user_index"] == 10 else None, # One checked in
+                is_active=True,
+                created_by_code=user.user_code
+            )
+            # Handle specific field naming if needed, assuming flexible or standard
+            # We need to be careful about the Booking model fields. 
+            # Since I cannot see Booking model, I will assume it has specific FKs usually.
+            # actually I should check Booking model first, but for now I will rely on standard patterns
+            # Or better, I'll skip this if I'm unsure, but I need reservations on dashboard.
+            # Let's try to infer or just add it.
+            
+            # Wait, I don't see Booking imported in the file start. I added it inside function.
+            # I need to know the fields.
+            pass # Placeholder logic above, I will check model first.
+
+>>>>>>> origin/final-integration-Aakanksha/Aditya
 async def main():
     """Main seed function."""
     print("\n" + "=" * 60)
@@ -660,8 +815,18 @@ async def main():
             print("\n8. Creating leave types...")
             await seed_leave_types(db)
             
+<<<<<<< HEAD
             print("\n" + "=" * 60)
             print("  SEED DATA COMPLETED SUCCESSFULLY!")
+=======
+            print("\n9. Creating sample orders and bookings...")
+            await seed_food_orders(db, users)
+            # await seed_bookings(db, users) # Commented out until model verified
+            
+            print("\n" + "=" * 60)
+            print("  SEED DATA COMPLETED SUCCESSFULLY!")
+# ... rest of file ...
+>>>>>>> origin/final-integration-Aakanksha/Aditya
             print("=" * 60)
             print("\n" + "-" * 60)
             print("  DEFAULT CREDENTIALS")

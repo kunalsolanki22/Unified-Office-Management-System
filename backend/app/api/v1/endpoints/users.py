@@ -10,7 +10,8 @@ from ....core.dependencies import (
 from ....models.user import User
 from ....models.enums import UserRole, ManagerType
 from ....schemas.user import (
-    UserCreate, UserUpdate, UserResponse, PasswordUpdateByAdmin, UserRoleChange
+    UserCreate, UserUpdate, UserResponse, PasswordUpdateByAdmin, UserRoleChange,
+    UserBasicInfoResponse
 )
 from ....schemas.base import APIResponse, PaginatedResponse
 from ....services.user_service import UserService
@@ -31,6 +32,43 @@ async def get_current_user_profile(
     )
 
 
+@router.get("/directory", response_model=PaginatedResponse[UserBasicInfoResponse])
+async def get_user_directory(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=1000),
+    search: Optional[str] = Query(None, description="Search by name, email, phone, or user code"),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get user directory with basic info - Accessible to ALL authenticated users.
+    
+    Returns a list of all active users with basic public information:
+    - user_code
+    - full_name
+    - email
+    - phone
+    - department
+    - is_active
+    
+    This endpoint is designed for employee directory/contact lookup functionality.
+    """
+    user_service = UserService(db)
+    users, total = await user_service.get_all_users_basic_info(
+        page=page,
+        page_size=page_size,
+        search=search
+    )
+    
+    return create_paginated_response(
+        data=[UserBasicInfoResponse.model_validate(user) for user in users],
+        total=total,
+        page=page,
+        page_size=page_size,
+        message="User directory retrieved successfully"
+    )
+
+
 @router.post("", response_model=APIResponse[UserResponse])
 async def create_user(
     user_data: UserCreate,
@@ -40,24 +78,33 @@ async def create_user(
     """
     Create a new user - Only SUPER_ADMIN and ADMIN can create users.
     
-    Required fields:
+    **Required fields:**
     - first_name, last_name (required)
-    - password (required)
+    - password (required - min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special character)
     - role (required - ADMIN, MANAGER, TEAM_LEAD, or EMPLOYEE)
+    - vehicle_number (required - format: XX-00-XX-0000, e.g., GJ-33-DD-3333)
+    - vehicle_type (required - car, motorcycle, bicycle, or none)
     
-    Optional fields:
+    **Optional fields:**
     - email (auto-generated from name if not provided)
-    - phone (optional)
-    - vehicle_number, vehicle_type (optional)
+    - phone (optional - must be exactly 10 digits if provided)
     - manager_type (required when role is MANAGER)
     - department (required when role is TEAM_LEAD)
     - team_lead_code (optional when role is EMPLOYEE)
     - manager_code (optional - for hierarchy assignment)
     - admin_code (optional - for hierarchy assignment)
     
-    Permission rules:
+    **Permission rules:**
     - SUPER_ADMIN can create: ADMIN, MANAGER, TEAM_LEAD, EMPLOYEE
     - ADMIN can create: MANAGER, TEAM_LEAD, EMPLOYEE
+    
+    **Vehicle Number Format:**
+    - State code (2 letters) - District code (2 digits) - Series (1-2 letters) - Number (1-4 digits)
+    - Example: GJ-33-DD-3333, MH-12-AB-1234
+    
+    **Phone Number Format:**
+    - Exactly 10 digits (e.g., 9876543210)
+    - Country code (+91) is automatically stripped if provided
     """
     user_service = UserService(db)
     user, error = await user_service.create_user(user_data, current_user)
@@ -105,31 +152,6 @@ async def list_users(
         message="Users retrieved successfully"
     )
 
-
-@router.get("/directory", response_model=PaginatedResponse[UserResponse])
-async def get_directory(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(100, ge=1, le=1000),
-    search: Optional[str] = None,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Public directory for authenticated users. Returns limited view based on role."""
-    user_service = UserService(db)
-    users, total = await user_service.list_users(
-        page=page,
-        page_size=page_size,
-        search=search,
-        requesting_user=current_user
-    )
-
-    return create_paginated_response(
-        data=[UserResponse.model_validate(u) for u in users],
-        total=total,
-        page=page,
-        page_size=page_size,
-        message="Directory retrieved successfully"
-    )
 
 
 @router.get("/{user_id}", response_model=APIResponse[UserResponse])

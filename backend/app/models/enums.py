@@ -137,26 +137,23 @@ class LeaveType(str, enum.Enum):
 
 class LeaveStatus(str, enum.Enum):
     """
-    Leave approval workflow status.
+    Leave approval workflow status (single-level approval).
     
-    Flow for Employee:
-    - PENDING: Applied, waiting for Team Lead approval
-    - APPROVED_BY_TEAM_LEAD: Team Lead approved, waiting for Manager
-    - APPROVED: Fully approved by Manager
-    - REJECTED: Rejected at any level
+    Flow for all roles (single approver):
+    - PENDING: Applied, waiting for designated approver
+    - APPROVED: Approved by designated approver (or auto-approved for Super Admin)
+    - REJECTED: Rejected by designated approver
+    - CANCELLED: Cancelled by employee
     
-    Flow for Team Lead:
-    - PENDING: Applied, waiting for Manager approval
-    - APPROVED: Approved by Manager
-    - REJECTED: Rejected by Manager
-    
-    Flow for Manager:
-    - PENDING: Applied, waiting for Super Admin approval
-    - APPROVED: Approved by Super Admin
-    - REJECTED: Rejected by Super Admin
+    Approval hierarchy:
+    - Employee → Team Lead
+    - Team Lead → Manager
+    - Manager → Admin
+    - Admin → Super Admin
+    - Super Admin → Auto-approved
     """
     PENDING = "pending"
-    APPROVED_BY_TEAM_LEAD = "approved_by_team_lead"  # For employee leaves
+    APPROVED_BY_TEAM_LEAD = "approved_by_team_lead"  # Deprecated - kept for backward compatibility
     APPROVED = "approved"
     REJECTED = "rejected"
     CANCELLED = "cancelled"
