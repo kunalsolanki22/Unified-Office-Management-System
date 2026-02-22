@@ -220,9 +220,8 @@ class CafeteriaService:
         if not table.is_active:
             return None, None, "Cafeteria table is not active"
         
-        # Check capacity
-        if booking_data.guest_count > table.capacity:
-            return None, None, f"Guest count exceeds table capacity ({table.capacity})"
+        # Capacity is informational only - allow flexible guest counts
+        # Multiple tables can be combined for larger groups
         
         # Check for overlapping bookings
         has_overlap = await self.check_booking_overlap(
