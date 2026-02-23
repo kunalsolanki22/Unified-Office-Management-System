@@ -782,7 +782,7 @@
               "purpose": "Get list of available food items to order from",
               "filter": {"is_available": true},
               "present_to_user": true,
-              "display_format": "{name} - ₹{price} ({preparation_time_minutes} mins)",
+              "display_format": "{name} - ${price} ({preparation_time_minutes} mins)",
               "extract_field": "id"
             }
           ]
@@ -845,7 +845,7 @@
               "purpose": "Get list of user's orders to select which one to cancel",
               "filter": {"status": "pending"},
               "present_to_user": true,
-              "display_format": "Order #{order_number}: {status} - ₹{total_amount}",
+              "display_format": "Order #{order_number}: {status} - ${total_amount}",
               "extract_field": "id"
             }
           ]
