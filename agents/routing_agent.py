@@ -121,11 +121,11 @@ Respond with a JSON object:
 }}
 
 ## MULTI-INTENT DETECTION - CRITICAL
-When a user has MULTIPLE distinct requests (e.g., "book a desk and check in", "order food and book a room"), you MUST:
+When a user has MULTIPLE distinct requests in a SINGLE message, you MUST:
 1. Set "is_multi_intent" to true
 2. List ALL relevant agents in "selected_agents" array with their specific intent
 3. Set "selected_agent" to the FIRST agent in the list (for backwards compatibility)
-4. Order agents logically (e.g., check-in before desk booking makes sense)
+4. Order agents logically based on natural workflow sequence
 
 ### Examples of Multi-Intent Messages:
 - "book a desk and check in" → ATTENDANCE (check_in) + DESK_CONFERENCE (desk_book)
@@ -133,23 +133,27 @@ When a user has MULTIPLE distinct requests (e.g., "book a desk and check in", "o
 - "book a room and raise IT ticket" → DESK_CONFERENCE (room_book) + IT_MANAGEMENT (ticket)
 - "apply leave and check balance" → LEAVE (apply) + LEAVE (balance) - same agent, but still list both intents
 
-### Examples of Single-Intent Messages:
-- "book a desk" → is_multi_intent: false, selected_agent: DESK_CONFERENCE
-- "check in" → is_multi_intent: false, selected_agent: ATTENDANCE
-
 ## STRICT RULES - DO NOT VIOLATE
 - **DETECT ALL INTENTS**: If user has 2+ actions, set is_multi_intent=true and list ALL agents
 - **DO NOT HALLUCINATE**: Only route to agents that exist (ATTENDANCE, LEAVE, DESK_CONFERENCE, CAFETERIA, IT_MANAGEMENT, GENERAL)
 - **DO NOT INVENT CAPABILITIES**: Only consider the capabilities listed above for each agent
 - **MATCH USER INTENT TO API CAPABILITIES**: Route based on what APIs each agent can actually perform
 
+## CRITICAL: Handling Follow-up & Continuation Messages
+When user says continuation phrases like "and also", "also", "additionally", "plus", etc.:
+- **ONLY route to agents for NEW actions mentioned in the CURRENT message**
+- **DO NOT re-include previous agents from conversation history if they're NOT explicitly mentioned in the current message**
+- Conversation history is for CONTEXT ONLY, not for repeating completed actions
+- Analyze ONLY what the user is asking for RIGHT NOW, not what was done before
+
 ## Guidelines
 1. Choose the agent(s) with highest confidence for the user's intent(s)
 2. If confidence is below 0.7, set needs_clarification to true
-3. For mixed intents, LIST ALL AGENTS in selected_agents array
+3. For mixed intents in the CURRENT message, list ALL relevant agents in selected_agents array
 4. Be generous with routing - when in doubt, route to the most likely agent
 5. Greetings and farewells should go to GENERAL
-6. "What can you do?" or capability questions go to GENERAL
+6. Capability questions should go to GENERAL
+7. **For continuation phrases, extract ONLY the NEW intent from the CURRENT message**
 
 Always respond with valid JSON only.
 """
