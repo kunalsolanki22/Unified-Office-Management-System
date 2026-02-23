@@ -52,7 +52,7 @@ const Dashboard = () => {
 
                 // Fetch Recent Orders
                 const ordersResponse = await cafeteriaService.getOrders({ page: 1, page_size: 5 });
-                const ordersList = ordersResponse.data || ordersResponse.orders || [];
+                const ordersList = ordersResponse?.data?.orders || ordersResponse?.data || (Array.isArray(ordersResponse) ? ordersResponse : []);
 
                 const formattedOrders = Array.isArray(ordersList) ? ordersList.map(o => ({
                     id: o.order_number || o.id,
@@ -67,7 +67,7 @@ const Dashboard = () => {
 
                 // Fetch Reservations
                 const bookingsResponse = await cafeteriaService.getReservations({ page: 1, page_size: 5 });
-                const bookingsList = bookingsResponse.data || bookingsResponse;
+                const bookingsList = bookingsResponse?.data?.bookings || bookingsResponse?.data || (Array.isArray(bookingsResponse) ? bookingsResponse : []);
 
                 const formattedReservations = Array.isArray(bookingsList) ? bookingsList.map(b => ({
                     id: String(b.id).substring(0, 8).toUpperCase(),
@@ -78,7 +78,7 @@ const Dashboard = () => {
                     type: 'booking'
                 })) : [];
 
-                setReservations(formattedReservations.slice(0, 3));
+                setReservations(formattedReservations.slice(0, 5));
 
                 // Derive Recent Activity
                 const allActivities = [
@@ -100,11 +100,6 @@ const Dashboard = () => {
                     .sort((a, b) => new Date(b.time) - new Date(a.time))
                     .slice(0, 5);
 
-                // Map correct backend field names:
-                // statsData.total_orders_today  → Food Orders today
-                // statsData.orders_by_status?.pending → Pending orders
-                // seatingData.booked_tables     → Seating Active
-                // statsData.revenue_today       → Revenue today
                 setStats({
                     foodOrders: statsData.total_orders_today ?? 0,
                     pendingReq: statsData.orders_by_status?.pending ?? 0,

@@ -77,20 +77,46 @@ const ConferenceBooking = () => {
     };
 
     const handleCreateBooking = async () => {
-        if (!newBooking.room_id || !newBooking.booking_date || !newBooking.start_time || !newBooking.end_time || !newBooking.title) {
+        const { room_id, booking_date, start_time, end_time, title, description, attendees_count } = newBooking;
+
+        if (!room_id || !booking_date || !start_time || !end_time || !title) {
             toast.error('Please fill all required fields');
             return;
         }
+
+        const now = new Date();
+        const start = new Date(`${booking_date}T${start_time}`);
+        const end = new Date(`${booking_date}T${end_time}`);
+
+        // 1. Future Date Check
+        if (start < now) {
+            toast.error('Start time must be in the future');
+            return;
+        }
+
+        // 2. Time Order Check
+        if (start >= end) {
+            toast.error('End time must be after start time');
+            return;
+        }
+
+        // 3. Capacity Check
+        const selectedRoom = rooms.find(r => r.id === room_id);
+        if (selectedRoom && parseInt(attendees_count) > selectedRoom.capacity) {
+            toast.error(`Attendees count exceeds room capacity (${selectedRoom.capacity})`);
+            return;
+        }
+
         try {
             setSubmitting(true);
             await deskService.createRoomBooking({
-                room_id: newBooking.room_id,
-                booking_date: newBooking.booking_date,
-                start_time: newBooking.start_time,
-                end_time: newBooking.end_time,
-                title: newBooking.title,
-                description: newBooking.description || '',
-                attendees_count: parseInt(newBooking.attendees_count) || 1,
+                room_id,
+                booking_date,
+                start_time,
+                end_time,
+                title,
+                description: description || '',
+                attendees_count: parseInt(attendees_count) || 1,
             });
             toast.success('Room booking created!');
             setShowBookForm(false);
@@ -461,8 +487,7 @@ const ConferenceBooking = () => {
                                     <button onClick={() => setIsReleaseModalOpen(false)}
                                         className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">Back</button>
                                     <button onClick={confirmRelease} disabled={!releaseReason.trim() || submitting}
-                                        className={`flex-1 py-3 rounded-xl font-bold text-sm shadow-lg transition-all ${
-                                            !releaseReason.trim() || submitting ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' : 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/20'}`}>
+                                        className={`flex-1 py-3 rounded-xl font-bold text-sm shadow-lg transition-all ${!releaseReason.trim() || submitting ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' : 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/20'}`}>
                                         {submitting ? 'Releasing...' : 'Confirm Release'}
                                     </button>
                                 </div>
@@ -513,8 +538,7 @@ const ConferenceBooking = () => {
                                     <button onClick={() => setShowRejectModal(false)}
                                         className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">Cancel</button>
                                     <button onClick={handleRejectSubmit} disabled={!rejectionReason.trim() || submitting}
-                                        className={`flex-1 py-3 rounded-xl font-bold text-sm shadow-lg transition-all ${
-                                            !rejectionReason.trim() || submitting ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' : 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/20'}`}>
+                                        className={`flex-1 py-3 rounded-xl font-bold text-sm shadow-lg transition-all ${!rejectionReason.trim() || submitting ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' : 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/20'}`}>
                                         {submitting ? 'Rejecting...' : 'Confirm Rejection'}
                                     </button>
                                 </div>
