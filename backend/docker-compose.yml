@@ -19,6 +19,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: office_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build: .
     container_name: office_backend
@@ -35,15 +49,49 @@ services:
       - COMPANY_DOMAIN=company.com
       - EMBEDDING_MODEL=all-MiniLM-L6-v2
       - VECTOR_DIMENSION=384
+      # Redis configuration
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_MAX_CONNECTIONS=50
+      - CACHE_DEFAULT_EXPIRE=300
+      # Rate limiting
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_PER_MINUTE=60
+      - RATE_LIMIT_PER_HOUR=1000
+      # Gunicorn settings
+      - GUNICORN_WORKERS=4
+      - GUNICORN_LOG_LEVEL=info
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - .:/app
+    # Production: Use Gunicorn with multiple workers
+    # Development: Use Uvicorn with --reload
     command: >
-      sh -c "alembic upgrade head || true && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      sh -c "alembic upgrade head || true && gunicorn app.main:app -c gunicorn.conf.py"
+
+  # Development override - uncomment for development with hot reload
+  # backend-dev:
+  #   build: .
+  #   container_name: office_backend_dev
+  #   environment:
+  #     # ... same as backend ...
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   volumes:
+  #     - .:/app
+  #   command: >
+  #     sh -c "alembic upgrade head || true && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 volumes:
   postgres_data:
+  redis_data:

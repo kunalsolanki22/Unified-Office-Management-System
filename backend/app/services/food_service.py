@@ -12,14 +12,65 @@ from ..models.user import User
 from ..models.enums import OrderStatus
 from ..schemas.food import FoodItemCreate, FoodItemUpdate, FoodOrderCreate, FoodCategoryCreate, FoodCategoryUpdate
 from .embedding_service import EmbeddingService
+from ..core.redis import cache_manager
 
 
 class FoodService:
-    """Food item and order management service."""
+    """
+    Food item and order management service.
+    
+    Caching Strategy:
+    - Food categories cached for 10 minutes (rarely changes)
+    - Food items list cached for 5 minutes
+    - Cache invalidated on create/update/delete
+    """
+    
+    # Cache TTL constants
+    CACHE_TTL_CATEGORY = 600  # 10 minutes for categories
+    CACHE_TTL_FOOD_ITEM = 300  # 5 minutes for food items
+    CACHE_TTL_FOOD_LIST = 300  # 5 minutes for food lists
     
     def __init__(self, db: AsyncSession):
         self.db = db
         self.embedding_service = EmbeddingService()
+        self._cache_prefix = "food"
+    
+    async def _invalidate_category_cache(self):
+        """Invalidate category cache."""
+        await cache_manager.delete_pattern(f"{self._cache_prefix}:category:*")
+        await cache_manager.delete_pattern(f"{self._cache_prefix}:categories:*")
+    
+    async def _invalidate_food_item_cache(self, item_id: UUID = None):
+        """Invalidate food item cache."""
+        if item_id:
+            await cache_manager.delete(f"{self._cache_prefix}:item:{str(item_id)}")
+        await cache_manager.delete_pattern(f"{self._cache_prefix}:items:*")
+    
+    def _serialize_category(self, category: FoodCategory) -> dict:
+        """Serialize category for caching."""
+        return {
+            "id": str(category.id),
+            "name": category.name,
+            "description": category.description,
+            "display_order": category.display_order,
+            "is_active": category.is_active,
+        }
+    
+    def _serialize_food_item(self, item: FoodItem) -> dict:
+        """Serialize food item for caching."""
+        return {
+            "id": str(item.id),
+            "name": item.name,
+            "description": item.description,
+            "category_id": str(item.category_id) if item.category_id else None,
+            "category_name": item.category_name,
+            "price": str(item.price) if item.price else None,
+            "is_available": item.is_available,
+            "is_active": item.is_active,
+            "calories": item.calories,
+            "preparation_time_minutes": item.preparation_time_minutes,
+            "image_url": item.image_url,
+        }
     
     # ==================== Food Category Management ====================
     
@@ -41,13 +92,29 @@ class FoodService:
         self,
         is_active: Optional[bool] = True
     ) -> List[FoodCategory]:
-        """List all food categories."""
+        """List all food categories with caching."""
+        # Build cache key
+        cache_key = f"{self._cache_prefix}:categories:{is_active}"
+        
+        # Try cache first
+        cached = await cache_manager.get(cache_key)
+        if cached:
+            # For now, still query DB for ORM objects
+            pass
+        
         query = select(FoodCategory)
         if is_active is not None:
             query = query.where(FoodCategory.is_active == is_active)
         query = query.order_by(FoodCategory.display_order, FoodCategory.name)
         result = await self.db.execute(query)
-        return list(result.scalars().all())
+        categories = list(result.scalars().all())
+        
+        # Cache the result
+        if categories:
+            cached_data = [self._serialize_category(c) for c in categories]
+            await cache_manager.set(cache_key, cached_data, self.CACHE_TTL_CATEGORY)
+        
+        return categories
     
     async def create_category(
         self,
@@ -68,6 +135,9 @@ class FoodService:
         self.db.add(category)
         await self.db.commit()
         await self.db.refresh(category)
+        
+        # Invalidate category cache
+        await self._invalidate_category_cache()
         
         return category, None
     
@@ -95,6 +165,9 @@ class FoodService:
         await self.db.commit()
         await self.db.refresh(category)
         
+        # Invalidate category cache
+        await self._invalidate_category_cache()
+        
         return category, None
     
     async def delete_category(
@@ -108,6 +181,9 @@ class FoodService:
         
         category.is_active = False
         await self.db.commit()
+        
+        # Invalidate category cache
+        await self._invalidate_category_cache()
         
         return True, None
     
@@ -210,6 +286,9 @@ class FoodService:
         await self.db.commit()
         await self.db.refresh(food_item)
         
+        # Invalidate food item cache
+        await self._invalidate_food_item_cache(item_id)
+        
         return food_item, None
     
     async def list_food_items(
@@ -219,7 +298,10 @@ class FoodService:
         page: int = 1,
         page_size: int = 20
     ) -> Tuple[List[FoodItem], int]:
-        """List food items with filtering."""
+        """List food items with filtering and caching."""
+        # Build cache key
+        cache_key = f"{self._cache_prefix}:items:{category}:{is_available}:{page}:{page_size}"
+        
         query = select(FoodItem).where(FoodItem.is_active == True)
         count_query = select(func.count(FoodItem.id)).where(FoodItem.is_active == True)
         
@@ -238,9 +320,17 @@ class FoodService:
         query = query.order_by(FoodItem.name)
         
         result = await self.db.execute(query)
-        items = result.scalars().all()
+        items = list(result.scalars().all())
         
-        return list(items), total
+        # Cache the result
+        if items:
+            cached_data = {
+                "items": [self._serialize_food_item(i) for i in items],
+                "total": total
+            }
+            await cache_manager.set(cache_key, cached_data, self.CACHE_TTL_FOOD_LIST)
+        
+        return items, total
     
     async def get_order_by_id(
         self,

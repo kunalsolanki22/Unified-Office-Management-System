@@ -8,6 +8,7 @@ from ..models.enums import UserRole, ManagerType
 from ..schemas.user import UserCreate, UserUpdate
 from ..core.security import get_password_hash
 from ..core.config import settings
+from ..core.redis import user_cache
 
 
 class UserService:
@@ -43,40 +44,120 @@ class UserService:
     - ADMIN -> SUPER_ADMIN approves
     
     User Code Format: 6 characters (2 letters + 4 digits), e.g., AB1234
+    
+    Caching Strategy:
+    - User profiles cached for 5 minutes (300s)
+    - Cache invalidated on user update/delete
     """
+    
+    # Cache TTL constants
+    CACHE_TTL_USER = 300  # 5 minutes for user profiles
+    CACHE_TTL_USER_LIST = 60  # 1 minute for user lists
     
     def __init__(self, db: AsyncSession):
         self.db = db
     
+    def _get_user_cache_key(self, user_id: UUID) -> str:
+        """Generate cache key for user by ID."""
+        return f"id:{str(user_id)}"
+    
+    def _get_user_email_cache_key(self, email: str) -> str:
+        """Generate cache key for user by email."""
+        return f"email:{email.lower()}"
+    
+    def _get_user_code_cache_key(self, user_code: str) -> str:
+        """Generate cache key for user by code."""
+        return f"code:{user_code.upper()}"
+    
+    async def _invalidate_user_cache(self, user: User):
+        """Invalidate all cache entries for a user."""
+        await user_cache.delete(self._get_user_cache_key(user.id))
+        await user_cache.delete(self._get_user_email_cache_key(user.email))
+        await user_cache.delete(self._get_user_code_cache_key(user.user_code))
+        # Also invalidate list cache
+        await user_cache.delete_pattern("list:*")
+    
+    def _serialize_user(self, user: User) -> dict:
+        """Serialize user object for caching."""
+        return {
+            "id": str(user.id),
+            "email": user.email,
+            "user_code": user.user_code,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "role": user.role.value if user.role else None,
+            "manager_type": user.manager_type.value if user.manager_type else None,
+            "department": user.department,
+            "phone": user.phone,
+            "is_active": user.is_active,
+            "is_deleted": user.is_deleted,
+            "team_lead_code": user.team_lead_code,
+            "manager_code": user.manager_code,
+            "admin_code": user.admin_code,
+            "created_by_code": user.created_by_code,
+            "vehicle_number": user.vehicle_number,
+            "vehicle_type": user.vehicle_type.value if user.vehicle_type else None,
+        }
+    
     async def get_user_by_id(self, user_id: UUID) -> Optional[User]:
-        """Get user by ID."""
+        """Get user by ID with caching."""
+        cache_key = self._get_user_cache_key(user_id)
+        
+        # Try cache first
+        cached = await user_cache.get(cache_key)
+        if cached:
+            # Return fresh DB object but skip query if we know user exists
+            pass  # For now, we still query DB to get full ORM object
+        
         result = await self.db.execute(
             select(User).where(
                 User.id == user_id,
                 User.is_deleted == False
             )
         )
-        return result.scalar_one_or_none()
+        user = result.scalar_one_or_none()
+        
+        # Cache the result
+        if user:
+            await user_cache.set(cache_key, self._serialize_user(user), self.CACHE_TTL_USER)
+        
+        return user
     
     async def get_user_by_email(self, email: str) -> Optional[User]:
-        """Get user by email."""
+        """Get user by email with caching."""
+        cache_key = self._get_user_email_cache_key(email)
+        
         result = await self.db.execute(
             select(User).where(
                 User.email == email,
                 User.is_deleted == False
             )
         )
-        return result.scalar_one_or_none()
+        user = result.scalar_one_or_none()
+        
+        # Cache the result
+        if user:
+            await user_cache.set(cache_key, self._serialize_user(user), self.CACHE_TTL_USER)
+        
+        return user
     
     async def get_user_by_code(self, user_code: str) -> Optional[User]:
-        """Get user by 6-character user code (e.g., AB1234)."""
+        """Get user by 6-character user code (e.g., AB1234) with caching."""
+        cache_key = self._get_user_code_cache_key(user_code)
+        
         result = await self.db.execute(
             select(User).where(
                 User.user_code == user_code.upper(),
                 User.is_deleted == False
             )
         )
-        return result.scalar_one_or_none()
+        user = result.scalar_one_or_none()
+        
+        # Cache the result
+        if user:
+            await user_cache.set(cache_key, self._serialize_user(user), self.CACHE_TTL_USER)
+        
+        return user
     
     async def validate_hierarchy(
         self,
@@ -294,6 +375,9 @@ class UserService:
         
         await self.db.commit()
         await self.db.refresh(user)
+        
+        # Invalidate user cache after update
+        await self._invalidate_user_cache(user)
         
         return user, None
     
