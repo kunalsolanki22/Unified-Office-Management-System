@@ -1110,7 +1110,7 @@ Provide a concise summary (max 200 words) that preserves ALL the above data."""
                     name = item.get('name') or item.get('item_name', 'Item')
                     price = item.get('price', 0)
                     available = "✅" if item.get('is_available', True) else "❌"
-                    lines.append(f"{i}. {available} {name} - ₹{price}")
+                    lines.append(f"{i}. {available} {name} - ${price}")
                 
                 # Generic fallback
                 else:
