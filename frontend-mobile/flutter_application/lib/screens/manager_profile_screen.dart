@@ -70,7 +70,7 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
               ],
             ),
             child: IconButton(
-              icon: const Icon(Icons.chevron_left, color: Color(0xFF1A237E)),
+              icon: const Icon(Icons.chevron_left, color: Color(0xFF1A367C)),
               onPressed: () {
                 if (widget.onBack != null) {
                   widget.onBack!();
@@ -86,7 +86,7 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A237E),
+            color: Color(0xFF1A367C),
           ),
         ),
       ],
@@ -116,7 +116,7 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: const Color(0xFF1A237E),
+                color: const Color(0xFF1A367C),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Center(
@@ -162,7 +162,7 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A2E),
+            color: Color(0xFF1A367C),
           ),
         ),
         const SizedBox(height: 8),
@@ -290,7 +290,7 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF1A1A2E),
+                      color: Color(0xFF1A367C),
                     ),
                   ),
                 ],

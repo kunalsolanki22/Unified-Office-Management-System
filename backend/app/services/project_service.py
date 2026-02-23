@@ -335,3 +335,54 @@ class ProjectService:
         projects = result.scalars().unique().all()
         
         return list(projects), total
+
+    async def get_my_projects(
+        self,
+        user_code: str
+    ) -> Tuple[List[Project], List[Project]]:
+        """Get projects assigned to a user (approved/in_progress only).
+        
+        Returns (owned_projects, member_projects).
+        """
+        uc = user_code.upper()
+        active_statuses = [
+            ProjectStatus.APPROVED,
+            ProjectStatus.IN_PROGRESS,
+        ]
+        
+        loader_opts = [
+            selectinload(Project.members).selectinload(ProjectMember.user),
+            selectinload(Project.requested_by),
+            selectinload(Project.approved_by),
+        ]
+        
+        # Projects the user created
+        owned_q = (
+            select(Project)
+            .where(
+                Project.requested_by_code == uc,
+                Project.status.in_(active_statuses),
+            )
+            .options(*loader_opts)
+            .order_by(Project.created_at.desc())
+        )
+        owned_result = await self.db.execute(owned_q)
+        owned = list(owned_result.scalars().unique().all())
+        
+        # Projects the user is a member of (but not the requestor)
+        member_q = (
+            select(Project)
+            .join(ProjectMember, ProjectMember.project_id == Project.id)
+            .where(
+                ProjectMember.user_code == uc,
+                ProjectMember.is_active == True,
+                Project.status.in_(active_statuses),
+                Project.requested_by_code != uc,
+            )
+            .options(*loader_opts)
+            .order_by(Project.created_at.desc())
+        )
+        member_result = await self.db.execute(member_q)
+        member = list(member_result.scalars().unique().all())
+        
+        return owned, member

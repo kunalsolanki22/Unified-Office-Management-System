@@ -160,11 +160,11 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
       appBar: AppBar(
         title: const Text(
           'Leave Review',
-          style: TextStyle(color: Color(0xFF1A1A2E)), 
+          style: TextStyle(color: Color(0xFF1A367C)), 
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF1A1A2E)),
+        iconTheme: const IconThemeData(color: Color(0xFF1A367C)),
       ),
       backgroundColor: const Color(0xFFF5F7FA),
       body: _isLoading
@@ -221,7 +221,7 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
-                                      color: Color(0xFF1A1A2E),
+                                      color: Color(0xFF1A367C),
                                     ),
                                   ),
                                 ),
@@ -275,7 +275,7 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                                   child: ElevatedButton(
                                     onPressed: () => _approveRequest(req['id'], false),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1A1A2E),
+                                      backgroundColor: const Color(0xFF1A367C),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),

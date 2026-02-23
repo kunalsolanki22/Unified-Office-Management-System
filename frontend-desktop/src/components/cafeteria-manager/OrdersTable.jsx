@@ -27,7 +27,7 @@ const OrdersTable = ({ orders, onUpdateStatus }) => {
                                 <TableCell className="text-[#8892b0] text-xs font-medium pl-6 py-4">#{order.orderNumber || order.id}</TableCell>
                                 <TableCell className="font-bold text-[#1a367c] text-sm py-4">{order.emp}</TableCell>
                                 <TableCell className="text-xs text-slate-500 font-medium py-4">{order.items}</TableCell>
-                                <TableCell className="font-bold text-[#1a367c] text-sm py-4">${order.total.toFixed(2)}</TableCell>
+                                <TableCell className="font-bold text-[#1a367c] text-sm py-4">₹{order.total.toFixed(2)}</TableCell>
                                 <TableCell className="py-4">
                                     <Badge
                                         variant={

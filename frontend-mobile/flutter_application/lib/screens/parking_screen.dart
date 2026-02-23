@@ -253,7 +253,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
                   ? (isOnCurrentLevel ? _exitParking : null)
                   : _tapToPark,
           style: ElevatedButton.styleFrom(
-            backgroundColor: isParked ? Colors.red : const Color(0xFF1A237E),
+            backgroundColor: isParked ? Colors.red : const Color(0xFF1A367C),
             foregroundColor: Colors.white,
             disabledBackgroundColor: Colors.grey[400],
             disabledForegroundColor: Colors.white,
@@ -294,7 +294,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A237E),
+        color: const Color(0xFF1A367C),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -482,7 +482,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1A1A2E),
+              color: Color(0xFF1A367C),
             ),
           ),
           const Spacer(),
@@ -503,7 +503,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A237E),
+                    color: Color(0xFF1A367C),
                   ),
                 ),
               ),
@@ -556,7 +556,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
                     'CARS',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: _isLevel1 ? const Color(0xFF1A237E) : Colors.grey[400],
+                      color: _isLevel1 ? const Color(0xFF1A367C) : Colors.grey[400],
                     ),
                   ),
                 ),
@@ -589,7 +589,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
                     'BIKES',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: !_isLevel1 ? const Color(0xFF1A237E) : Colors.grey[400],
+                      color: !_isLevel1 ? const Color(0xFF1A367C) : Colors.grey[400],
                     ),
                   ),
                 ),
@@ -618,7 +618,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
             shortLabel,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFF1A237E),
+              color: Color(0xFF1A367C),
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),

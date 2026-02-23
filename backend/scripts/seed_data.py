@@ -26,9 +26,10 @@ from app.models.enums import (
     LeaveType as LeaveTypeEnum
 )
 from app.models.leave import LeaveType
+from app.models.holiday import Holiday
 from decimal import Decimal
 import random
-from datetime import datetime
+from datetime import datetime, date
 
 
 async def seed_users(db: AsyncSession):
@@ -443,14 +444,18 @@ async def seed_cafeteria_tables(db: AsyncSession, users: list):
         return
     
     tables = [
-        {"label": "Window Table 1", "capacity": 4, "table_type": "regular"},
-        {"label": "Window Table 2", "capacity": 4, "table_type": "regular"},
-        {"label": "Center Table 1", "capacity": 6, "table_type": "large"},
-        {"label": "Center Table 2", "capacity": 6, "table_type": "large"},
-        {"label": "Round Table 1", "capacity": 8, "table_type": "round"},
-        {"label": "Round Table 2", "capacity": 8, "table_type": "round"},
-        {"label": "High Top 1", "capacity": 2, "table_type": "high"},
-        {"label": "High Top 2", "capacity": 2, "table_type": "high"},
+        {"label": "A1", "capacity": 4, "table_type": "regular"},
+        {"label": "A2", "capacity": 4, "table_type": "regular"},
+        {"label": "A3", "capacity": 6, "table_type": "regular"},
+        {"label": "A4", "capacity": 4, "table_type": "booth"},
+        {"label": "A5", "capacity": 2, "table_type": "high_top"},
+        {"label": "A6", "capacity": 4, "table_type": "regular"},
+        {"label": "A7", "capacity": 6, "table_type": "regular"},
+        {"label": "A8", "capacity": 4, "table_type": "booth"},
+        {"label": "B1", "capacity": 4, "table_type": "regular"},
+        {"label": "B2", "capacity": 2, "table_type": "high_top"},
+        {"label": "B3", "capacity": 6, "table_type": "regular"},
+        {"label": "B4", "capacity": 4, "table_type": "regular"},
     ]
     
     for table_data in tables:
@@ -484,16 +489,16 @@ async def seed_food_items(db: AsyncSession, users: list):
         return
     
     food_items = [
-        {"name": "Butter Chicken", "description": "Creamy tomato-based curry with tender chicken", "price": Decimal("180.00"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 450},
-        {"name": "Paneer Tikka", "description": "Grilled cottage cheese with spices", "price": Decimal("150.00"), "category": "Starters", "tags": ["vegetarian", "high-protein"], "calories": 280},
+        {"name": "Butter Chicken", "description": "Creamy tomato-based curry with tender chicken", "price": Decimal("150.00"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 450},
+        {"name": "Paneer Tikka", "description": "Grilled cottage cheese with spices", "price": Decimal("120.00"), "category": "Starters", "tags": ["vegetarian", "high-protein"], "calories": 280},
         {"name": "Masala Dosa", "description": "Crispy rice crepe with potato filling", "price": Decimal("80.00"), "category": "South Indian", "tags": ["vegetarian", "vegan"], "calories": 320},
-        {"name": "Chicken Biryani", "description": "Aromatic basmati rice with spiced chicken", "price": Decimal("160.00"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 520},
-        {"name": "Dal Makhani", "description": "Creamy black lentils slow-cooked", "price": Decimal("120.00"), "category": "Main Course", "tags": ["vegetarian"], "calories": 350},
+        {"name": "Chicken Biryani", "description": "Aromatic basmati rice with spiced chicken", "price": Decimal("180.00"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 520},
+        {"name": "Dal Makhani", "description": "Creamy black lentils slow-cooked", "price": Decimal("90.00"), "category": "Main Course", "tags": ["vegetarian"], "calories": 350},
         {"name": "Mango Lassi", "description": "Sweet mango yogurt drink", "price": Decimal("50.00"), "category": "Beverages", "tags": ["vegetarian", "sweet"], "calories": 180},
         {"name": "Coffee", "description": "Fresh brewed hot coffee", "price": Decimal("30.00"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 5},
-        {"name": "Tea", "description": "Hot brewed masala chai", "price": Decimal("15.00"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 25},
+        {"name": "Tea", "description": "Hot brewed masala chai", "price": Decimal("20.00"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 25},
         {"name": "Veg Sandwich", "description": "Fresh vegetable grilled sandwich", "price": Decimal("60.00"), "category": "Snacks", "tags": ["vegetarian", "healthy"], "calories": 250},
-        {"name": "Samosa", "description": "Crispy fried pastry with potato filling", "price": Decimal("20.00"), "category": "Snacks", "tags": ["vegetarian", "spicy"], "calories": 150},
+        {"name": "Samosa", "description": "Crispy fried pastry with potato filling", "price": Decimal("25.00"), "category": "Snacks", "tags": ["vegetarian", "spicy"], "calories": 150},
     ]
     
     for item_data in food_items:
@@ -756,6 +761,56 @@ async def seed_food_orders(db: AsyncSession, users: list):
     print(f"  Created {count} sample food orders for today.")
     await db.commit()
 
+
+async def seed_holidays(db: AsyncSession, users: list):
+    """Seed Indian holidays for the current year."""
+    # Find an admin user for created_by
+    admin = next((u for u in users if u.role == UserRole.ADMIN or u.role == UserRole.SUPER_ADMIN), None)
+    if not admin:
+        print("  No admin user found. Skipping holidays.")
+        return
+
+    holidays = [
+        {"name": "Republic Day", "date": "2026-01-26", "holiday_type": "national", "description": "National holiday celebrating the constitution"},
+        {"name": "Maha Shivratri", "date": "2026-02-26", "holiday_type": "religious", "description": "Hindu festival dedicated to Lord Shiva"},
+        {"name": "Holi", "date": "2026-03-14", "holiday_type": "festival", "description": "Festival of colours"},
+        {"name": "Ram Navami", "date": "2026-03-29", "holiday_type": "religious", "description": "Birthday of Lord Rama"},
+        {"name": "Good Friday", "date": "2026-04-10", "holiday_type": "religious", "description": "Christian observance"},
+        {"name": "Independence Day", "date": "2026-08-15", "holiday_type": "national", "description": "National holiday celebrating independence"},
+        {"name": "Gandhi Jayanti", "date": "2026-10-02", "holiday_type": "national", "description": "Birthday of Mahatma Gandhi"},
+        {"name": "Diwali", "date": "2026-11-08", "holiday_type": "festival", "description": "Festival of lights"},
+        {"name": "Christmas", "date": "2026-12-25", "holiday_type": "festival", "description": "Christmas Day"},
+    ]
+
+    count = 0
+    for h in holidays:
+        holiday_date = date.fromisoformat(h["date"])
+        result = await db.execute(
+            select(Holiday).where(Holiday.date == holiday_date)
+        )
+        existing = result.scalar_one_or_none()
+
+        if existing:
+            print(f"  Holiday already exists: {h['name']} ({h['date']})")
+            continue
+
+        holiday = Holiday(
+            name=h["name"],
+            description=h["description"],
+            date=holiday_date,
+            holiday_type=h["holiday_type"],
+            is_optional=False,
+            is_active=True,
+            created_by_code=admin.user_code
+        )
+        db.add(holiday)
+        count += 1
+        print(f"  Created holiday: {h['name']} ({h['date']})")
+
+    await db.commit()
+    print(f"  Total holidays created: {count}")
+
+
 async def main():
     """Main seed function."""
     print("\n" + "=" * 60)
@@ -791,6 +846,9 @@ async def main():
             
             print("\n9. Creating sample food orders...")
             await seed_food_orders(db, users)
+
+            print("\n10. Creating holidays...")
+            await seed_holidays(db, users)
 
             print("\n" + "=" * 60)
             print("  SEED DATA COMPLETED SUCCESSFULLY!")

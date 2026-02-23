@@ -118,7 +118,7 @@ class _LeaveScreenState extends State<LeaveScreen>
           child: ElevatedButton(
             onPressed: _isSubmitting ? null : _submitLeaveRequest,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A237E),
+              backgroundColor: const Color(0xFF1A367C),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
@@ -174,7 +174,7 @@ class _LeaveScreenState extends State<LeaveScreen>
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1A237E),
+              primary: Color(0xFF1A367C),
             ),
           ),
           child: child!,
@@ -202,7 +202,7 @@ class _LeaveScreenState extends State<LeaveScreen>
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1A237E),
+              primary: Color(0xFF1A367C),
             ),
           ),
           child: child!,
@@ -361,9 +361,9 @@ class _LeaveScreenState extends State<LeaveScreen>
           color: Colors.white,
           child: TabBar(
             controller: _tabController,
-            labelColor: const Color(0xFF1A237E),
+            labelColor: const Color(0xFF1A367C),
             unselectedLabelColor: Colors.grey,
-            indicatorColor: const Color(0xFF1A237E),
+            indicatorColor: const Color(0xFF1A367C),
             tabs: const [
               Tab(text: 'Apply Leave'),
               Tab(text: 'My Requests'),
@@ -403,7 +403,7 @@ class _LeaveScreenState extends State<LeaveScreen>
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1A237E),
+                color: Color(0xFF1A367C),
                 letterSpacing: 1.0,
               ),
             ),
@@ -414,7 +414,7 @@ class _LeaveScreenState extends State<LeaveScreen>
                   calendarType: CalendarDatePicker2Type.range,
                   firstDate: DateTime.now(),
                   lastDate: DateTime(2030),
-                  selectedDayHighlightColor: const Color(0xFF1A237E),
+                  selectedDayHighlightColor: const Color(0xFF1A367C),
                   selectedDayTextStyle: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -486,8 +486,8 @@ class _LeaveScreenState extends State<LeaveScreen>
                   label: const Text('Show Leave Balance'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF1A237E),
-                    side: const BorderSide(color: Color(0xFF1A237E)),
+                    foregroundColor: const Color(0xFF1A367C),
+                    side: const BorderSide(color: Color(0xFF1A367C)),
                   ),
                   onPressed: _showLeaveBalanceDialog,
                 ),
@@ -610,7 +610,7 @@ class _LeaveScreenState extends State<LeaveScreen>
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A237E),
+                    color: Color(0xFF1A367C),
                   ),
                 ),
                 Container(

@@ -9,7 +9,7 @@ from ....models.user import User
 from ....models.enums import ProjectStatus
 from ....schemas.project import (
     ProjectCreate, ProjectUpdate, ProjectResponse,
-    ProjectMemberCreate, ProjectApproval
+    ProjectMemberCreate, ProjectApproval, MyProjectsResponse
 )
 from ....schemas.base import APIResponse, PaginatedResponse
 from ....services.project_service import ProjectService
@@ -97,6 +97,24 @@ async def list_projects(
         page=page,
         page_size=page_size,
         message="Projects retrieved successfully"
+    )
+
+
+@router.get("/my-projects", response_model=APIResponse[MyProjectsResponse])
+async def get_my_projects(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get the current user's assigned projects (approved/in_progress)."""
+    project_service = ProjectService(db)
+    owned, member = await project_service.get_my_projects(current_user.user_code)
+    
+    return create_response(
+        data={
+            "owned_projects": [build_project_response(p) for p in owned],
+            "member_projects": [build_project_response(p) for p in member],
+        },
+        message="My projects retrieved successfully"
     )
 
 

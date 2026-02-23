@@ -93,7 +93,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
     ).length;
   }
 
-  // Handle desk tap
+  // Handle desk tap — open booking modal instead of select/confirm
   void _onDeskTap(String deskId) {
     final desk = _desks[deskId];
     if (desk == null) return;
@@ -109,95 +109,315 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       return;
     }
 
-    setState(() {
-      // If there was a previously selected desk, unselect it and cancel its freeze timer
-      if (_selectedDeskId != null && _selectedDeskId != deskId) {
-        final previousDesk = _desks[_selectedDeskId!];
-        if (previousDesk != null && previousDesk.status == DeskStatus.selected) {
-          previousDesk.freezeTimer?.cancel();
-          previousDesk.status = DeskStatus.available;
-        }
-      }
-
-      // If clicking on already selected desk, deselect it
-      if (desk.status == DeskStatus.selected) {
-        desk.freezeTimer?.cancel();
-        desk.status = DeskStatus.available;
-        _selectedDeskId = null;
-        _selectedTableUuid = null;
-      } else {
-        // Select the desk and start freeze timer
-        desk.status = DeskStatus.selected;
-        _selectedDeskId = deskId;
-        _selectedTableUuid = desk.tableUuid;
-        
-        // Start 1-minute freeze timer
-        desk.freezeTimer?.cancel();
-        desk.freezeTimer = Timer(const Duration(minutes: 1), () {
-          if (mounted && _desks[deskId]?.status == DeskStatus.selected) {
-            setState(() {
-              _desks[deskId]!.status = DeskStatus.freezed;
-              if (_selectedDeskId == deskId) {
-                _selectedDeskId = null;
-                _selectedTableUuid = null;
-              }
-            });
-          }
-        });
-      }
-    });
+    _showBookingModal(deskId, desk);
   }
 
-  // Confirm desk booking via API
-  Future<void> _confirmDeskBooking() async {
-    if (_selectedDeskId == null || _selectedTableUuid == null) {
-      SnackbarHelper.showWarning(context, 'Please select a desk first');
-      return;
-    }
+  String _formatDuration(int minutes) {
+    if (minutes < 60) return '$minutes min';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return m == 0 ? '${h}h' : '${h}h ${m}m';
+  }
 
-    if (_userBookedDeskId != null) {
-      SnackbarHelper.showWarning(context, 'You already have desk ${_getDeskDisplayLabel(_userBookedDeskId)} booked.');
-      return;
-    }
+  String _calculateEndTime(String startTime, int durationMinutes) {
+    final parts = startTime.split(':');
+    if (parts.length < 2) return '';
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final total = h * 60 + m + durationMinutes;
+    final endH = (total ~/ 60) % 24;
+    final endM = total % 60;
+    return '${endH.toString().padLeft(2, '0')}:${endM.toString().padLeft(2, '0')}';
+  }
 
-    setState(() => _isBookingDesk = true);
-
+  void _showBookingModal(String deskId, _DeskItem desk) {
     final now = DateTime.now();
-    final today = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    final startTime = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:00';
-    final endHour = (now.hour + 1).clamp(0, 23);
-    final endTime = '${endHour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:00';
+    // Round to next 10 minutes
+    final roundedMin = ((now.minute / 10).ceil()) * 10;
+    final startDt = DateTime(now.year, now.month, now.day, now.hour, 0).add(Duration(minutes: roundedMin));
+    String startTime = '${startDt.hour.toString().padLeft(2, '0')}:${startDt.minute.toString().padLeft(2, '0')}';
+    int duration = 30;
+    int guestCount = 1;
+    final int maxGuests = desk.capacity > 0 ? desk.capacity : 12;
+    bool saving = false;
+    String? error;
 
-    final result = await _cafeteriaService.createTableBooking(
-      tableId: _selectedTableUuid!,
-      bookingDate: today,
-      startTime: startTime,
-      endTime: endTime,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final endTime = _calculateEndTime(startTime, duration);
+            return Container(
+              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 30,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('BOOK TABLE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1A367C), letterSpacing: 0.5)),
+                              const SizedBox(height: 2),
+                              Text('${desk.fullLabel} — Seats ${desk.capacity}', style: const TextStyle(fontSize: 12, color: Color(0xFF8892B0))),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: 36, height: 36,
+                            decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(12)),
+                            child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF94A3B8)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Start time
+                    const Text('START TIME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8), letterSpacing: 1.5)),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () async {
+                        final parts = startTime.split(':');
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1])),
+                        );
+                        if (picked != null) {
+                          setModalState(() {
+                            startTime = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                          });
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(startTime, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A367C))),
+                            const Spacer(),
+                            const Icon(Icons.schedule_rounded, size: 18, color: Color(0xFF94A3B8)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Duration picker
+                    const Text('DURATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8), letterSpacing: 1.5)),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          _modalStepButton(
+                            icon: Icons.remove_rounded,
+                            enabled: duration > 10,
+                            onTap: () => setModalState(() => duration = (duration - 10).clamp(10, 90)),
+                          ),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Text(_formatDuration(duration), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1A367C))),
+                                const Text('10 min — 1.5 hrs', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8), letterSpacing: 0.5)),
+                              ],
+                            ),
+                          ),
+                          _modalStepButton(
+                            icon: Icons.add_rounded,
+                            enabled: duration < 90,
+                            onTap: () => setModalState(() => duration = (duration + 10).clamp(10, 90)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Guest count
+                    const Text('GUESTS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8), letterSpacing: 1.5)),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          _modalStepButton(
+                            icon: Icons.remove_rounded,
+                            enabled: guestCount > 1,
+                            onTap: () => setModalState(() => guestCount = (guestCount - 1).clamp(1, maxGuests)),
+                          ),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Text('$guestCount', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1A367C))),
+                                Text('max $maxGuests', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8), letterSpacing: 0.5)),
+                              ],
+                            ),
+                          ),
+                          _modalStepButton(
+                            icon: Icons.add_rounded,
+                            enabled: guestCount < maxGuests,
+                            onTap: () => setModalState(() => guestCount = (guestCount + 1).clamp(1, maxGuests)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Summary
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('Today', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A367C))),
+                          const Spacer(),
+                          const Icon(Icons.schedule_rounded, size: 14, color: Color(0xFF94A3B8)),
+                          const SizedBox(width: 4),
+                          Text('$startTime → $endTime (${_formatDuration(duration)})', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1A367C))),
+                        ],
+                      ),
+                    ),
+
+                    if (error != null) ...
+                    [
+                      const SizedBox(height: 10),
+                      Text(error!, style: const TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w600)),
+                    ],
+                    const SizedBox(height: 20),
+
+                    // Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 50,
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                              child: const Text('Cancel', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SizedBox(
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: saving ? null : () async {
+                                setModalState(() { error = null; saving = true; });
+
+                                final now = DateTime.now();
+                                final today = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+                                final endTimeStr = '$endTime:00';
+                                final startTimeStr = '$startTime:00';
+
+                                final result = await _cafeteriaService.createTableBooking(
+                                  tableId: desk.tableUuid!,
+                                  bookingDate: today,
+                                  startTime: startTimeStr,
+                                  endTime: endTimeStr,
+                                  guestCount: guestCount,
+                                );
+
+                                if (!mounted) return;
+                                setModalState(() => saving = false);
+
+                                if (result['success']) {
+                                  final bookingData = result['data'];
+                                  final bookingId = bookingData?['id']?.toString();
+                                  Navigator.pop(context);
+                                  setState(() {
+                                    desk.status = DeskStatus.yours;
+                                    _userBookedDeskId = deskId;
+                                    _userBookingId = bookingId;
+                                  });
+                                  SnackbarHelper.showSuccess(context, 'Table ${desk.fullLabel} booked!');
+                                } else {
+                                  setModalState(() => error = result['message'] ?? 'Booking failed');
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1A367C),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                elevation: 4,
+                                shadowColor: const Color(0xFF1A367C).withOpacity(0.3),
+                              ),
+                              child: Text(saving ? 'Booking...' : 'Confirm', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
+  }
 
-    if (mounted) {
-      setState(() => _isBookingDesk = false);
-
-      if (result['success']) {
-        final bookingData = result['data'];
-        final bookingId = bookingData?['id']?.toString();
-        
-        setState(() {
-          final desk = _desks[_selectedDeskId!];
-          if (desk != null) {
-            desk.freezeTimer?.cancel();
-            desk.status = DeskStatus.yours;
-            _userBookedDeskId = _selectedDeskId;
-            _userBookingId = bookingId;
-            _selectedDeskId = null;
-            _selectedTableUuid = null;
-          }
-        });
-        SnackbarHelper.showSuccess(context, 'Desk ${_getDeskDisplayLabel(_userBookedDeskId)} booked successfully!');
-      } else {
-        SnackbarHelper.showError(context, result['message'] ?? 'Failed to book desk');
-      }
-    }
+  Widget _modalStepButton({required IconData icon, required bool enabled, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 40, height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF1A367C) : const Color(0xFFCBD5E1)),
+      ),
+    );
   }
 
   // Release (cancel) table booking
@@ -320,8 +540,13 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
     final myBookingsResult = await _cafeteriaService.getMyBookings();
     if (mounted) {
       final tables = List<Map<String, dynamic>>.from(tablesResult['data'] ?? []);
-      final bookings = List<Map<String, dynamic>>.from(bookingsResult['data'] ?? []);
-      final bookedIds = bookings.map((b) => b['table_id']?.toString() ?? '').toSet();
+      final allBookings = List<Map<String, dynamic>>.from(bookingsResult['data'] ?? []);
+      // Only count active (confirmed/pending) bookings — exclude cancelled/rejected
+      final activeBookings = allBookings.where((b) {
+        final status = (b['status'] ?? '').toString().toLowerCase();
+        return status != 'cancelled' && status != 'rejected';
+      }).toList();
+      final bookedIds = activeBookings.map((b) => b['table_id']?.toString() ?? '').toSet();
 
       // Check if user already has a booking for today
       final myBookings = List<Map<String, dynamic>>.from(myBookingsResult['data'] ?? []);
@@ -364,12 +589,15 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
           status = DeskStatus.available;
         }
 
+        final capacity = (table['capacity'] ?? 4) as int;
+
         _desks[tableId] = _DeskItem(
           label: _shortenTableLabel(tableLabel),
           fullLabel: tableLabel,
           zoneKey: _getZoneKey(tableType),
           status: status,
           tableUuid: tableId,
+          capacity: capacity,
         );
       }
       setState(() {
@@ -571,7 +799,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1A2E),
+                  color: Color(0xFF1A367C),
                 ),
               ),
             ],
@@ -594,7 +822,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A237E),
+                    color: Color(0xFF1A367C),
                   ),
                 ),
               ),
@@ -640,7 +868,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF1A237E).withValues(alpha: 0.2)),
+        border: Border.all(color: const Color(0xFF1A367C).withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -665,12 +893,12 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.receipt_long_outlined,
-                    color: const Color(0xFF1A237E), size: 24),
+                    color: const Color(0xFF1A367C), size: 24),
                 const SizedBox(width: 12),
                 const Text(
                   'VIEW MY ORDERS',
                   style: TextStyle(
-                    color: Color(0xFF1A237E),
+                    color: Color(0xFF1A367C),
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.0,
@@ -678,7 +906,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                 ),
                 const SizedBox(width: 8),
                 Icon(Icons.arrow_forward_ios,
-                    color: const Color(0xFF1A237E).withValues(alpha: 0.5),
+                    color: const Color(0xFF1A367C).withValues(alpha: 0.5),
                     size: 16),
               ],
             ),
@@ -691,7 +919,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
   Widget _buildToggleButtons() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1A237E),
+        color: const Color(0xFF1A367C),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -943,7 +1171,11 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
           }),
         _buildLegend(),
         const SizedBox(height: 24),
-        _buildDeskConfirmButton(),
+        // Tap any available table to book
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text('Tap any available table to book', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey[500], fontWeight: FontWeight.w500)),
+        ),
       ],
     );
   }
@@ -955,7 +1187,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A237E),
+        color: const Color(0xFF1A367C),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -1085,10 +1317,10 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
     switch (desk.status) {
       case DeskStatus.available:
         bgColor = Colors.white;
-        textColor = const Color(0xFF1A237E);
+        textColor = const Color(0xFF1A367C);
         break;
       case DeskStatus.selected:
-        bgColor = const Color(0xFF1A237E);
+        bgColor = const Color(0xFF1A367C);
         textColor = Colors.yellow;
         break;
       case DeskStatus.yours:
@@ -1160,7 +1392,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       children: [
         _buildLegendItem('AVAILABLE', Colors.white, borderColor: Colors.grey[300]),
         _buildLegendItem('YOURS', Colors.amber, borderColor: Colors.amber.shade700),
-        _buildLegendItem('SELECTED', const Color(0xFF1A237E)),
+        _buildLegendItem('SELECTED', const Color(0xFF1A367C)),
         _buildLegendItem('BOOKED', const Color(0xFF90A4AE)),
         _buildLegendItem('FREEZED', Colors.grey[300]!, borderColor: Colors.black),
       ],
@@ -1192,42 +1424,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
     );
   }
 
-  Widget _buildDeskConfirmButton() {
-    final hasSelection = _selectedDeskId != null;
-    final alreadyBooked = _userBookedDeskId != null;
-    
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: alreadyBooked 
-            ? _releaseTable 
-            : (hasSelection ? _confirmDeskBooking : null),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: alreadyBooked ? Colors.red.shade700 : const Color(0xFF1A237E),
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: Colors.grey[300],
-          disabledForegroundColor: Colors.grey[500],
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 0,
-        ),
-        child: Text(
-          alreadyBooked 
-            ? 'RELEASE TABLE'
-              : hasSelection 
-              ? 'CONFIRM DESK ${_getDeskDisplayLabel(_selectedDeskId)} BOOKING'
-                  : 'SELECT A DESK TO BOOK',
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.0,
-          ),
-        ),
-      ),
-    );
-  }
+  // Removed _buildDeskConfirmButton — booking now happens via bottom sheet modal
 
   Widget _buildMenuItem({
     required String id,
@@ -1276,7 +1473,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A2E),
+                    color: Color(0xFF1A367C),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1294,7 +1491,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF1A1A2E),
+                    color: Color(0xFF1A367C),
                   ),
                 ),
               ],
@@ -1304,7 +1501,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
           isInCart
               ? Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A237E),
+                    color: const Color(0xFF1A367C),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -1352,7 +1549,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
               : ElevatedButton(
                   onPressed: () => _addToCart(id, name, price, icon, iconColor, iconBgColor),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A237E),
+                    backgroundColor: const Color(0xFF1A367C),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -1393,7 +1590,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A237E),
+              color: const Color(0xFF1A367C),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -1485,7 +1682,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A1A2E),
+                          color: Color(0xFF1A367C),
                         ),
                       ),
                       GestureDetector(
@@ -1544,7 +1741,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF1A1A2E),
+                              color: Color(0xFF1A367C),
                             ),
                           ),
                           Text(
@@ -1552,7 +1749,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF1A237E),
+                              color: Color(0xFF1A367C),
                             ),
                           ),
                         ],
@@ -1563,7 +1760,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                         child: ElevatedButton(
                           onPressed: _isPlacingOrder ? null : _placeOrder,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1A237E),
+                            backgroundColor: const Color(0xFF1A367C),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
@@ -1624,7 +1821,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A2E),
+                  color: Color(0xFF1A367C),
                 ),
               ),
               const SizedBox(height: 4),
@@ -1633,7 +1830,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF1A237E),
+                  color: Color(0xFF1A367C),
                 ),
               ),
             ],
@@ -1666,7 +1863,7 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A2E),
+                    color: Color(0xFF1A367C),
                   ),
                 ),
               ),
@@ -1703,6 +1900,7 @@ class _DeskItem {
   final String fullLabel;
   final String zoneKey;
   final String? tableUuid;
+  final int capacity;
   DeskStatus status;
   Timer? freezeTimer;
 
@@ -1712,5 +1910,6 @@ class _DeskItem {
     required this.zoneKey,
     required this.status,
     this.tableUuid,
+    this.capacity = 4,
   });
 }

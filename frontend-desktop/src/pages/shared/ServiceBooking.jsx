@@ -48,11 +48,9 @@ const ServiceBooking = () => {
 
     const [showTableModal, setShowTableModal] = useState(false);
     const [tableForm, setTableForm] = useState({
-        booking_date: new Date().toISOString().split('T')[0],
         start_time: getNextSlot(10),
         duration: 30,
         guest_count: 1,
-        notes: ''
     });
 
     // Desk state
@@ -94,7 +92,7 @@ const ServiceBooking = () => {
     const [submittingHw, setSubmittingHw] = useState(false);
     const [hwSubmitted, setHwSubmitted] = useState(null);
 
-    // Fetch food items and orders
+    // Fetch food items
     useEffect(() => {
         const fetchFoodData = async () => {
             setLoadingFood(true);
@@ -110,127 +108,136 @@ const ServiceBooking = () => {
                 setLoadingFood(false);
             }
         };
-
-        const fetchOrdersData = async () => {
-            setLoadingOrders(true);
-            try {
-                const res = await cafeteriaService.getMyOrders({ page_size: 10 });
-                const orders = res?.data || (Array.isArray(res) ? res : []);
-                setMyOrders(orders);
-            } catch (err) {
-                console.error('Error loading my orders:', err);
-                setMyOrders([]);
-            } finally {
-                setLoadingOrders(false);
-            }
-        };
-
         fetchFoodData();
+    }, []);
+
+    const fetchOrdersData = async (showLoading = true) => {
+        try {
+            if (showLoading) setLoadingOrders(true);
+            const res = await cafeteriaService.getMyOrders({ page_size: 10 });
+            const orders = res?.data || (Array.isArray(res) ? res : []);
+            setMyOrders(orders);
+        } catch (err) {
+            console.error('Error loading my orders:', err);
+            setMyOrders([]);
+        } finally {
+            if (showLoading) setLoadingOrders(false);
+        }
+    };
+
+    useEffect(() => {
         fetchOrdersData();
+        const interval = setInterval(() => fetchOrdersData(false), 30000);
+        return () => clearInterval(interval);
     }, []);
 
     // Fetch cafeteria tables
-    useEffect(() => {
-        const fetchTableData = async () => {
-            try {
-                setLoadingTables(true);
-                const [tablesResult, bookingsResult, myBookingsResult] = await Promise.allSettled([
-                    cafeteriaService.getTables({ is_active: true }),
-                    cafeteriaService.getReservations({ booking_date: new Date().toISOString().split('T')[0] }),
-                    cafeteriaService.getMyTableBookings()
-                ]);
-                if (tablesResult.status === 'fulfilled') {
-                    const tablesRes = tablesResult.value;
-                    setCafeTables(tablesRes?.data || (Array.isArray(tablesRes) ? tablesRes : []));
-                } else {
-                    console.error('Error fetching tables:', tablesResult.reason);
-                }
-                if (bookingsResult.status === 'fulfilled') {
-                    const bookingsRes = bookingsResult.value;
-                    setCafeBookings(bookingsRes?.data || (Array.isArray(bookingsRes) ? bookingsRes : []));
-                } else {
-                    console.error('Error fetching bookings:', bookingsResult.reason);
-                }
-                if (myBookingsResult.status === 'fulfilled') {
-                    const myBookingsRes = myBookingsResult.value;
-                    setMyTableReservations(myBookingsRes?.data || (Array.isArray(myBookingsRes) ? myBookingsRes : []));
-                } else {
-                    console.error('Error fetching my bookings:', myBookingsResult.reason);
-                }
-            } catch (err) {
-                console.error('Error fetching tables:', err);
-            } finally {
-                setLoadingTables(false);
+    const fetchTableData = async (showLoading = true) => {
+        try {
+            if (showLoading) setLoadingTables(true);
+            const [tablesResult, bookingsResult, myBookingsResult] = await Promise.allSettled([
+                cafeteriaService.getTables({ is_active: true }),
+                cafeteriaService.getReservations({ booking_date: new Date().toISOString().split('T')[0] }),
+                cafeteriaService.getMyTableBookings()
+            ]);
+            if (tablesResult.status === 'fulfilled') {
+                const tablesRes = tablesResult.value;
+                setCafeTables(tablesRes?.data || (Array.isArray(tablesRes) ? tablesRes : []));
             }
-        };
+            if (bookingsResult.status === 'fulfilled') {
+                const bookingsRes = bookingsResult.value;
+                setCafeBookings(bookingsRes?.data || (Array.isArray(bookingsRes) ? bookingsRes : []));
+            }
+            if (myBookingsResult.status === 'fulfilled') {
+                const myBookingsRes = myBookingsResult.value;
+                setMyTableReservations(myBookingsRes?.data || (Array.isArray(myBookingsRes) ? myBookingsRes : []));
+            }
+        } catch (err) {
+            console.error('Error fetching tables:', err);
+        } finally {
+            if (showLoading) setLoadingTables(false);
+        }
+    };
+
+    useEffect(() => {
         fetchTableData();
+        const interval = setInterval(() => fetchTableData(false), 30000);
+        return () => clearInterval(interval);
     }, []);
 
     // Fetch desks + bookings
-    useEffect(() => {
-        const fetchDesks = async () => {
-            try {
-                setLoadingDesks(true);
-                const [desksRes, bookingsRes] = await Promise.all([
-                    deskService.getDesks({ page_size: 100 }),
-                    deskService.getDeskBookings({ page_size: 100 })
-                ]);
-                setDesks(desksRes?.data || []);
+    const fetchDesks = async (showLoading = true) => {
+        try {
+            if (showLoading) setLoadingDesks(true);
+            const [desksRes, bookingsRes] = await Promise.all([
+                deskService.getDesks({ page_size: 100 }),
+                deskService.getDeskBookings({ page_size: 100 })
+            ]);
+            setDesks(desksRes?.data || []);
 
-                const today = new Date().toISOString().split('T')[0];
-                const activeBookings = (bookingsRes?.data || []).filter(b => {
-                    const status = (b.status || '').toLowerCase();
-                    return (status === 'confirmed' || status === 'checked_in') &&
-                        b.start_date <= today && b.end_date >= today;
-                });
-                setDeskBookings(activeBookings);
-            } catch (err) {
-                console.error('Error loading desks:', err);
-            } finally {
-                setLoadingDesks(false);
-            }
-        };
+            const today = new Date().toISOString().split('T')[0];
+            const activeBookings = (bookingsRes?.data || []).filter(b => {
+                const status = (b.status || '').toLowerCase();
+                return (status === 'confirmed' || status === 'checked_in') &&
+                    b.start_date <= today && b.end_date >= today;
+            });
+            setDeskBookings(activeBookings);
+        } catch (err) {
+            console.error('Error loading desks:', err);
+        } finally {
+            if (showLoading) setLoadingDesks(false);
+        }
+    };
+
+    useEffect(() => {
         fetchDesks();
+        const interval = setInterval(() => fetchDesks(false), 30000);
+        return () => clearInterval(interval);
     }, []);
 
     // Fetch parking
-    useEffect(() => {
-        const fetchParking = async () => {
-            try {
-                setLoadingParking(true);
-                const res = await parkingService.mySlot();
-                const slotData = res?.data || res;
-                // Only set mySlot if there's actually an active parking
-                if (slotData?.has_active_parking && slotData?.slot) {
-                    setMySlot(slotData.slot);
-                } else {
-                    setMySlot(null);
-                }
-            } catch (err) {
-                console.error('Error loading parking:', err);
+    const fetchParking = async (showLoading = true) => {
+        try {
+            if (showLoading) setLoadingParking(true);
+            const res = await parkingService.mySlot();
+            const slotData = res?.data || res;
+            if (slotData?.has_active_parking && slotData?.slot) {
+                setMySlot(slotData.slot);
+            } else {
                 setMySlot(null);
-            } finally {
-                setLoadingParking(false);
             }
-        };
+        } catch (err) {
+            console.error('Error loading parking:', err);
+            setMySlot(null);
+        } finally {
+            if (showLoading) setLoadingParking(false);
+        }
+    };
+
+    useEffect(() => {
         fetchParking();
+        const interval = setInterval(() => fetchParking(false), 30000);
+        return () => clearInterval(interval);
     }, []);
 
     // Fetch conference rooms
+    const fetchRooms = async (showLoading = true) => {
+        try {
+            if (showLoading) setLoadingRooms(true);
+            const res = await deskService.getRooms({ page_size: 50 });
+            setRooms(res?.data || (Array.isArray(res) ? res : []));
+        } catch (err) {
+            console.error('Error loading rooms:', err);
+            setRooms([]);
+        } finally {
+            if (showLoading) setLoadingRooms(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchRooms = async () => {
-            try {
-                setLoadingRooms(true);
-                const res = await deskService.getRooms({ page_size: 50 });
-                setRooms(res?.data || (Array.isArray(res) ? res : []));
-            } catch (err) {
-                console.error('Error loading rooms:', err);
-                setRooms([]);
-            } finally {
-                setLoadingRooms(false);
-            }
-        };
         fetchRooms();
+        const interval = setInterval(() => fetchRooms(false), 30000);
+        return () => clearInterval(interval);
     }, []);
 
     // Cart helpers
@@ -293,21 +300,21 @@ const ServiceBooking = () => {
 
     const handleBookTable = async () => {
         if (!selectedTable) return;
+        const today = new Date().toISOString().split('T')[0];
         const endTime = calculateEndTime(tableForm.start_time, tableForm.duration);
         try {
             setBookingTable(true);
             await cafeteriaService.createBooking({
                 table_id: selectedTable.id,
-                booking_date: tableForm.booking_date,
+                booking_date: today,
                 start_time: tableForm.start_time,
                 end_time: endTime,
                 guest_count: tableForm.guest_count,
-                notes: tableForm.notes.trim() || null
             });
 
             // success
             setTableBooked(selectedTable);
-            setOrderPlaced(null); // Clear any order success screen
+            setOrderPlaced(null);
             setShowTableModal(false);
             setSelectedTable(null);
 
@@ -315,7 +322,7 @@ const ServiceBooking = () => {
             try {
                 const [tablesRes, bookingsRes, myBookingsRes] = await Promise.all([
                     cafeteriaService.getTables({ is_active: true }),
-                    cafeteriaService.getReservations({ booking_date: tableForm.booking_date }),
+                    cafeteriaService.getReservations({ booking_date: today }),
                     cafeteriaService.getMyTableBookings()
                 ]);
                 setCafeTables(tablesRes?.data || (Array.isArray(tablesRes) ? tablesRes : []));
@@ -511,7 +518,7 @@ const ServiceBooking = () => {
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <h3 className="font-bold text-[#1a367c] text-sm">{item.name}</h3>
-                                                        <p className="font-extrabold text-[#1a367c] text-sm mt-0.5">${parseFloat(item.price).toFixed(2)}</p>
+                                                        <p className="font-extrabold text-[#1a367c] text-sm mt-0.5">₹{parseFloat(item.price).toFixed(2)}</p>
                                                     </div>
                                                     <div className="flex items-center gap-2 flex-shrink-0">
                                                         {cart[item.id] ? (
@@ -554,7 +561,7 @@ const ServiceBooking = () => {
                                                             <p className="text-[0.6rem] text-[#8892b0] truncate" title={order.items?.map(i => i.item_name).join(', ')}>
                                                                 {order.items?.map(i => i.item_name).join(', ') || 'No items'}
                                                             </p>
-                                                            <p className="text-[0.55rem] text-slate-400 mt-0.5">{new Date(order.created_at).toLocaleDateString()} • ${parseFloat(order.total_amount).toFixed(2)}</p>
+                                                            <p className="text-[0.55rem] text-slate-400 mt-0.5">{new Date(order.created_at).toLocaleDateString()} • ₹{parseFloat(order.total_amount).toFixed(2)}</p>
                                                         </div>
                                                     </div>
                                                     <div className={`px-3 py-1 rounded-full text-[0.55rem] font-bold tracking-widest whitespace-nowrap flex-shrink-0 ${order.status === 'completed' ? 'bg-green-50 text-green-600' : order.status === 'confirmed' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'
@@ -574,39 +581,85 @@ const ServiceBooking = () => {
                             </div>
                         ) : (
                             <div className="space-y-8">
-                                {/* Table Grid */}
+                                {/* Table Grid — Zone Grouped */}
                                 <div className="space-y-4">
                                     <h3 className="text-xs font-bold tracking-widest text-[#8892b0] mb-4">SELECT A TABLE</h3>
                                     {loadingTables ? (
                                         <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-200" /></div>
                                     ) : cafeTables.length === 0 ? (
                                         <div className="text-center py-12 text-[#8892b0] bg-slate-50 rounded-2xl"><p className="text-sm font-medium">No tables available</p></div>
-                                    ) : (
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-2 custom-scrollbar content-start">
-                                            {cafeTables.map(table => {
-                                                const booked = isTableBooked(table.id);
-                                                const isSelected = selectedTable?.id === table.id;
-                                                return (
-                                                    <button
-                                                        key={table.id}
-                                                        disabled={booked}
-                                                        onClick={() => setSelectedTable(isSelected ? null : table)}
-                                                        className={`rounded-2xl p-4 text-center cursor-pointer border transition-all flex flex-col items-center justify-center gap-2 min-h-[100px] ${booked
-                                                            ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
-                                                            : isSelected
-                                                                ? 'bg-[#1a367c] text-white shadow-lg scale-105 ring-2 ring-offset-2 ring-[#1a367c] border-transparent'
-                                                                : 'bg-white border-slate-200 text-slate-600 hover:border-[#f9b012] hover:text-[#f9b012] hover:shadow-md'
-                                                            }`}
-                                                    >
-                                                        <Coffee className={`w-5 h-5 ${booked ? 'text-slate-300' : isSelected ? 'text-white' : 'text-slate-400'}`} />
-                                                        <span className={`text-[0.7rem] font-bold ${booked ? 'text-slate-400' : isSelected ? 'text-white' : 'text-[#1a367c]'}`}>{table.table_code}</span>
-                                                        <span className={`text-[0.6rem] font-medium ${booked ? 'text-slate-300' : isSelected ? 'opacity-80' : 'opacity-70'}`}>{table.table_label}</span>
-                                                        <span className="text-[0.5rem] opacity-60">👥 Capacity: {table.capacity}</span>
-                                                    </button>
-                                                );
-                                            })}
+                                    ) : (() => {
+                                        const detectZone = (t) => {
+                                            const label = (t.table_label || '').toLowerCase();
+                                            if (label.includes('window')) return 'WINDOW';
+                                            if (label.includes('corner')) return 'CORNER';
+                                            if (label.includes('open area') || label.includes('open')) return 'OPEN';
+                                            if (label.includes('quiet')) return 'QUIET';
+                                            const type = (t.table_type || 'regular').toLowerCase();
+                                            if (type.includes('center') || type.includes('large')) return 'CENTER';
+                                            if (type.includes('round')) return 'ROUND';
+                                            if (type.includes('high')) return 'HIGH';
+                                            return 'OTHER';
+                                        };
+                                        const zoneNames = { WINDOW: 'Window Desks', CORNER: 'Corner Desks', OPEN: 'Open Area', QUIET: 'Quiet Zone', CENTER: 'Center Tables (Large)', ROUND: 'Round Tables', HIGH: 'High Top Tables', OTHER: 'Other Tables' };
+                                        const zoneOrder = ['WINDOW', 'CORNER', 'OPEN', 'QUIET', 'CENTER', 'ROUND', 'HIGH', 'OTHER'];
+                                        const zonePrefix = { WINDOW: 'A', CORNER: 'B', OPEN: 'C', QUIET: 'D', CENTER: 'E', ROUND: 'F', HIGH: 'G', OTHER: 'H' };
+                                        const zones = {};
+                                        cafeTables.forEach(t => { const z = detectZone(t); if (!zones[z]) zones[z] = []; zones[z].push(t); });
+                                        Object.keys(zones).forEach(z => zones[z].sort((a, b) => (a.table_label || '').localeCompare(b.table_label || '')));
+                                        return (
+                                            <div className="space-y-8 max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
+                                                {zoneOrder.filter(z => zones[z]).map(z => {
+                                                    const zoneTables = zones[z];
+                                                    const prefix = zonePrefix[z] || 'Z';
+                                                    const freeCount = zoneTables.filter(t => !isTableBooked(t.id)).length;
+                                                    return (
+                                                        <div key={z}>
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <span className="text-[0.7rem] font-bold text-[#8892b0]">{zoneNames[z]}</span>
+                                                                <span className="text-[0.65rem] font-extrabold text-green-600 tracking-wide">{freeCount} FREE</span>
+                                                            </div>
+                                                            <div className="flex justify-center">
+                                                                <div className="bg-[#fafbfb] rounded-[20px] border-2 border-slate-100 border-dashed px-6 py-5 inline-flex flex-wrap gap-3 justify-center">
+                                                                    {zoneTables.map((table, idx) => {
+                                                                        const booked = isTableBooked(table.id);
+                                                                        const isSelected = selectedTable?.id === table.id;
+                                                                        const shortLabel = `${prefix}${idx + 1}`;
+                                                                        return (
+                                                                            <button key={table.id} disabled={booked}
+                                                                                onClick={() => setSelectedTable(isSelected ? null : table)}
+                                                                                className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xs font-bold transition-all duration-200 border ${booked
+                                                                                    ? 'bg-slate-100 text-slate-300 cursor-not-allowed border-slate-100'
+                                                                                    : isSelected
+                                                                                        ? 'bg-[#1a367c] text-white shadow-lg scale-110 ring-2 ring-offset-2 ring-[#1a367c] border-transparent'
+                                                                                        : 'bg-white text-[#1a367c] border-slate-200 hover:border-[#1a367c] hover:shadow-md cursor-pointer'
+                                                                                    }`}>
+                                                                                {shortLabel}
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* Legend */}
+                                <div className="flex justify-center gap-8 py-3 border-t border-slate-50">
+                                    {[
+                                        { color: 'bg-white border border-slate-200', label: 'Available' },
+                                        { color: 'bg-[#1a367c]', label: 'Selected' },
+                                        { color: 'bg-slate-100', label: 'Booked' },
+                                    ].map(({ color, label }) => (
+                                        <div key={label} className="flex items-center gap-2">
+                                            <div className={`w-3.5 h-3.5 rounded-md ${color}`} />
+                                            <span className="text-[0.55rem] font-bold text-[#8892b0] uppercase tracking-wider">{label}</span>
                                         </div>
-                                    )}
+                                    ))}
                                 </div>
 
                                 {/* My Table Bookings */}
@@ -666,10 +719,10 @@ const ServiceBooking = () => {
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
                         <div className="w-16 h-16 bg-[#dcfce7] rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle className="w-8 h-8 text-[#22c55e]" /></div>
                         <h2 className="text-xl font-extrabold text-[#1a367c] mb-2">Table Reserved!</h2>
-                        <p className="text-sm text-[#8892b0] mb-8">Table <span className="text-[#22c55e] font-semibold">{tableBooked.table_label || tableBooked.table_code}</span> has been reserved.</p>
+                        <p className="text-sm text-[#8892b0] mb-8">Table <span className="text-[#22c55e] font-semibold">{tableBooked.table_label || tableBooked.table_code}</span> has been reserved for today.</p>
                         <div className="bg-slate-50 rounded-2xl p-6 mb-8 text-left">
-                            <div className="flex justify-between items-center mb-3"><span className="text-sm text-[#8892b0]">Date</span><span className="text-sm font-bold text-[#1a367c]">{tableForm.booking_date}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-sm text-[#8892b0]">Time</span><span className="text-sm font-bold text-[#1a367c]">{tableForm.start_time} - {tableForm.end_time}</span></div>
+                            <div className="flex justify-between items-center mb-3"><span className="text-sm text-[#8892b0]">Date</span><span className="text-sm font-bold text-[#1a367c]">Today</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm text-[#8892b0]">Time</span><span className="text-sm font-bold text-[#1a367c]">{tableForm.start_time} — {calculateEndTime(tableForm.start_time, tableForm.duration)}</span></div>
                         </div>
                         <button onClick={() => setTableBooked(null)} className="bg-[#1a367c] text-white px-8 py-3 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all">VIEW ALL TABLES</button>
                     </motion.div>
@@ -924,13 +977,13 @@ const ServiceBooking = () => {
                                 <div className="space-y-4 mb-6">
                                     {getCartItems().map(item => (
                                         <div key={item.id} className="flex justify-between items-start">
-                                            <div><p className="font-bold text-[#1a367c] text-sm">{item.name}</p><p className="text-xs text-[#8892b0]">{item.quantity} x ${parseFloat(item.price).toFixed(2)}</p></div>
-                                            <p className="font-bold text-[#1a367c] text-sm">${(parseFloat(item.price) * item.quantity).toFixed(2)}</p>
+                                            <div><p className="font-bold text-[#1a367c] text-sm">{item.name}</p><p className="text-xs text-[#8892b0]">{item.quantity} x ₹{parseFloat(item.price).toFixed(2)}</p></div>
+                                            <p className="font-bold text-[#1a367c] text-sm">₹{(parseFloat(item.price) * item.quantity).toFixed(2)}</p>
                                         </div>
                                     ))}
                                 </div>
                                 <div className="border-t border-slate-100 pt-4 mb-6">
-                                    <div className="flex justify-between items-center"><span className="text-sm font-semibold text-[#8892b0]">Grand Total</span><span className="text-xl font-extrabold text-[#22c55e]">${getGrandTotal().toFixed(2)}</span></div>
+                                    <div className="flex justify-between items-center"><span className="text-sm font-semibold text-[#8892b0]">Grand Total</span><span className="text-xl font-extrabold text-[#22c55e]">₹{getGrandTotal().toFixed(2)}</span></div>
                                 </div>
                                 <button onClick={handlePlaceOrder} disabled={placingOrder}
                                     className="w-full bg-[#1a367c] text-white py-4 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all flex items-center justify-center gap-2">
@@ -956,9 +1009,9 @@ const ServiceBooking = () => {
                                             <Coffee className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-extrabold text-[#1a367c] tracking-tight">RESERVE TABLE</h2>
+                                            <h2 className="text-xl font-extrabold text-[#1a367c] tracking-tight">BOOK TABLE</h2>
                                             <p className="text-[0.7rem] font-bold text-[#8892b0] uppercase tracking-widest leading-none mt-1">
-                                                {selectedTable.table_code} · {selectedTable.table_label} (Seats {selectedTable.capacity})
+                                                {selectedTable.table_code} · Seats {selectedTable.capacity}
                                             </p>
                                         </div>
                                     </div>
@@ -968,14 +1021,6 @@ const ServiceBooking = () => {
                                 </div>
 
                                 <div className="space-y-6">
-                                    {/* Date */}
-                                    <div className="space-y-2">
-                                        <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">RESERVATION DATE</label>
-                                        <input type="date" value={tableForm.booking_date} onChange={e => setTableForm(p => ({ ...p, booking_date: e.target.value }))}
-                                            min={new Date().toISOString().split('T')[0]}
-                                            className="w-full px-5 py-4 rounded-2xl border border-slate-200 text-sm text-[#1a367c] font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1a367c]/10 transition-all" />
-                                    </div>
-
                                     {/* Start Time */}
                                     <div className="space-y-2">
                                         <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">START TIME</label>
@@ -990,10 +1035,13 @@ const ServiceBooking = () => {
                                             <div className="flex items-center justify-between bg-slate-50 rounded-2xl p-2 border border-slate-200">
                                                 <button onClick={() => setTableForm(p => ({ ...p, duration: Math.max(10, p.duration - 10) }))} disabled={tableForm.duration <= 10}
                                                     className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all"><Minus className="w-3.5 h-3.5" /></button>
-                                                <div className="text-center text-sm font-extrabold text-[#1a367c]">
-                                                    {tableForm.duration < 60 ? `${tableForm.duration}m` : `${Math.floor(tableForm.duration / 60)}h${tableForm.duration % 60 ? ` ${tableForm.duration % 60}m` : ''}`}
+                                                <div className="text-center">
+                                                    <div className="text-sm font-extrabold text-[#1a367c]">
+                                                        {tableForm.duration < 60 ? `${tableForm.duration}m` : `${Math.floor(tableForm.duration / 60)}h${tableForm.duration % 60 ? ` ${tableForm.duration % 60}m` : ''}`}
+                                                    </div>
+                                                    <div className="text-[0.5rem] text-[#8892b0] font-bold">10 min — 1.5 hrs</div>
                                                 </div>
-                                                <button onClick={() => setTableForm(p => ({ ...p, duration: Math.min(180, p.duration + 10) }))} disabled={tableForm.duration >= 180}
+                                                <button onClick={() => setTableForm(p => ({ ...p, duration: Math.min(90, p.duration + 10) }))} disabled={tableForm.duration >= 90}
                                                     className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all"><Plus className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </div>
@@ -1004,19 +1052,14 @@ const ServiceBooking = () => {
                                             <div className="flex items-center justify-between bg-slate-50 rounded-2xl p-2 border border-slate-200">
                                                 <button onClick={() => setTableForm(p => ({ ...p, guest_count: Math.max(1, p.guest_count - 1) }))} disabled={tableForm.guest_count <= 1}
                                                     className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all"><Minus className="w-3.5 h-3.5" /></button>
-                                                <div className="text-center text-sm font-extrabold text-[#1a367c]">{tableForm.guest_count}</div>
+                                                <div className="text-center">
+                                                    <div className="text-sm font-extrabold text-[#1a367c]">{tableForm.guest_count}</div>
+                                                    <div className="text-[0.5rem] text-[#8892b0] font-bold">max {selectedTable.capacity}</div>
+                                                </div>
                                                 <button onClick={() => setTableForm(p => ({ ...p, guest_count: Math.min(selectedTable.capacity, p.guest_count + 1) }))} disabled={tableForm.guest_count >= selectedTable.capacity}
                                                     className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all"><Plus className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    {/* Notes */}
-                                    <div className="space-y-2">
-                                        <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">NOTES (OPTIONAL)</label>
-                                        <textarea value={tableForm.notes} onChange={e => setTableForm(p => ({ ...p, notes: e.target.value }))}
-                                            placeholder="Add special requests or occasion details..." rows={2}
-                                            className="w-full px-5 py-4 rounded-2xl border border-slate-200 text-sm text-[#1a367c] font-medium bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1a367c]/10 transition-all resize-none" />
                                     </div>
 
                                     {/* Summary */}
@@ -1026,11 +1069,10 @@ const ServiceBooking = () => {
                                                 <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
                                                     <Clock className="w-4 h-4" />
                                                 </div>
-                                                <span className="text-[0.65rem] font-bold uppercase tracking-widest">SUMMARY</span>
+                                                <span className="text-[0.65rem] font-bold uppercase tracking-widest">TODAY</span>
                                             </div>
                                             <div className="text-right text-[#1a367c]">
-                                                <div className="text-sm font-black tracking-tight">{tableForm.start_time} — {calculateEndTime(tableForm.start_time, tableForm.duration)}</div>
-                                                <div className="text-[0.6rem] font-bold text-[#8892b0] uppercase tracking-widest">{tableForm.booking_date === new Date().toISOString().split('T')[0] ? 'TODAY' : tableForm.booking_date}</div>
+                                                <div className="text-sm font-black tracking-tight">{tableForm.start_time} → {calculateEndTime(tableForm.start_time, tableForm.duration)}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -1040,11 +1082,11 @@ const ServiceBooking = () => {
                                         {bookingTable ? (
                                             <>
                                                 <Loader2 className="w-5 h-5 animate-spin" />
-                                                <span>RESERVING...</span>
+                                                <span>BOOKING...</span>
                                             </>
                                         ) : (
                                             <>
-                                                <span>CONFIRM RESERVATION</span>
+                                                <span>CONFIRM BOOKING</span>
                                                 <Check className="w-5 h-5" />
                                             </>
                                         )}

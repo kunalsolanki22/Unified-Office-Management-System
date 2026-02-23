@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../services/attendance_service.dart';
 import '../../services/holiday_service.dart';
+import '../../services/project_service.dart';
 import '../../utils/snackbar_helper.dart';
 import 'package:intl/intl.dart';
 import '../manager_profile_screen.dart';
@@ -31,10 +32,15 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
   final ScrollController _scrollController = ScrollController();
   final AttendanceService _attendanceService = AttendanceService();
   final HolidayService _holidayService = HolidayService();
+  final ProjectService _projectService = ProjectService();
 
   // Holiday state
   List<Map<String, dynamic>> _holidays = [];
   bool _isLoadingHolidays = true;
+
+  // Project state
+  List<Map<String, dynamic>> _myProjects = [];
+  bool _isLoadingProjects = true;
 
   // Attendance tracking state
   bool _isCheckedIn = false;
@@ -50,8 +56,24 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
   void initState() {
     super.initState();
     _fetchAttendanceStatus();
-    _startTimer(); // Always run timer to update duration display if checked in
+    _startTimer();
     _fetchHolidays();
+    _fetchMyProjects();
+  }
+
+  Future<void> _fetchMyProjects() async {
+    final result = await _projectService.getMyProjects();
+    if (result['success'] && mounted) {
+      final data = result['data'];
+      final owned = List<Map<String, dynamic>>.from(data['owned_projects'] ?? []);
+      final member = List<Map<String, dynamic>>.from(data['member_projects'] ?? []);
+      setState(() {
+        _myProjects = [...owned, ...member];
+        _isLoadingProjects = false;
+      });
+    } else if (mounted) {
+      setState(() => _isLoadingProjects = false);
+    }
   }
 
   @override
@@ -425,11 +447,181 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
               ],
             ),
             const SizedBox(height: 24),
-            // Removed My Activity (Team Overview) section
+            _buildMyProjectsSection(),
+            const SizedBox(height: 24),
             _buildAnnouncedHolidays(),
-            const SizedBox(height: 120), // Increased space for bottom nav
+            const SizedBox(height: 120),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMyProjectsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'MY PROJECTS',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF94A3B8),
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _isLoadingProjects
+              ? const Center(child: CircularProgressIndicator())
+              : _myProjects.isEmpty
+                  ? Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 20,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.folder_open_rounded, size: 40, color: Colors.grey[300]),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No active projects',
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Column(
+                      children: _myProjects.map((p) => _buildProjectCard(p)).toList(),
+                    ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProjectCard(Map<String, dynamic> project) {
+    final status = (project['status'] ?? '').toString();
+    final isInProgress = status == 'in_progress';
+    final statusLabel = isInProgress ? 'IN PROGRESS' : 'APPROVED';
+    final statusColor = isInProgress ? const Color(0xFF3B82F6) : const Color(0xFF22C55E);
+    final title = project['title'] ?? 'Untitled Project';
+    final code = project['project_code'] ?? '';
+    final lead = project['requested_by_name'] ?? '';
+    final duration = project['duration_days'] ?? 0;
+    final memberCount = project['member_count'] ?? 0;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.rocket_launch_rounded, color: navyColor, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      code,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: statusColor,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Icon(Icons.person_outline_rounded, size: 16, color: Colors.grey[400]),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  lead,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(Icons.group_outlined, size: 16, color: Colors.grey[400]),
+              const SizedBox(width: 4),
+              Text(
+                '$memberCount',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(width: 16),
+              Icon(Icons.schedule_rounded, size: 16, color: Colors.grey[400]),
+              const SizedBox(width: 4),
+              Text(
+                '${duration}d',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -941,7 +1133,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
               fontWeight: FontWeight.bold,
               color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.white
-                  : const Color(0xFF1A237E),
+                  : const Color(0xFF1A367C),
               letterSpacing: 0.5,
             ),
           ),
@@ -996,7 +1188,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
             color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87
         ))),
         DataCell(Text(name, style: TextStyle(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.blueAccent[100] : const Color(0xFF1A237E),
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.blueAccent[100] : const Color(0xFF1A367C),
             fontWeight: FontWeight.w500
         ))),
         DataCell(Text(day, style: TextStyle(
@@ -1033,7 +1225,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF1A1A2E),
+            color: const Color(0xFF1A367C),
           ),
         ),
         const SizedBox(height: 4),

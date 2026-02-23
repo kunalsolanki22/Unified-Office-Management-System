@@ -81,7 +81,7 @@ const InventoryTable = ({ items, onDelete, onToggleStatus, onEdit }) => {
                             <TableRow key={item.id} className="hover:bg-[#fafbfb] border-b border-slate-50 last:border-0 transition-colors">
                                 <TableCell className="font-bold text-[#1a367c] text-sm pl-6 py-4">{item.name}</TableCell>
                                 <TableCell className="text-xs font-bold text-[#8892b0] tracking-wide uppercase py-4">{item.category}</TableCell>
-                                <TableCell className="font-bold text-[#1a367c] text-sm py-4">${formatPrice(item.price)}</TableCell>
+                                <TableCell className="font-bold text-[#1a367c] text-sm py-4">₹{formatPrice(item.price)}</TableCell>
                                 <TableCell className="py-4">
                                     <Badge
                                         variant={item.status === 'Available' ? 'success' : 'warning'}

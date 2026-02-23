@@ -179,7 +179,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
                   Icons.access_time,
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white
-                      : const Color(0xFF1A237E),
+                      : const Color(0xFF1A367C),
                   size: 24,
                 ),
               ),
@@ -316,10 +316,10 @@ class _AttendanceCardState extends State<AttendanceCard> {
                   onPressed: _isSubmitted ? null : _handleSubmit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _isSubmitted 
-                        ? const Color(0xFF1A237E).withOpacity(0.5)
-                        : const Color(0xFF1A237E),
+                        ? const Color(0xFF1A367C).withOpacity(0.5)
+                        : const Color(0xFF1A367C),
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0xFF1A237E).withOpacity(0.5),
+                    disabledBackgroundColor: const Color(0xFF1A367C).withOpacity(0.5),
                     disabledForegroundColor: Colors.white70,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -369,7 +369,7 @@ class _AttendanceCardState extends State<AttendanceCard> {
                           fontSize: 14,
                           color: Theme.of(context).brightness == Brightness.dark
                               ? Colors.white
-                              : const Color(0xFF1A237E),
+                              : const Color(0xFF1A367C),
                           fontWeight: FontWeight.w500,
                         ),
                       ),

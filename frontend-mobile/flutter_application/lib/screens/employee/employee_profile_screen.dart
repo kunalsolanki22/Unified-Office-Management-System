@@ -204,7 +204,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A2E),
+            color: Color(0xFF1A367C),
           ),
         ),
         const SizedBox(height: 8),
@@ -344,7 +344,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF1A1A2E),
+                      color: Color(0xFF1A367C),
                     ),
                   ),
                 ],

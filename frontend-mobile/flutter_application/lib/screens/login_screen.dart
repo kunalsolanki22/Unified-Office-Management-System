@@ -85,13 +85,27 @@ class _LoginPageState extends State<LoginPage> {
         ),
         const SizedBox(width: 12),
         Flexible(
-          child: const Text(
-            'Unified Office Management',
+          child: RichText(
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A1A2E),
+            text: const TextSpan(
+              children: [
+                TextSpan(
+                  text: 'Unified',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                TextSpan(
+                  text: '.Office',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -137,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF4A6CF7)),
+              borderSide: const BorderSide(color: Color(0xFF1A367C)),
             ),
           ),
         ),
@@ -183,7 +197,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF4A6CF7)),
+              borderSide: const BorderSide(color: Color(0xFF1A367C)),
             ),
             suffixIcon: IconButton(
               icon: Icon(
@@ -216,7 +230,7 @@ class _LoginPageState extends State<LoginPage> {
                 _rememberMe = value ?? false;
               });
             },
-            activeColor: const Color(0xFF4A6CF7),
+            activeColor: const Color(0xFF1A367C),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),
             ),
@@ -244,7 +258,7 @@ class _LoginPageState extends State<LoginPage> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleLogin,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF4A6CF7),
+          backgroundColor: const Color(0xFF1A367C),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
@@ -290,7 +304,7 @@ class _LoginPageState extends State<LoginPage> {
           'Change Password',
           style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF4A6CF7),
+            color: Color(0xFF1A367C),
             fontWeight: FontWeight.w500,
           ),
         ),

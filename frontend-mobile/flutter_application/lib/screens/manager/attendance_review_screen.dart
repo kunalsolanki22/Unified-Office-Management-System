@@ -121,11 +121,11 @@ class _AttendanceReviewScreenState extends State<AttendanceReviewScreen> {
       appBar: AppBar(
         title: const Text(
           'Attendance Review',
-          style: TextStyle(color: Color(0xFF1A1A2E)), 
+          style: TextStyle(color: Color(0xFF1A367C)), 
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF1A1A2E)),
+        iconTheme: const IconThemeData(color: Color(0xFF1A367C)),
       ),
       backgroundColor: const Color(0xFFF5F7FA),
       body: _isLoading
@@ -181,7 +181,7 @@ class _AttendanceReviewScreenState extends State<AttendanceReviewScreen> {
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
-                                          color: Color(0xFF1A1A2E),
+                                          color: Color(0xFF1A367C),
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -243,7 +243,7 @@ class _AttendanceReviewScreenState extends State<AttendanceReviewScreen> {
                                   child: ElevatedButton(
                                     onPressed: () => _approveRequest(req['id']),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1A1A2E),
+                                      backgroundColor: const Color(0xFF1A367C),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
@@ -280,7 +280,7 @@ class _AttendanceReviewScreenState extends State<AttendanceReviewScreen> {
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A2E),
+            color: Color(0xFF1A367C),
           ),
         ),
       ],
