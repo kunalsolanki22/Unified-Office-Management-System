@@ -134,14 +134,29 @@ const ServiceBooking = () => {
         const fetchTableData = async () => {
             try {
                 setLoadingTables(true);
-                const [tablesRes, bookingsRes, myBookingsRes] = await Promise.all([
+                const [tablesResult, bookingsResult, myBookingsResult] = await Promise.allSettled([
                     cafeteriaService.getTables({ is_active: true }),
                     cafeteriaService.getReservations({ booking_date: new Date().toISOString().split('T')[0] }),
                     cafeteriaService.getMyTableBookings()
                 ]);
-                setCafeTables(tablesRes?.data || (Array.isArray(tablesRes) ? tablesRes : []));
-                setCafeBookings(bookingsRes?.data || (Array.isArray(bookingsRes) ? bookingsRes : []));
-                setMyTableReservations(myBookingsRes?.data || (Array.isArray(myBookingsRes) ? myBookingsRes : []));
+                if (tablesResult.status === 'fulfilled') {
+                    const tablesRes = tablesResult.value;
+                    setCafeTables(tablesRes?.data || (Array.isArray(tablesRes) ? tablesRes : []));
+                } else {
+                    console.error('Error fetching tables:', tablesResult.reason);
+                }
+                if (bookingsResult.status === 'fulfilled') {
+                    const bookingsRes = bookingsResult.value;
+                    setCafeBookings(bookingsRes?.data || (Array.isArray(bookingsRes) ? bookingsRes : []));
+                } else {
+                    console.error('Error fetching bookings:', bookingsResult.reason);
+                }
+                if (myBookingsResult.status === 'fulfilled') {
+                    const myBookingsRes = myBookingsResult.value;
+                    setMyTableReservations(myBookingsRes?.data || (Array.isArray(myBookingsRes) ? myBookingsRes : []));
+                } else {
+                    console.error('Error fetching my bookings:', myBookingsResult.reason);
+                }
             } catch (err) {
                 console.error('Error fetching tables:', err);
             } finally {

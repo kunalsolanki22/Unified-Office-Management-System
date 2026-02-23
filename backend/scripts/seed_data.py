@@ -28,6 +28,7 @@ from app.models.enums import (
 from app.models.leave import LeaveType
 from decimal import Decimal
 import random
+from datetime import datetime
 
 
 async def seed_users(db: AsyncSession):
@@ -229,6 +230,11 @@ async def seed_users(db: AsyncSession):
         
         if existing:
             print(f"  User already exists: {user_data['email']}")
+            # Update role and manager_type if they are incorrect (optional, but good for consistency)
+            if existing.role != user_data["role"]:
+                existing.role = user_data["role"]
+                existing.manager_type = user_data["manager_type"]
+                db.add(existing)
             created_users.append(existing)
             continue
         
@@ -258,7 +264,15 @@ async def seed_desks(db: AsyncSession, users: list):
     Seed sample desks (10 desks with auto-generated DSK-XXXX codes).
     """
     # Find desk manager
-    desk_manager = next((u for u in users if u.manager_type == ManagerType.DESK_CONFERENCE), users[0])
+    desk_manager = next((u for u in users if u.manager_type == ManagerType.DESK_CONFERENCE), None)
+    if not desk_manager:
+        # Fallback to absolute search in DB if not in provided list
+        res = await db.execute(select(User).where(User.manager_type == ManagerType.DESK_CONFERENCE))
+        desk_manager = res.scalar_one_or_none()
+    
+    if not desk_manager:
+        print("  Error: Could not find Desk Manager. Skipping desks.")
+        return
     
     # Check existing count
     result = await db.execute(select(Desk))
@@ -298,7 +312,14 @@ async def seed_conference_rooms(db: AsyncSession, users: list):
     Seed sample conference rooms (5 rooms with auto-generated CNF-XXXX codes).
     """
     # Find desk manager
-    desk_manager = next((u for u in users if u.manager_type == ManagerType.DESK_CONFERENCE), users[0])
+    desk_manager = next((u for u in users if u.manager_type == ManagerType.DESK_CONFERENCE), None)
+    if not desk_manager:
+        res = await db.execute(select(User).where(User.manager_type == ManagerType.DESK_CONFERENCE))
+        desk_manager = res.scalar_one_or_none()
+
+    if not desk_manager:
+        print("  Error: Could not find Desk Manager. Skipping conference rooms.")
+        return
     
     # Check existing count
     result = await db.execute(select(ConferenceRoom))
@@ -340,7 +361,14 @@ async def seed_parking_slots(db: AsyncSession, users: list):
     Seed sample parking slots (15 slots with auto-generated PKG-XXXX codes).
     """
     # Find parking manager
-    parking_manager = next((u for u in users if u.manager_type == ManagerType.PARKING), users[0])
+    parking_manager = next((u for u in users if u.manager_type == ManagerType.PARKING), None)
+    if not parking_manager:
+        res = await db.execute(select(User).where(User.manager_type == ManagerType.PARKING))
+        parking_manager = res.scalar_one_or_none()
+
+    if not parking_manager:
+        print("  Error: Could not find Parking Manager. Skipping parking slots.")
+        return
     
     # Check existing count
     result = await db.execute(select(ParkingSlot))
@@ -398,7 +426,14 @@ async def seed_cafeteria_tables(db: AsyncSession, users: list):
     Seed sample cafeteria tables (8 tables with auto-generated TBL-XXXX codes).
     """
     # Find cafeteria manager
-    cafeteria_manager = next((u for u in users if u.manager_type == ManagerType.CAFETERIA), users[0])
+    cafeteria_manager = next((u for u in users if u.manager_type == ManagerType.CAFETERIA), None)
+    if not cafeteria_manager:
+        res = await db.execute(select(User).where(User.manager_type == ManagerType.CAFETERIA))
+        cafeteria_manager = res.scalar_one_or_none()
+
+    if not cafeteria_manager:
+        print("  Error: Could not find Cafeteria Manager. Skipping cafeteria tables.")
+        return
     
     # Check existing count
     result = await db.execute(select(CafeteriaTable))
@@ -439,10 +474,16 @@ async def seed_cafeteria_tables(db: AsyncSession, users: list):
 async def seed_food_items(db: AsyncSession, users: list):
     """Seed sample food items."""
     # Find cafeteria manager
-    cafeteria_manager = next((u for u in users if u.manager_type == ManagerType.CAFETERIA), users[0])
+    cafeteria_manager = next((u for u in users if u.manager_type == ManagerType.CAFETERIA), None)
+    if not cafeteria_manager:
+        res = await db.execute(select(User).where(User.manager_type == ManagerType.CAFETERIA))
+        cafeteria_manager = res.scalar_one_or_none()
+
+    if not cafeteria_manager:
+        print("  Error: Could not find Cafeteria Manager. Skipping food items.")
+        return
     
     food_items = [
-<<<<<<< HEAD
         {"name": "Butter Chicken", "description": "Creamy tomato-based curry with tender chicken", "price": Decimal("180.00"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 450},
         {"name": "Paneer Tikka", "description": "Grilled cottage cheese with spices", "price": Decimal("150.00"), "category": "Starters", "tags": ["vegetarian", "high-protein"], "calories": 280},
         {"name": "Masala Dosa", "description": "Crispy rice crepe with potato filling", "price": Decimal("80.00"), "category": "South Indian", "tags": ["vegetarian", "vegan"], "calories": 320},
@@ -453,18 +494,6 @@ async def seed_food_items(db: AsyncSession, users: list):
         {"name": "Tea", "description": "Hot brewed masala chai", "price": Decimal("15.00"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 25},
         {"name": "Veg Sandwich", "description": "Fresh vegetable grilled sandwich", "price": Decimal("60.00"), "category": "Snacks", "tags": ["vegetarian", "healthy"], "calories": 250},
         {"name": "Samosa", "description": "Crispy fried pastry with potato filling", "price": Decimal("20.00"), "category": "Snacks", "tags": ["vegetarian", "spicy"], "calories": 150},
-=======
-        {"name": "Butter Chicken", "description": "Creamy tomato-based curry with tender chicken", "price": Decimal("12.99"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 450},
-        {"name": "Paneer Tikka", "description": "Grilled cottage cheese with spices", "price": Decimal("9.99"), "category": "Starters", "tags": ["vegetarian", "high-protein"], "calories": 280},
-        {"name": "Masala Dosa", "description": "Crispy rice crepe with potato filling", "price": Decimal("7.99"), "category": "South Indian", "tags": ["vegetarian", "vegan"], "calories": 320},
-        {"name": "Chicken Biryani", "description": "Aromatic basmati rice with spiced chicken", "price": Decimal("14.99"), "category": "Main Course", "tags": ["non-veg", "spicy"], "calories": 520},
-        {"name": "Dal Makhani", "description": "Creamy black lentils slow-cooked", "price": Decimal("8.99"), "category": "Main Course", "tags": ["vegetarian"], "calories": 350},
-        {"name": "Mango Lassi", "description": "Sweet mango yogurt drink", "price": Decimal("3.99"), "category": "Beverages", "tags": ["vegetarian", "sweet"], "calories": 180},
-        {"name": "Coffee", "description": "Fresh brewed hot coffee", "price": Decimal("2.49"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 5},
-        {"name": "Tea", "description": "Hot brewed masala chai", "price": Decimal("1.99"), "category": "Beverages", "tags": ["vegetarian", "vegan"], "calories": 25},
-        {"name": "Veg Sandwich", "description": "Fresh vegetable grilled sandwich", "price": Decimal("4.99"), "category": "Snacks", "tags": ["vegetarian", "healthy"], "calories": 250},
-        {"name": "Samosa", "description": "Crispy fried pastry with potato filling", "price": Decimal("2.99"), "category": "Snacks", "tags": ["vegetarian", "spicy"], "calories": 150},
->>>>>>> origin/final-integration-Aakanksha/Aditya
     ]
     
     for item_data in food_items:
@@ -497,7 +526,14 @@ async def seed_food_items(db: AsyncSession, users: list):
 async def seed_it_assets(db: AsyncSession, users: list):
     """Seed sample IT assets."""
     # Find IT manager
-    it_manager = next((u for u in users if u.manager_type == ManagerType.IT_SUPPORT), users[0])
+    it_manager = next((u for u in users if u.manager_type == ManagerType.IT_SUPPORT), None)
+    if not it_manager:
+        res = await db.execute(select(User).where(User.manager_type == ManagerType.IT_SUPPORT))
+        it_manager = res.scalar_one_or_none()
+
+    if not it_manager:
+        print("  Error: Could not find IT Manager. Skipping IT assets.")
+        return
     
     assets = [
         {"asset_code": "IT-LAP-001", "name": "Dell Latitude 5520", "asset_type": AssetType.LAPTOP, "serial_number": "DELL-LAP-001", "model": "Latitude 5520", "vendor": "Dell"},
@@ -640,20 +676,19 @@ async def seed_leave_types(db: AsyncSession):
     await db.commit()
 
 
-<<<<<<< HEAD
-=======
-
-# ... imports ...
-from datetime import datetime, timedelta
-from app.models.enums import OrderStatus
-# ...
-
 async def seed_food_orders(db: AsyncSession, users: list):
-# ... rest of function
     """Seed sample food orders for today."""
+    from app.models.enums import OrderStatus
     # Find cafeteria manager
-    cafeteria_manager = next((u for u in users if u.manager_type == ManagerType.CAFETERIA), users[0])
+    cafeteria_manager = next((u for u in users if u.manager_type == ManagerType.CAFETERIA), None)
+    if not cafeteria_manager:
+        res = await db.execute(select(User).where(User.manager_type == ManagerType.CAFETERIA))
+        cafeteria_manager = res.scalar_one_or_none()
     
+    if not cafeteria_manager:
+        print("  No cafeteria manager found. Skipping food orders.")
+        return
+
     # Get food items
     result = await db.execute(select(FoodItem))
     food_items = result.scalars().all()
@@ -662,10 +697,6 @@ async def seed_food_orders(db: AsyncSession, users: list):
         print("  No food items found. Skipping order seeding.")
         return
 
-    # Check existing count
-    # Simplified check to avoid duplicate seeding logic complexity for now
-    # We will just add a few if total is low
-    
     orders_data = [
         {"user_index": 10, "items": [0, 2], "status": OrderStatus.PENDING}, # Employee 1
         {"user_index": 11, "items": [1], "status": OrderStatus.DELIVERED}, # Employee 2
@@ -676,7 +707,6 @@ async def seed_food_orders(db: AsyncSession, users: list):
     
     count = 0
     for order_info in orders_data:
-        # Use employees from the users list (indices 10-14 are employees in seed_users)
         if order_info["user_index"] >= len(users):
             continue
             
@@ -726,62 +756,6 @@ async def seed_food_orders(db: AsyncSession, users: list):
     print(f"  Created {count} sample food orders for today.")
     await db.commit()
 
-async def seed_bookings(db: AsyncSession, users: list):
-    """Seed sample desk and cafeteria bookings for today."""
-    from app.models.booking import Booking
-    from app.models.enums import BookingType, BookingStatus
-    
-    # Get desks and tables
-    result = await db.execute(select(Desk))
-    desks = result.scalars().all()
-    
-    result = await db.execute(select(CafeteriaTable))
-    tables = result.scalars().all()
-    
-    today = datetime.now().date()
-    
-    # Seed Desk Bookings
-    if desks and len(users) > 10:
-        bookings_data = [
-            {"user_index": 10, "resource": desks[0], "type": BookingType.DESK},
-            {"user_index": 11, "resource": desks[1], "type": BookingType.DESK},
-            {"user_index": 12, "resource": desks[2], "type": BookingType.DESK},
-        ]
-        
-        for data in bookings_data:
-            user = users[data["user_index"]]
-            resource = data["resource"]
-            
-            booking = Booking(
-                booking_type=data["type"],
-                status=BookingStatus.CONFIRMED,
-                user_code=user.user_code,
-                booking_date=today,
-                start_time=datetime.strptime("09:00", "%H:%M").time(),
-                end_time=datetime.strptime("18:00", "%H:%M").time(),
-                resource_id=resource.id,  # Polymorphic association might differ, assuming resource_id field exists or similar
-                # Adapting to likely Booking model structure:
-                # If Booking model uses generic foreign key or specific fields (desk_id, table_id)
-                # Checking hypothetical model structure... assuming generic specific fields based on context
-                desk_id=resource.id if data["type"] == BookingType.DESK else None,
-                cafeteria_table_id=resource.id if data["type"] == BookingType.CAFETERIA_TABLE else None,
-                
-                check_in_time=datetime.now() if data["user_index"] == 10 else None, # One checked in
-                is_active=True,
-                created_by_code=user.user_code
-            )
-            # Handle specific field naming if needed, assuming flexible or standard
-            # We need to be careful about the Booking model fields. 
-            # Since I cannot see Booking model, I will assume it has specific FKs usually.
-            # actually I should check Booking model first, but for now I will rely on standard patterns
-            # Or better, I'll skip this if I'm unsure, but I need reservations on dashboard.
-            # Let's try to infer or just add it.
-            
-            # Wait, I don't see Booking imported in the file start. I added it inside function.
-            # I need to know the fields.
-            pass # Placeholder logic above, I will check model first.
-
->>>>>>> origin/final-integration-Aakanksha/Aditya
 async def main():
     """Main seed function."""
     print("\n" + "=" * 60)
@@ -815,18 +789,11 @@ async def main():
             print("\n8. Creating leave types...")
             await seed_leave_types(db)
             
-<<<<<<< HEAD
-            print("\n" + "=" * 60)
-            print("  SEED DATA COMPLETED SUCCESSFULLY!")
-=======
-            print("\n9. Creating sample orders and bookings...")
+            print("\n9. Creating sample food orders...")
             await seed_food_orders(db, users)
-            # await seed_bookings(db, users) # Commented out until model verified
-            
+
             print("\n" + "=" * 60)
             print("  SEED DATA COMPLETED SUCCESSFULLY!")
-# ... rest of file ...
->>>>>>> origin/final-integration-Aakanksha/Aditya
             print("=" * 60)
             print("\n" + "-" * 60)
             print("  DEFAULT CREDENTIALS")

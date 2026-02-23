@@ -349,7 +349,7 @@ class CafeteriaService:
         if table_id:
             conditions.append(CafeteriaTableBooking.table_id == table_id)
         if user_code:
-            conditions.append(CafeteriaTableBooSking.user_code == user_code)
+            conditions.append(CafeteriaTableBooking.user_code == user_code)
         if booking_date:
             conditions.append(CafeteriaTableBooking.booking_date == booking_date)
         if status:

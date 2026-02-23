@@ -13,7 +13,7 @@ async def inspect():
         users = result.scalars().all()
         print("--- USERS ---")
         for u in users:
-            print(f"ID: {u.id}, Name: {u.full_name}, Email: {u.email}, Role: {u.role}, UserCode: {u.user_code}")
+            print(f"ID: {u.id}, Name: {u.full_name}, Email: {u.email}, Role: {u.role}, ManagerType: {u.manager_type}, UserCode: {u.user_code}")
 
         # Get pending attendance for Super Admin (User Code 1001)
         # We manually query what the service would query: status=PENDING and approver_code='1001'
