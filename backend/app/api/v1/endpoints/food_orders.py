@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional, List
+from typing import Optional, List, Union
 from uuid import UUID
 
 from ....core.database import get_db
@@ -277,7 +277,7 @@ async def update_food_item(
 async def get_my_orders(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status: Optional[OrderStatus] = None,
+    status: Optional[Union[OrderStatus, str]] = Query(None),
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -285,7 +285,7 @@ async def get_my_orders(
     food_service = FoodService(db)
     orders, total = await food_service.list_orders(
         user_code=current_user.user_code,
-        status=status,
+        status_filter=status,
         page=page,
         page_size=page_size
     )
@@ -326,7 +326,7 @@ async def list_food_orders(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     user_code: Optional[str] = None,
-    status: Optional[OrderStatus] = None,
+    status: Optional[Union[OrderStatus, str]] = Query(None),
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -345,7 +345,7 @@ async def list_food_orders(
     food_service = FoodService(db)
     orders, total = await food_service.list_orders(
         user_code=user_code,
-        status=status,
+        status_filter=status,
         page=page,
         page_size=page_size
     )

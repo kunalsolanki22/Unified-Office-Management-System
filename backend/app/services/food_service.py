@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 from uuid import UUID
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -370,7 +370,7 @@ class FoodService:
     async def list_orders(
         self,
         user_code: Optional[str] = None,
-        status: Optional[OrderStatus] = None,
+        status_filter: Optional[Union[OrderStatus, List[OrderStatus], str]] = None,
         page: int = 1,
         page_size: int = 20
     ) -> Tuple[List[FoodOrder], int]:
@@ -382,9 +382,20 @@ class FoodService:
             query = query.where(FoodOrder.user_code == user_code)
             count_query = count_query.where(FoodOrder.user_code == user_code)
         
-        if status:
-            query = query.where(FoodOrder.status == status)
-            count_query = count_query.where(FoodOrder.status == status)
+        if status_filter:
+            if isinstance(status_filter, str) and "," in status_filter:
+                # Handle comma-separated string
+                statuses = [s.strip() for s in status_filter.split(",")]
+                query = query.where(FoodOrder.status.in_(statuses))
+                count_query = count_query.where(FoodOrder.status.in_(statuses))
+            elif isinstance(status_filter, list):
+                # Handle list of statuses
+                query = query.where(FoodOrder.status.in_(status_filter))
+                count_query = count_query.where(FoodOrder.status.in_(status_filter))
+            else:
+                # Handle single status
+                query = query.where(FoodOrder.status == status_filter)
+                count_query = count_query.where(FoodOrder.status == status_filter)
         
         total_result = await self.db.execute(count_query)
         total = total_result.scalar()

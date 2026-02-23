@@ -64,8 +64,16 @@ export const cafeteriaService = {
         const res = await api.post('/cafeteria/tables', data);
         return res.data;
     },
+    getMyTableBookings: async () => {
+        const res = await api.get('/cafeteria/bookings/my');
+        return res.data;
+    },
     getUserDirectory: async (params = {}) => {
         const res = await api.get('/users/directory', { params });
+        return res.data;
+    },
+    getMyOrders: async (params = {}) => {
+        const res = await api.get('/food-orders/my-orders', { params });
         return res.data;
     }
 };

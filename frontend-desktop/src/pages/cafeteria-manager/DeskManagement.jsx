@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, List, Plus, X, Users, Tag, Info, Clock, Minus, PartyPopper, Coffee } from 'lucide-react';
+import { Check, List, Plus, X, Users, Tag, Info, Clock, Minus, PartyPopper, Coffee, Loader2 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Toast from '../../components/ui/Toast';
 import { cafeteriaService } from '../../services/cafeteriaService';
@@ -97,23 +97,23 @@ const AddTableModal = ({ onClose, onSuccess }) => {
 };
 
 // ─── Booking Modal ──────────────────────────────────────────────────────────
-const BookingModal = ({ table, onClose, onSuccess }) => {
-    const [bookingType, setBookingType] = useState('regular'); // regular | occasion
+const BookingModal = ({ table, bookings = [], onClose, onSuccess }) => {
+    const [bookingDate, setBookingDate] = useState('');
     const [startTime, setStartTime] = useState('');
-    const [duration, setDuration] = useState(30); // default 30 min
-    const [occasionDate, setOccasionDate] = useState('');
-    const [occasionType, setOccasionType] = useState('');
-    const [description, setDescription] = useState('');
+    const [duration, setDuration] = useState(30);
     const [guestCount, setGuestCount] = useState(1);
+    const [notes, setNotes] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
-    const minDuration = bookingType === 'regular' ? 10 : 30;
-    const maxDuration = bookingType === 'regular' ? 90 : 180;
+    const minDuration = 10;
+    const maxDuration = 180;
     const step = 10;
 
-    // Set default start time to current time rounded to next 10 min
     useEffect(() => {
+        const today = new Date().toISOString().split('T')[0];
+        setBookingDate(today);
+
         const now = new Date();
         const mins = Math.ceil(now.getMinutes() / 10) * 10;
         now.setMinutes(mins, 0, 0);
@@ -121,11 +121,6 @@ const BookingModal = ({ table, onClose, onSuccess }) => {
         const h = String(now.getHours()).padStart(2, '0');
         const m = String(now.getMinutes()).padStart(2, '0');
         setStartTime(`${h}:${m}`);
-
-        // Default occasion date to tomorrow
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        setOccasionDate(tomorrow.toISOString().split('T')[0]);
     }, []);
 
     const calculateEndTime = () => {
@@ -146,20 +141,33 @@ const BookingModal = ({ table, onClose, onSuccess }) => {
 
     const handleSubmit = async () => {
         if (!startTime) { setError('Please select a start time'); return; }
+        if (!bookingDate) { setError('Please select a date'); return; }
         const endTime = calculateEndTime();
         if (!endTime) { setError('Invalid time selection'); return; }
 
-        if (bookingType === 'occasion' && !occasionType.trim()) {
-            setError('Please enter the occasion type');
+        if (table.status?.toLowerCase() === 'inactive') {
+            setError('This table is currently inactive');
             return;
         }
 
-        const today = new Date().toISOString().split('T')[0];
-        const bookingDate = bookingType === 'regular' ? today : occasionDate;
+        const now = new Date();
+        const start = new Date(`${bookingDate}T${startTime}`);
+        if (start < now) {
+            setError('Booking time must be in the future');
+            return;
+        }
 
-        const notes = bookingType === 'occasion'
-            ? `🎉 ${occasionType}${description ? ` — ${description}` : ''}`
-            : null;
+        const hasOverlap = bookings.some(b => {
+            if (b.table_id !== table.id) return false;
+            if (b.booking_date !== bookingDate) return false;
+            if (b.status?.toLowerCase() !== 'confirmed') return false;
+            return (startTime < b.end_time && endTime > b.start_time);
+        });
+
+        if (hasOverlap) {
+            setError('This table is already booked for the selected time slot');
+            return;
+        }
 
         try {
             setSaving(true);
@@ -169,7 +177,7 @@ const BookingModal = ({ table, onClose, onSuccess }) => {
                 start_time: startTime,
                 end_time: endTime,
                 guest_count: guestCount,
-                notes: notes,
+                notes: notes.trim() || null,
             });
             onSuccess(table.table_code);
         } catch (err) {
@@ -180,165 +188,137 @@ const BookingModal = ({ table, onClose, onSuccess }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative bg-white rounded-[24px] shadow-2xl p-8 w-full max-w-md z-10">
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative bg-white rounded-[32px] shadow-2xl p-8 w-full max-w-md z-10 overflow-hidden">
 
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h2 className="text-lg font-bold text-[#1a367c]">BOOK TABLE</h2>
-                        <p className="text-xs text-[#8892b0] mt-0.5">{table.table_code} — {table.table_label} (Seats {table.capacity})</p>
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center text-[#1a367c] shadow-sm">
+                            <Coffee className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-extrabold text-[#1a367c] tracking-tight">RESERVE TABLE</h2>
+                            <p className="text-[0.7rem] font-bold text-[#8892b0] uppercase tracking-widest leading-none mt-1">
+                                {table.table_code} · {table.table_label} (Seats {table.capacity})
+                            </p>
+                        </div>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
-                        <X className="w-4 h-4 text-slate-400" />
+                    <button onClick={onClose} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-[#8892b0] hover:bg-slate-100 transition-colors">
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Booking Type Toggle */}
-                <div className="flex gap-2 mb-6">
-                    <button onClick={() => { setBookingType('regular'); setDuration(30); }}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold tracking-wide transition-all ${bookingType === 'regular'
-                            ? 'bg-[#1a367c] text-white shadow-lg shadow-blue-900/20'
-                            : 'bg-slate-50 text-[#8892b0] border border-slate-200 hover:bg-slate-100'}`}>
-                        <Coffee className="w-4 h-4" /> REGULAR
-                    </button>
-                    <button onClick={() => { setBookingType('occasion'); setDuration(60); }}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold tracking-wide transition-all ${bookingType === 'occasion'
-                            ? 'bg-[#f9b012] text-white shadow-lg shadow-amber-500/20'
-                            : 'bg-slate-50 text-[#8892b0] border border-slate-200 hover:bg-slate-100'}`}>
-                        <PartyPopper className="w-4 h-4" /> OCCASION
-                    </button>
-                </div>
-
-                <div className="space-y-5">
-                    {/* Occasion Fields */}
-                    {bookingType === 'occasion' && (
-                        <>
-                            <div>
-                                <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block mb-1.5">Date</label>
-                                <input type="date" value={occasionDate} onChange={e => setOccasionDate(e.target.value)}
-                                    min={new Date().toISOString().split('T')[0]}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-[#1a367c] focus:outline-none focus:ring-2 focus:ring-[#f9b012]/20 focus:border-[#f9b012] transition-all" />
-                            </div>
-                            <div>
-                                <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block mb-1.5">Occasion Type *</label>
-                                <select value={occasionType} onChange={e => setOccasionType(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-[#1a367c] focus:outline-none focus:ring-2 focus:ring-[#f9b012]/20 focus:border-[#f9b012] transition-all bg-white">
-                                    <option value="">Select occasion...</option>
-                                    <option value="Birthday Party">🎂 Birthday Party</option>
-                                    <option value="Employee Farewell">👋 Employee Farewell</option>
-                                    <option value="Team Celebration">🎊 Team Celebration</option>
-                                    <option value="Welcome Party">🎉 Welcome Party</option>
-                                    <option value="Other">📌 Other</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block mb-1.5">Description (optional)</label>
-                                <input type="text" value={description} onChange={e => setDescription(e.target.value)}
-                                    placeholder="e.g. Rahul's birthday celebration"
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-[#1a367c] focus:outline-none focus:ring-2 focus:ring-[#f9b012]/20 focus:border-[#f9b012] transition-all" />
-                            </div>
-                        </>
-                    )}
+                <div className="space-y-6">
+                    {/* Date Picker */}
+                    <div className="space-y-2">
+                        <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">RESERVATION DATE</label>
+                        <input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
+                            className="w-full px-5 py-4 rounded-2xl border border-slate-200 text-sm text-[#1a367c] font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1a367c]/10 transition-all" />
+                    </div>
 
                     {/* Start Time */}
-                    <div>
-                        <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block mb-1.5">
-                            Start Time
-                        </label>
+                    <div className="space-y-2">
+                        <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">START TIME</label>
                         <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-[#1a367c] focus:outline-none focus:ring-2 focus:ring-[#1a367c]/20 focus:border-[#1a367c] transition-all" />
+                            className="w-full px-5 py-4 rounded-2xl border border-slate-200 text-sm text-[#1a367c] font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1a367c]/10 transition-all" />
                     </div>
 
-                    {/* Duration Picker */}
-                    <div>
-                        <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block mb-2">
-                            Duration
-                        </label>
-                        <div className="flex items-center justify-between bg-slate-50 rounded-xl p-2 border border-slate-200">
-                            <button onClick={() => setDuration(d => Math.max(minDuration, d - step))}
-                                disabled={duration <= minDuration}
-                                className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm">
-                                <Minus className="w-4 h-4" />
-                            </button>
-                            <div className="text-center">
-                                <div className="text-xl font-extrabold text-[#1a367c]">{formatDuration(duration)}</div>
-                                <div className="text-[0.55rem] text-[#8892b0] font-bold uppercase tracking-wider">
-                                    {bookingType === 'regular' ? '10 min — 1.5 hrs' : '30 min — 3 hrs'}
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Duration Picker */}
+                        <div className="space-y-2">
+                            <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">DURATION</label>
+                            <div className="flex items-center justify-between bg-slate-50 rounded-2xl p-2 border border-slate-200">
+                                <button onClick={() => setDuration(d => Math.max(minDuration, d - step))}
+                                    disabled={duration <= minDuration}
+                                    className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all">
+                                    <Minus className="w-3.5 h-3.5" />
+                                </button>
+                                <div className="text-center">
+                                    <div className="text-sm font-extrabold text-[#1a367c]">{formatDuration(duration)}</div>
                                 </div>
+                                <button onClick={() => setDuration(d => Math.min(maxDuration, d + step))}
+                                    disabled={duration >= maxDuration}
+                                    className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all">
+                                    <Plus className="w-3.5 h-3.5" />
+                                </button>
                             </div>
-                            <button onClick={() => setDuration(d => Math.min(maxDuration, d + step))}
-                                disabled={duration >= maxDuration}
-                                className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm">
-                                <Plus className="w-4 h-4" />
-                            </button>
+                        </div>
+
+                        {/* Guest Count */}
+                        <div className="space-y-2">
+                            <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">GUESTS</label>
+                            <div className="flex items-center justify-between bg-slate-50 rounded-2xl p-2 border border-slate-200">
+                                <button onClick={() => setGuestCount(g => Math.max(1, g - 1))}
+                                    disabled={guestCount <= 1}
+                                    className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all">
+                                    <Minus className="w-3.5 h-3.5" />
+                                </button>
+                                <div className="text-center">
+                                    <div className="text-sm font-extrabold text-[#1a367c]">{guestCount}</div>
+                                </div>
+                                <button onClick={() => setGuestCount(g => Math.min(table.capacity, g + 1))}
+                                    disabled={guestCount >= table.capacity}
+                                    className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all">
+                                    <Plus className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Guest Count */}
-                    <div>
-                        <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block mb-2">
-                            Guests
-                        </label>
-                        <div className="flex items-center justify-between bg-slate-50 rounded-xl p-2 border border-slate-200">
-                            <button onClick={() => setGuestCount(g => Math.max(1, g - 1))}
-                                disabled={guestCount <= 1}
-                                className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm">
-                                <Minus className="w-4 h-4" />
-                            </button>
-                            <div className="text-center">
-                                <div className="text-xl font-extrabold text-[#1a367c]">{guestCount}</div>
-                                <div className="text-[0.55rem] text-[#8892b0] font-bold uppercase tracking-wider">
-                                    {bookingType === 'regular' ? 'max 12' : 'no limit'}
-                                </div>
-                            </div>
-                            <button onClick={() => setGuestCount(g => {
-                                if (bookingType === 'regular') return Math.min(12, g + 1);
-                                return g + 1;
-                            })}
-                                disabled={bookingType === 'regular' && guestCount >= 12}
-                                className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm">
-                                <Plus className="w-4 h-4" />
-                            </button>
-                        </div>
+                    {/* Notes Field */}
+                    <div className="space-y-2">
+                        <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">NOTES (OPTIONAL)</label>
+                        <textarea value={notes} onChange={e => setNotes(e.target.value)}
+                            placeholder="Add special requests or occasion details..." rows={2}
+                            className="w-full px-5 py-4 rounded-2xl border border-slate-200 text-sm text-[#1a367c] font-medium bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1a367c]/10 transition-all resize-none" />
                     </div>
 
                     {/* Summary */}
-                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                        <div className="text-[0.6rem] font-bold text-[#8892b0] uppercase tracking-wider mb-2">Booking Summary</div>
-                        <div className="flex justify-between text-sm text-[#1a367c]">
-                            <span className="font-medium">
-                                {bookingType === 'regular' ? 'Today' : occasionDate}
-                            </span>
-                            <span className="font-bold flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {startTime} → {calculateEndTime()} ({formatDuration(duration)})
-                            </span>
+                    <div className="bg-[#1a367c]/5 rounded-[24px] p-5 border border-[#1a367c]/10">
+                        <div className="flex items-center justify-between text-[#1a367c]">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                                    <Clock className="w-4 h-4" />
+                                </div>
+                                <span className="text-[0.65rem] font-bold uppercase tracking-widest">SUMMARY</span>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-sm font-black tracking-tight">
+                                    {startTime} — {calculateEndTime()}
+                                </div>
+                                <div className="text-[0.6rem] font-bold text-[#8892b0] uppercase tracking-widest">
+                                    {bookingDate === new Date().toISOString().split('T')[0] ? 'TODAY' : bookingDate}
+                                </div>
+                            </div>
                         </div>
-                        {bookingType === 'occasion' && occasionType && (
-                            <div className="text-xs text-[#f9b012] font-bold mt-1">🎉 {occasionType}</div>
+                    </div>
+
+                    {error && (
+                        <div className="flex items-center gap-2 text-red-500 bg-red-50 p-3 rounded-xl border border-red-100">
+                            <Info className="w-4 h-4 flex-shrink-0" />
+                            <p className="text-[0.7rem] font-bold">{error}</p>
+                        </div>
+                    )}
+
+                    <button onClick={handleSubmit} disabled={saving}
+                        className="w-full py-5 rounded-[24px] bg-[#1a367c] text-white text-[0.75rem] font-black tracking-[0.2em] hover:bg-[#142a5e] transition-all shadow-xl shadow-blue-900/20 active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-3 uppercase">
+                        {saving ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <span>RESERVING...</span>
+                            </>
+                        ) : (
+                            <>
+                                <span>CONFIRM RESERVATION</span>
+                                <Check className="w-5 h-5" />
+                            </>
                         )}
-                    </div>
-
-                    {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
-
-                    {/* Actions */}
-                    <div className="flex gap-3 pt-2">
-                        <button onClick={onClose}
-                            className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-400 hover:bg-slate-50 transition-all">
-                            Cancel
-                        </button>
-                        <button onClick={handleSubmit} disabled={saving}
-                            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all shadow-lg disabled:opacity-60 ${bookingType === 'occasion'
-                                ? 'bg-[#f9b012] text-white hover:bg-[#e5a010] shadow-amber-500/20'
-                                : 'bg-[#1a367c] text-white hover:bg-[#142a5e] shadow-blue-900/20'}`}>
-                            {saving ? 'Booking...' : 'Confirm Booking'}
-                        </button>
-                    </div>
+                    </button>
                 </div>
             </motion.div>
         </div>
@@ -365,8 +345,12 @@ const DeskManagement = () => {
                 cafeteriaService.getTables({ page: 1, page_size: 100 }),
                 cafeteriaService.getReservations({ page: 1, page_size: 100 })
             ]);
-            const tablesData = Array.isArray(tablesRes) ? tablesRes : (tablesRes.data || []);
-            const allBookings = Array.isArray(bookingsRes) ? bookingsRes : (bookingsRes.data || []);
+
+            // Robust data mapping
+            const tablesData = tablesRes?.data?.tables || tablesRes?.data || (Array.isArray(tablesRes) ? tablesRes : []);
+            const allBookings = bookingsRes?.data?.bookings || bookingsRes?.data || (Array.isArray(bookingsRes) ? bookingsRes : []);
+
+            console.log('Cafeteria Manager Fetch - Tables:', tablesData.length, 'Bookings:', allBookings.length);
 
             // Only show active bookings (not expired)
             const now = new Date();
@@ -374,11 +358,14 @@ const DeskManagement = () => {
             const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
             const activeBookings = allBookings.filter(b => {
-                if (b.status?.toLowerCase() !== 'confirmed') return false;
+                const status = (b.status || '').toLowerCase();
+                if (status !== 'confirmed' && status !== 'pending') return false;
                 if (b.booking_date < today) return false;
                 if (b.booking_date === today && b.end_time && b.end_time <= currentTime) return false;
                 return true;
             });
+
+            console.log('Refined Active Bookings:', activeBookings.length);
 
             setTables(tablesData);
             setBookings(activeBookings);
@@ -452,7 +439,7 @@ const DeskManagement = () => {
 
             <AnimatePresence>
                 {showBookingModal && selectedTable && (
-                    <BookingModal table={selectedTable} onClose={() => { setShowBookingModal(false); setSelectedTable(null); }} onSuccess={handleBookingSuccess} />
+                    <BookingModal table={selectedTable} bookings={bookings} onClose={() => { setShowBookingModal(false); setSelectedTable(null); }} onSuccess={handleBookingSuccess} />
                 )}
             </AnimatePresence>
 

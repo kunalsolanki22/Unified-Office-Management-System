@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Loader2, Plus, Minus, X, CheckCircle, Car, Monitor, Users, HardDrive, Coffee, Clock, Send } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Minus, X, Check, CheckCircle, Car, Monitor, Users, HardDrive, Coffee, Clock, Send } from 'lucide-react';
 import { cafeteriaService } from '../../services/cafeteriaService';
 import { deskService } from '../../services/deskService';
 import { parkingService } from '../../services/parkingService';
@@ -9,22 +9,51 @@ import { hardwareService } from '../../services/hardwareService';
 
 const FOOD_ICONS = ['🍛', '🥗', '🥪', '🍔', '🍝', '🍲', '🥘', '🍜', '🌮', '🥙'];
 
-const TAB_MAP = { food: 'food', desk: 'desk', parking: 'parking', conference: 'conference', hardware: 'hardware' };
+const TAB_MAP = { cafeteria: 'cafeteria', desk: 'desk', parking: 'parking', conference: 'conference', hardware: 'hardware' };
 
 const ServiceBooking = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const tabParam = searchParams.get('tab') || 'food';
-    const initialTab = TAB_MAP[tabParam] || 'food';
+    const tabParam = searchParams.get('tab') || 'cafeteria';
+    const initialTab = TAB_MAP[tabParam] || 'cafeteria';
     const [activeTab, setActiveTab] = useState(initialTab);
+    const [cafeSubTab, setCafeSubTab] = useState('menu'); // 'menu' | 'tables'
 
-    // Food state
+    // Cafeteria state
     const [foodItems, setFoodItems] = useState([]);
     const [loadingFood, setLoadingFood] = useState(true);
     const [cart, setCart] = useState({});
     const [showSummary, setShowSummary] = useState(false);
     const [orderPlaced, setOrderPlaced] = useState(null);
     const [placingOrder, setPlacingOrder] = useState(false);
+    const [myOrders, setMyOrders] = useState([]);
+    const [loadingOrders, setLoadingOrders] = useState(true);
+
+    // Table state
+    const [cafeTables, setCafeTables] = useState([]);
+    const [cafeBookings, setCafeBookings] = useState([]);
+    const [loadingTables, setLoadingTables] = useState(true);
+    const [selectedTable, setSelectedTable] = useState(null);
+    const [bookingTable, setBookingTable] = useState(false);
+    const [tableBooked, setTableBooked] = useState(null);
+    const [myTableReservations, setMyTableReservations] = useState([]);
+    // Helper for dynamic slots
+    const getNextSlot = (offsetMinutes = 0) => {
+        const now = new Date();
+        now.setMinutes(Math.ceil((now.getMinutes() + offsetMinutes) / 10) * 10, 0, 0);
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        return `${h}:${m}`;
+    };
+
+    const [showTableModal, setShowTableModal] = useState(false);
+    const [tableForm, setTableForm] = useState({
+        booking_date: new Date().toISOString().split('T')[0],
+        start_time: getNextSlot(10),
+        duration: 30,
+        guest_count: 1,
+        notes: ''
+    });
 
     // Desk state
     const [desks, setDesks] = useState([]);
@@ -47,8 +76,8 @@ const ServiceBooking = () => {
     const [showRoomModal, setShowRoomModal] = useState(false);
     const [roomBookingForm, setRoomBookingForm] = useState({
         booking_date: new Date().toISOString().split('T')[0],
-        start_time: '09:00',
-        end_time: '10:00',
+        start_time: getNextSlot(10),
+        end_time: getNextSlot(70),
         title: '',
         attendees_count: 1,
     });
@@ -65,13 +94,15 @@ const ServiceBooking = () => {
     const [submittingHw, setSubmittingHw] = useState(false);
     const [hwSubmitted, setHwSubmitted] = useState(null);
 
-    // Fetch food items
+    // Fetch food items and orders
     useEffect(() => {
-        const fetchFood = async () => {
+        const fetchFoodData = async () => {
+            setLoadingFood(true);
             try {
-                setLoadingFood(true);
                 const res = await cafeteriaService.getFoodItems({ is_available: true, page_size: 50 });
-                setFoodItems(res?.data || []);
+                // Robust data mapping: handle both { data: [...] } and directly [...]
+                const items = res?.data || (Array.isArray(res) ? res : []);
+                setFoodItems(items);
             } catch (err) {
                 console.error('Error loading food items:', err);
                 setFoodItems([]);
@@ -79,7 +110,45 @@ const ServiceBooking = () => {
                 setLoadingFood(false);
             }
         };
-        fetchFood();
+
+        const fetchOrdersData = async () => {
+            setLoadingOrders(true);
+            try {
+                const res = await cafeteriaService.getMyOrders({ page_size: 10 });
+                const orders = res?.data || (Array.isArray(res) ? res : []);
+                setMyOrders(orders);
+            } catch (err) {
+                console.error('Error loading my orders:', err);
+                setMyOrders([]);
+            } finally {
+                setLoadingOrders(false);
+            }
+        };
+
+        fetchFoodData();
+        fetchOrdersData();
+    }, []);
+
+    // Fetch cafeteria tables
+    useEffect(() => {
+        const fetchTableData = async () => {
+            try {
+                setLoadingTables(true);
+                const [tablesRes, bookingsRes, myBookingsRes] = await Promise.all([
+                    cafeteriaService.getTables({ is_active: true }),
+                    cafeteriaService.getReservations({ booking_date: new Date().toISOString().split('T')[0] }),
+                    cafeteriaService.getMyTableBookings()
+                ]);
+                setCafeTables(tablesRes?.data || (Array.isArray(tablesRes) ? tablesRes : []));
+                setCafeBookings(bookingsRes?.data || (Array.isArray(bookingsRes) ? bookingsRes : []));
+                setMyTableReservations(myBookingsRes?.data || (Array.isArray(myBookingsRes) ? myBookingsRes : []));
+            } catch (err) {
+                console.error('Error fetching tables:', err);
+            } finally {
+                setLoadingTables(false);
+            }
+        };
+        fetchTableData();
     }, []);
 
     // Fetch desks + bookings
@@ -138,7 +207,7 @@ const ServiceBooking = () => {
             try {
                 setLoadingRooms(true);
                 const res = await deskService.getRooms({ page_size: 50 });
-                setRooms(res?.data || []);
+                setRooms(res?.data || (Array.isArray(res) ? res : []));
             } catch (err) {
                 console.error('Error loading rooms:', err);
                 setRooms([]);
@@ -172,14 +241,79 @@ const ServiceBooking = () => {
             setPlacingOrder(true);
             const items = Object.entries(cart).map(([food_item_id, quantity]) => ({ food_item_id, quantity }));
             const res = await cafeteriaService.createFoodOrder({ items });
+
+            // If we're here, order was created successfully
             setOrderPlaced(res?.data || res);
+            setTableBooked(null); // Clear any table booking screen
             setCart({});
             setShowSummary(false);
+
+            // Refresh orders in background
+            try {
+                const ordersRes = await cafeteriaService.getOrders({ page_size: 10, status: 'pending,preparing,ready' });
+                setMyOrders(ordersRes?.data || (Array.isArray(ordersRes) ? ordersRes : []));
+            } catch (refreshErr) {
+                console.warn('Background refresh for orders failed:', refreshErr);
+            }
         } catch (err) {
             console.error('Error placing order:', err);
             alert(err?.response?.data?.detail || 'Failed to place order. Please try again.');
         } finally {
             setPlacingOrder(false);
+        }
+    };
+
+    // Table helpers
+    const bookedTableIds = new Set(cafeBookings.map(b => b.table_id));
+    const isTableBooked = (tableId) => bookedTableIds.has(tableId);
+
+    const calculateEndTime = (startTime, duration) => {
+        if (!startTime) return '';
+        const [h, m] = startTime.split(':').map(Number);
+        const totalMin = h * 60 + m + duration;
+        const endH = Math.floor(totalMin / 60) % 24;
+        const endM = totalMin % 60;
+        return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+    };
+
+    const handleBookTable = async () => {
+        if (!selectedTable) return;
+        const endTime = calculateEndTime(tableForm.start_time, tableForm.duration);
+        try {
+            setBookingTable(true);
+            await cafeteriaService.createBooking({
+                table_id: selectedTable.id,
+                booking_date: tableForm.booking_date,
+                start_time: tableForm.start_time,
+                end_time: endTime,
+                guest_count: tableForm.guest_count,
+                notes: tableForm.notes.trim() || null
+            });
+
+            // success
+            setTableBooked(selectedTable);
+            setOrderPlaced(null); // Clear any order success screen
+            setShowTableModal(false);
+            setSelectedTable(null);
+
+            // Refresh tables and bookings in background
+            try {
+                const [tablesRes, bookingsRes, myBookingsRes] = await Promise.all([
+                    cafeteriaService.getTables({ is_active: true }),
+                    cafeteriaService.getReservations({ booking_date: tableForm.booking_date }),
+                    cafeteriaService.getMyTableBookings()
+                ]);
+                setCafeTables(tablesRes?.data || (Array.isArray(tablesRes) ? tablesRes : []));
+                setCafeBookings(bookingsRes?.data || (Array.isArray(bookingsRes) ? bookingsRes : []));
+                setMyTableReservations(myBookingsRes?.data || (Array.isArray(myBookingsRes) ? myBookingsRes : []));
+            } catch (refreshErr) {
+                console.warn('Background refresh for tables failed:', refreshErr);
+            }
+        } catch (err) {
+            console.error('Error booking table:', err);
+            alert(err?.response?.data?.detail || 'Failed to book table. Please try again.');
+        } finally {
+            setBookingTable(false);
         }
     };
 
@@ -312,7 +446,7 @@ const ServiceBooking = () => {
                                 : 'text-[#8892b0] hover:text-[#1a367c]'
                                 }`}
                         >
-                            {tabKey === 'food' && <Coffee className="w-4 h-4" />}
+                            {tabKey === 'cafeteria' && <Coffee className="w-4 h-4" />}
                             {tabKey === 'desk' && <Monitor className="w-4 h-4" />}
                             {tabKey === 'parking' && <Car className="w-4 h-4" />}
                             {tabKey === 'conference' && <Users className="w-4 h-4" />}
@@ -322,63 +456,207 @@ const ServiceBooking = () => {
                     ))}
                 </div>
 
-                {/* ===== ORDER FOOD TAB ===== */}
-                {activeTab === 'food' && !orderPlaced && (
-                    <div>
-                        {loadingFood ? (
-                            <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
-                        ) : foodItems.length === 0 ? (
-                            <div className="text-center py-16 text-[#8892b0]"><p className="text-sm font-medium">No food items available right now</p></div>
-                        ) : (
-                            <div className="space-y-4 mb-8">
-                                {foodItems.map((item, idx) => (
-                                    <motion.div key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
-                                        className="flex items-center gap-4 bg-slate-50 rounded-2xl p-5 hover:shadow-md transition-all">
-                                        <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center text-2xl shadow-sm flex-shrink-0">
-                                            {FOOD_ICONS[idx % FOOD_ICONS.length]}
+                {/* Cafeteria Sub-tabs */}
+                {activeTab === 'cafeteria' && (
+                    <div className="flex gap-4 mb-6">
+                        {['menu', 'tables'].map(sub => (
+                            <button
+                                key={sub}
+                                onClick={() => setCafeSubTab(sub)}
+                                className={`px-4 py-2 rounded-full text-[0.65rem] font-bold tracking-widest transition-all ${cafeSubTab === sub
+                                    ? 'bg-[#f9b012] text-white shadow-md'
+                                    : 'bg-slate-50 text-[#8892b0] hover:bg-slate-100'
+                                    }`}
+                            >
+                                {sub.toUpperCase()}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* ===== CAFETERIA TAB ===== */}
+                {activeTab === 'cafeteria' && !orderPlaced && !tableBooked && (
+                    <div className="space-y-8">
+                        {cafeSubTab === 'menu' ? (
+                            <div className="space-y-8">
+                                {/* Menu Items */}
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-bold tracking-widest text-[#8892b0] mb-4">AVAILABLE MENU</h3>
+                                    {loadingFood ? (
+                                        <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-200" /></div>
+                                    ) : foodItems.length === 0 ? (
+                                        <div className="text-center py-12 text-[#8892b0] bg-slate-50 rounded-2xl"><p className="text-sm font-medium">No food items available</p></div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {foodItems.map((item, idx) => (
+                                                <motion.div key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
+                                                    className="flex items-center gap-4 bg-slate-50 rounded-2xl p-4 hover:shadow-md transition-all">
+                                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-xl shadow-sm flex-shrink-0">
+                                                        {FOOD_ICONS[idx % FOOD_ICONS.length]}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="font-bold text-[#1a367c] text-sm">{item.name}</h3>
+                                                        <p className="font-extrabold text-[#1a367c] text-sm mt-0.5">${parseFloat(item.price).toFixed(2)}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                                        {cart[item.id] ? (
+                                                            <div className="flex items-center gap-2 bg-white rounded-lg p-1 border border-slate-100">
+                                                                <button onClick={() => removeFromCart(item.id)} className="w-6 h-6 flex items-center justify-center hover:bg-red-50 rounded-md transition-colors text-red-500">
+                                                                    <Minus className="w-3 h-3" />
+                                                                </button>
+                                                                <span className="text-sm font-bold text-[#1a367c] w-4 text-center">{cart[item.id]}</span>
+                                                                <button onClick={() => addToCart(item.id)} className="w-6 h-6 flex items-center justify-center hover:bg-green-50 rounded-md transition-colors text-green-500">
+                                                                    <Plus className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button onClick={() => addToCart(item.id)} className="bg-[#1a367c] text-white px-4 py-2 rounded-lg text-[0.6rem] font-bold tracking-wider hover:bg-[#2c4a96] transition-colors">ADD</button>
+                                                        )}
+                                                    </div>
+                                                </motion.div>
+                                            ))}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-bold text-[#1a367c] text-sm">{item.name}</h3>
-                                            <p className="text-[0.65rem] text-[#22c55e] font-semibold tracking-wider uppercase">{item.category_name || item.tags?.[0] || 'AVAILABLE'}</p>
-                                            <p className="font-extrabold text-[#1a367c] text-base mt-1">${parseFloat(item.price).toFixed(2)}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2 flex-shrink-0">
-                                            {cart[item.id] ? (
-                                                <div className="flex items-center gap-2">
-                                                    <button onClick={() => removeFromCart(item.id)} className="w-7 h-7 bg-white border border-slate-200 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors">
-                                                        <Minus className="w-3 h-3 text-[#1a367c]" />
-                                                    </button>
-                                                    <span className="text-sm font-bold text-[#1a367c] w-5 text-center">{cart[item.id]}</span>
-                                                    <button onClick={() => addToCart(item.id)} className="w-7 h-7 bg-[#1a367c] rounded-lg flex items-center justify-center hover:bg-[#2c4a96] transition-colors">
-                                                        <Plus className="w-3 h-3 text-white" />
-                                                    </button>
+                                    )}
+                                </div>
+
+                                {/* My Recent Orders */}
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-bold tracking-widest text-[#8892b0] mb-4">MY RECENT ORDERS</h3>
+                                    {loadingOrders ? (
+                                        <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-slate-200" /></div>
+                                    ) : myOrders.length === 0 ? (
+                                        <div className="text-center py-8 text-[#8892b0] border border-dashed border-slate-200 rounded-2xl"><p className="text-[0.65rem] font-medium italic">No recent orders found</p></div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {myOrders.slice(0, 3).map((order) => (
+                                                <div key={order.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                                                    <div className="flex items-center gap-3 overflow-hidden">
+                                                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-[#1a367c] flex-shrink-0">
+                                                            <Clock className="w-5 h-5" />
+                                                        </div>
+                                                        <div className="overflow-hidden">
+                                                            <p className="text-[0.7rem] font-bold text-[#1a367c]">Order #{order.order_number}</p>
+                                                            <p className="text-[0.6rem] text-[#8892b0] truncate" title={order.items?.map(i => i.item_name).join(', ')}>
+                                                                {order.items?.map(i => i.item_name).join(', ') || 'No items'}
+                                                            </p>
+                                                            <p className="text-[0.55rem] text-slate-400 mt-0.5">{new Date(order.created_at).toLocaleDateString()} • ${parseFloat(order.total_amount).toFixed(2)}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`px-3 py-1 rounded-full text-[0.55rem] font-bold tracking-widest whitespace-nowrap flex-shrink-0 ${order.status === 'completed' ? 'bg-green-50 text-green-600' : order.status === 'confirmed' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'
+                                                        }`}>
+                                                        {order.status.toUpperCase()}
+                                                    </div>
                                                 </div>
-                                            ) : (
-                                                <button onClick={() => addToCart(item.id)} className="bg-[#1a367c] text-white px-5 py-2 rounded-lg text-[0.65rem] font-bold tracking-wider hover:bg-[#2c4a96] transition-colors">ADD</button>
-                                            )}
+                                            ))}
                                         </div>
-                                    </motion.div>
-                                ))}
+                                    )}
+                                </div>
+
+                                <button onClick={() => cartCount > 0 && setShowSummary(true)} disabled={cartCount === 0}
+                                    className={`w-full py-4 rounded-2xl text-xs font-bold tracking-widest transition-all ${cartCount > 0 ? 'bg-[#1a367c] text-white hover:bg-[#2c4a96] shadow-lg' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                                    CONFIRM ORDER ({cartCount} {cartCount === 1 ? 'ITEM' : 'ITEMS'})
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-8">
+                                {/* Table Grid */}
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-bold tracking-widest text-[#8892b0] mb-4">SELECT A TABLE</h3>
+                                    {loadingTables ? (
+                                        <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-200" /></div>
+                                    ) : cafeTables.length === 0 ? (
+                                        <div className="text-center py-12 text-[#8892b0] bg-slate-50 rounded-2xl"><p className="text-sm font-medium">No tables available</p></div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-2 custom-scrollbar content-start">
+                                            {cafeTables.map(table => {
+                                                const booked = isTableBooked(table.id);
+                                                const isSelected = selectedTable?.id === table.id;
+                                                return (
+                                                    <button
+                                                        key={table.id}
+                                                        disabled={booked}
+                                                        onClick={() => setSelectedTable(isSelected ? null : table)}
+                                                        className={`rounded-2xl p-4 text-center cursor-pointer border transition-all flex flex-col items-center justify-center gap-2 min-h-[100px] ${booked
+                                                            ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                                                            : isSelected
+                                                                ? 'bg-[#1a367c] text-white shadow-lg scale-105 ring-2 ring-offset-2 ring-[#1a367c] border-transparent'
+                                                                : 'bg-white border-slate-200 text-slate-600 hover:border-[#f9b012] hover:text-[#f9b012] hover:shadow-md'
+                                                            }`}
+                                                    >
+                                                        <Coffee className={`w-5 h-5 ${booked ? 'text-slate-300' : isSelected ? 'text-white' : 'text-slate-400'}`} />
+                                                        <span className={`text-[0.7rem] font-bold ${booked ? 'text-slate-400' : isSelected ? 'text-white' : 'text-[#1a367c]'}`}>{table.table_code}</span>
+                                                        <span className={`text-[0.6rem] font-medium ${booked ? 'text-slate-300' : isSelected ? 'opacity-80' : 'opacity-70'}`}>{table.table_label}</span>
+                                                        <span className="text-[0.5rem] opacity-60">👥 Capacity: {table.capacity}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* My Table Bookings */}
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-bold tracking-widest text-[#8892b0] mb-4">MY TABLE RESERVATIONS</h3>
+                                    {loadingTables ? (
+                                        <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-slate-200" /></div>
+                                    ) : myTableReservations.length === 0 ? (
+                                        <div className="text-center py-8 text-[#8892b0] border border-dashed border-slate-200 rounded-2xl"><p className="text-[0.65rem] font-medium italic">No table reservations found</p></div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {myTableReservations.slice(0, 2).map((booking) => (
+                                                <div key={booking.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-[#1a367c]">
+                                                            <Monitor className="w-5 h-5" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[0.7rem] font-bold text-[#1a367c]">{booking.table_label || booking.table_code}</p>
+                                                            <p className="text-[0.6rem] text-[#8892b0]">{booking.booking_date} • {booking.start_time} - {booking.end_time}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="px-3 py-1 rounded-full bg-green-50 text-green-600 text-[0.55rem] font-bold tracking-widest">
+                                                        {booking.status.toUpperCase()}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button onClick={() => selectedTable && setShowTableModal(true)} disabled={!selectedTable || bookingTable}
+                                    className={`w-full py-4 rounded-2xl text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-2 ${selectedTable ? 'bg-[#1a367c] text-white hover:bg-[#2c4a96] shadow-lg' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                                    {bookingTable && <Loader2 className="w-4 h-4 animate-spin" />}BOOK TABLE
+                                </button>
                             </div>
                         )}
-                        <button onClick={() => cartCount > 0 && setShowSummary(true)} disabled={cartCount === 0}
-                            className={`w-full py-4 rounded-2xl text-xs font-bold tracking-widest transition-all ${cartCount > 0 ? 'bg-[#1a367c] text-white hover:bg-[#2c4a96] shadow-lg' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                            CONFIRM ORDER ({cartCount} {cartCount === 1 ? 'ITEM' : 'ITEMS'})
-                        </button>
                     </div>
                 )}
 
                 {/* ===== ORDER PLACED SCREEN ===== */}
-                {activeTab === 'food' && orderPlaced && (
+                {activeTab === 'cafeteria' && orderPlaced && (
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
                         <div className="w-16 h-16 bg-[#dcfce7] rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle className="w-8 h-8 text-[#22c55e]" /></div>
                         <h2 className="text-xl font-extrabold text-[#1a367c] mb-2">Order Placed!</h2>
                         <p className="text-sm text-[#8892b0] mb-8">Your food is being prepared. Order <span className="text-[#22c55e] font-semibold">#{orderPlaced.order_number || 'ORD-' + Math.floor(Math.random() * 9999)}</span></p>
                         <div className="bg-slate-50 rounded-2xl p-6 mb-8">
-                            <div className="flex justify-between items-center mb-3"><span className="text-sm font-semibold text-[#22c55e]">Estimated Time</span><span className="text-sm font-bold text-[#1a367c]">15 Mins</span></div>
-                            <div className="flex justify-between items-center"><span className="text-sm font-semibold text-[#22c55e]">Pickup Spot</span><span className="text-sm font-bold text-[#1a367c]">Counter 3</span></div>
+                            <div className="flex justify-between items-center mb-3"><span className="text-sm font-semibold text-[#22c55e]">Order Number</span><span className="text-sm font-bold text-[#1a367c]">#{orderPlaced.order_number || 'PENDING'}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm font-semibold text-[#22c55e]">Status</span><span className="text-sm font-bold text-[#1a367c]">PREPARING</span></div>
                         </div>
-                        <button onClick={() => { setOrderPlaced(null); setCart({}); }} className="bg-[#1a367c] text-white px-8 py-3 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all">ORDER MORE</button>
+                        <button onClick={() => { setOrderPlaced(null); setCart({}); }} className="bg-[#1a367c] text-white px-8 py-3 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all">DONE</button>
+                    </motion.div>
+                )}
+
+                {/* ===== TABLE BOOKED SCREEN ===== */}
+                {activeTab === 'cafeteria' && tableBooked && (
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
+                        <div className="w-16 h-16 bg-[#dcfce7] rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle className="w-8 h-8 text-[#22c55e]" /></div>
+                        <h2 className="text-xl font-extrabold text-[#1a367c] mb-2">Table Reserved!</h2>
+                        <p className="text-sm text-[#8892b0] mb-8">Table <span className="text-[#22c55e] font-semibold">{tableBooked.table_label || tableBooked.table_code}</span> has been reserved.</p>
+                        <div className="bg-slate-50 rounded-2xl p-6 mb-8 text-left">
+                            <div className="flex justify-between items-center mb-3"><span className="text-sm text-[#8892b0]">Date</span><span className="text-sm font-bold text-[#1a367c]">{tableForm.booking_date}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm text-[#8892b0]">Time</span><span className="text-sm font-bold text-[#1a367c]">{tableForm.start_time} - {tableForm.end_time}</span></div>
+                        </div>
+                        <button onClick={() => setTableBooked(null)} className="bg-[#1a367c] text-white px-8 py-3 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all">VIEW ALL TABLES</button>
                     </motion.div>
                 )}
 
@@ -405,10 +683,10 @@ const ServiceBooking = () => {
                                                     disabled={booked}
                                                     onClick={() => setSelectedDesk(isSelected ? null : desk)}
                                                     className={`rounded-2xl p-4 text-center cursor-pointer border transition-all flex flex-col items-center justify-center gap-2 min-h-[110px] ${booked
-                                                            ? 'bg-[#1a367c] border-[#1a367c] text-white shadow-lg shadow-[#1a367c]/20 cursor-not-allowed'
-                                                            : isSelected
-                                                                ? 'bg-[#1a367c] text-white shadow-lg scale-105 ring-2 ring-offset-2 ring-[#1a367c] border-transparent'
-                                                                : 'bg-white border-slate-200 text-slate-600 hover:border-[#f9b012] hover:text-[#f9b012] hover:shadow-md'
+                                                        ? 'bg-[#1a367c] border-[#1a367c] text-white shadow-lg shadow-[#1a367c]/20 cursor-not-allowed'
+                                                        : isSelected
+                                                            ? 'bg-[#1a367c] text-white shadow-lg scale-105 ring-2 ring-offset-2 ring-[#1a367c] border-transparent'
+                                                            : 'bg-white border-slate-200 text-slate-600 hover:border-[#f9b012] hover:text-[#f9b012] hover:shadow-md'
                                                         }`}
                                                 >
                                                     <Monitor className={`w-5 h-5 ${booked ? 'text-[#f9b012]' : isSelected ? 'text-white' : 'text-slate-400'}`} />
@@ -643,6 +921,120 @@ const ServiceBooking = () => {
                                     className="w-full bg-[#1a367c] text-white py-4 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all flex items-center justify-center gap-2">
                                     {placingOrder && <Loader2 className="w-4 h-4 animate-spin" />}CHECKOUT & PAY
                                 </button>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* ===== CAFETERIA TABLE BOOKING MODAL ===== */}
+                <AnimatePresence>
+                    {showTableModal && selectedTable && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowTableModal(false)}>
+                            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                onClick={e => e.stopPropagation()} className="relative bg-white rounded-[32px] shadow-2xl p-8 w-full max-w-md z-10 overflow-hidden">
+
+                                {/* Header */}
+                                <div className="flex items-center justify-between mb-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center text-[#1a367c] shadow-sm">
+                                            <Coffee className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-extrabold text-[#1a367c] tracking-tight">RESERVE TABLE</h2>
+                                            <p className="text-[0.7rem] font-bold text-[#8892b0] uppercase tracking-widest leading-none mt-1">
+                                                {selectedTable.table_code} · {selectedTable.table_label} (Seats {selectedTable.capacity})
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setShowTableModal(false)} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-[#8892b0] hover:bg-slate-100 transition-colors">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {/* Date */}
+                                    <div className="space-y-2">
+                                        <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">RESERVATION DATE</label>
+                                        <input type="date" value={tableForm.booking_date} onChange={e => setTableForm(p => ({ ...p, booking_date: e.target.value }))}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            className="w-full px-5 py-4 rounded-2xl border border-slate-200 text-sm text-[#1a367c] font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1a367c]/10 transition-all" />
+                                    </div>
+
+                                    {/* Start Time */}
+                                    <div className="space-y-2">
+                                        <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">START TIME</label>
+                                        <input type="time" value={tableForm.start_time} onChange={e => setTableForm(p => ({ ...p, start_time: e.target.value }))}
+                                            className="w-full px-5 py-4 rounded-2xl border border-slate-200 text-sm text-[#1a367c] font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1a367c]/10 transition-all" />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* Duration */}
+                                        <div className="space-y-2">
+                                            <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">DURATION</label>
+                                            <div className="flex items-center justify-between bg-slate-50 rounded-2xl p-2 border border-slate-200">
+                                                <button onClick={() => setTableForm(p => ({ ...p, duration: Math.max(10, p.duration - 10) }))} disabled={tableForm.duration <= 10}
+                                                    className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all"><Minus className="w-3.5 h-3.5" /></button>
+                                                <div className="text-center text-sm font-extrabold text-[#1a367c]">
+                                                    {tableForm.duration < 60 ? `${tableForm.duration}m` : `${Math.floor(tableForm.duration / 60)}h${tableForm.duration % 60 ? ` ${tableForm.duration % 60}m` : ''}`}
+                                                </div>
+                                                <button onClick={() => setTableForm(p => ({ ...p, duration: Math.min(180, p.duration + 10) }))} disabled={tableForm.duration >= 180}
+                                                    className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all"><Plus className="w-3.5 h-3.5" /></button>
+                                            </div>
+                                        </div>
+
+                                        {/* Guests */}
+                                        <div className="space-y-2">
+                                            <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">GUESTS</label>
+                                            <div className="flex items-center justify-between bg-slate-50 rounded-2xl p-2 border border-slate-200">
+                                                <button onClick={() => setTableForm(p => ({ ...p, guest_count: Math.max(1, p.guest_count - 1) }))} disabled={tableForm.guest_count <= 1}
+                                                    className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all"><Minus className="w-3.5 h-3.5" /></button>
+                                                <div className="text-center text-sm font-extrabold text-[#1a367c]">{tableForm.guest_count}</div>
+                                                <button onClick={() => setTableForm(p => ({ ...p, guest_count: Math.min(selectedTable.capacity, p.guest_count + 1) }))} disabled={tableForm.guest_count >= selectedTable.capacity}
+                                                    className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1a367c] hover:bg-slate-100 disabled:opacity-30 shadow-sm transition-all"><Plus className="w-3.5 h-3.5" /></button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Notes */}
+                                    <div className="space-y-2">
+                                        <label className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider block ml-1">NOTES (OPTIONAL)</label>
+                                        <textarea value={tableForm.notes} onChange={e => setTableForm(p => ({ ...p, notes: e.target.value }))}
+                                            placeholder="Add special requests or occasion details..." rows={2}
+                                            className="w-full px-5 py-4 rounded-2xl border border-slate-200 text-sm text-[#1a367c] font-medium bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1a367c]/10 transition-all resize-none" />
+                                    </div>
+
+                                    {/* Summary */}
+                                    <div className="bg-[#1a367c]/5 rounded-[24px] p-5 border border-[#1a367c]/10">
+                                        <div className="flex items-center justify-between text-[#1a367c]">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                                                    <Clock className="w-4 h-4" />
+                                                </div>
+                                                <span className="text-[0.65rem] font-bold uppercase tracking-widest">SUMMARY</span>
+                                            </div>
+                                            <div className="text-right text-[#1a367c]">
+                                                <div className="text-sm font-black tracking-tight">{tableForm.start_time} — {calculateEndTime(tableForm.start_time, tableForm.duration)}</div>
+                                                <div className="text-[0.6rem] font-bold text-[#8892b0] uppercase tracking-widest">{tableForm.booking_date === new Date().toISOString().split('T')[0] ? 'TODAY' : tableForm.booking_date}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button onClick={handleBookTable} disabled={bookingTable}
+                                        className="w-full py-5 rounded-[24px] bg-[#1a367c] text-white text-[0.75rem] font-black tracking-[0.2em] hover:bg-[#142a5e] transition-all shadow-xl shadow-blue-900/20 active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-3 uppercase">
+                                        {bookingTable ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                <span>RESERVING...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>CONFIRM RESERVATION</span>
+                                                <Check className="w-5 h-5" />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </motion.div>
                         </motion.div>
                     )}

@@ -123,22 +123,59 @@ const DeskBooking = () => {
     };
 
     const handleAllocate = async () => {
-        if (!bookingDates.start_date || !bookingDates.end_date || !bookingDates.start_time || !bookingDates.end_time) {
+        const { start_date, end_date, start_time, end_time } = bookingDates;
+
+        if (!start_date || !end_date || !start_time || !end_time) {
             toast.error('Please select dates and times');
             return;
         }
-        if (bookingDates.start_time >= bookingDates.end_time && bookingDates.start_date === bookingDates.end_date) {
+
+        // 1. Maintenance Check
+        if (selectedDesk.status?.toLowerCase() === 'maintenance') {
+            toast.error('This desk is currently under maintenance');
+            return;
+        }
+
+        const now = new Date();
+        const start = new Date(`${start_date}T${start_time}`);
+        const end = new Date(`${end_date}T${end_time}`);
+
+        // 2. Future Date Check
+        if (start < now) {
+            toast.error('Start time must be in the future');
+            return;
+        }
+
+        // 3. Duration Check
+        if (start >= end) {
             toast.error('End time must be after start time');
             return;
         }
+
+        // 4. Overlap Check (Local)
+        const hasOverlap = bookings.some(b => {
+            if (b.desk_id !== selectedDesk.id) return false;
+            if (b.status.toLowerCase() !== 'pending' && b.status.toLowerCase() !== 'confirmed') return false;
+
+            const bStart = new Date(`${b.start_date}T${b.start_time}`);
+            const bEnd = new Date(`${b.end_date}T${b.end_time}`);
+
+            return (start < bEnd && end > bStart);
+        });
+
+        if (hasOverlap) {
+            toast.error('This desk is already booked for the selected time slot');
+            return;
+        }
+
         try {
             setSubmitting(true);
             await deskService.createDeskBooking({
                 desk_id: selectedDesk.id,
-                start_date: bookingDates.start_date,
-                end_date: bookingDates.end_date,
-                start_time: bookingDates.start_time,
-                end_time: bookingDates.end_time,
+                start_date,
+                end_date,
+                start_time,
+                end_time,
             });
             toast.success(`Desk ${selectedDesk.desk_code} booked successfully!`);
             setIsModalOpen(false);
@@ -535,10 +572,9 @@ const DeskBooking = () => {
                                             </div>
                                             <div className="flex justify-between items-center py-2">
                                                 <span className="text-[0.65rem] font-bold text-[#8892b0] uppercase tracking-wider">Status</span>
-                                                <span className={`px-3 py-1 rounded-full text-[0.65rem] font-bold ${
-                                                    editingBooking.status.toLowerCase() === 'pending' ? 'bg-amber-50 text-amber-600' :
-                                                    editingBooking.status.toLowerCase() === 'confirmed' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
-                                                }`}>{editingBooking.status.toUpperCase()}</span>
+                                                <span className={`px-3 py-1 rounded-full text-[0.65rem] font-bold ${editingBooking.status.toLowerCase() === 'pending' ? 'bg-amber-50 text-amber-600' :
+                                                        editingBooking.status.toLowerCase() === 'confirmed' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
+                                                    }`}>{editingBooking.status.toUpperCase()}</span>
                                             </div>
                                             {editingBooking.notes && (
                                                 <div className="pt-2">
@@ -656,8 +692,7 @@ const DeskBooking = () => {
                                     <button onClick={() => setShowRejectModal(false)}
                                         className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">Cancel</button>
                                     <button onClick={handleRejectSubmit} disabled={!rejectionReason.trim() || submitting}
-                                        className={`flex-1 py-3 rounded-xl font-bold text-sm shadow-lg transition-all ${
-                                            !rejectionReason.trim() || submitting ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' : 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/20'}`}>
+                                        className={`flex-1 py-3 rounded-xl font-bold text-sm shadow-lg transition-all ${!rejectionReason.trim() || submitting ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' : 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/20'}`}>
                                         {submitting ? 'Rejecting...' : 'Confirm Rejection'}
                                     </button>
                                 </div>
