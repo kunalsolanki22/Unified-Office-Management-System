@@ -14,11 +14,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-<<<<<<< HEAD
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-=======
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
->>>>>>> origin/final-integration-Aakanksha/Aditya
       interval: 5s
       timeout: 5s
       retries: 5
@@ -50,8 +46,4 @@ services:
       sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 volumes:
-<<<<<<< HEAD
   postgres_data:
-=======
-  postgres_data:
->>>>>>> origin/final-integration-Aakanksha/Aditya
