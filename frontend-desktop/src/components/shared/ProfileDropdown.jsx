@@ -100,10 +100,10 @@ const ProfileDropdown = () => {
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute right-0 top-full mt-4 w-72 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
+                <div className="absolute right-0 top-full mt-4 w-72 bg-white dark:bg-[#0f172a] rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50">
                     {/* Header Section */}
-                    <div className="bg-[#2a4382] p-4 flex items-center gap-4 text-white">
-                        <div className="w-12 h-12 bg-white text-[#1a367c] rounded-full flex items-center justify-center font-bold text-xl shrink-0">
+                    <div className="bg-[#2a4382] dark:bg-gradient-to-br dark:from-slate-300 dark:to-slate-600 p-4 flex items-center gap-4 text-white">
+                        <div className="w-12 h-12 bg-white dark:bg-[#0f172a] text-[#1a367c] dark:text-white rounded-full flex items-center justify-center font-bold text-xl shrink-0">
                             {initial}
                         </div>
                         <div className="min-w-0">
@@ -116,12 +116,12 @@ const ProfileDropdown = () => {
                     <div className="p-4 space-y-4">
                         <div>
                             <div className="text-[0.65rem] font-bold text-[#8ba3c7] uppercase tracking-wider mb-1">Number</div>
-                            <div className="text-sm font-medium text-slate-800">{phone}</div>
+                            <div className="text-sm font-medium text-slate-800 dark:text-white">{phone}</div>
                         </div>
 
                         <div>
                             <div className="text-[0.65rem] font-bold text-[#8ba3c7] uppercase tracking-wider mb-1">Email</div>
-                            <div className="text-sm font-medium text-slate-800 break-all">{email}</div>
+                            <div className="text-sm font-medium text-slate-800 dark:text-white break-all">{email}</div>
                         </div>
 
                         <div>
@@ -138,13 +138,13 @@ const ProfileDropdown = () => {
                                     </button>
                                 </div>
                             ) : (
-                                <div className="bg-[#f8f9fc] p-3 rounded-lg border border-slate-100 mt-2 space-y-3">
+                                <div className="bg-[#f8f9fc] dark:bg-[#1e293b] p-3 rounded-lg border border-slate-100 dark:border-slate-700 mt-2 space-y-3">
                                     <div>
                                         <div className="text-[0.65rem] font-bold text-[#8ba3c7] mb-1">Current Password</div>
                                         <input
                                             type="password"
                                             placeholder="Current password"
-                                            className="w-full text-sm px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:border-[#1a367c] focus:ring-1 focus:ring-[#1a367c] bg-white text-slate-800 placeholder-slate-400"
+                                            className="w-full text-sm px-3 py-2 rounded-md border border-slate-200 dark:border-slate-600 focus:outline-none focus:border-[#1a367c] focus:ring-1 focus:ring-[#1a367c] bg-white dark:bg-[#0f172a] text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
                                             value={passwordData.currentPassword}
                                             onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                                         />
@@ -154,7 +154,7 @@ const ProfileDropdown = () => {
                                         <input
                                             type="password"
                                             placeholder="New password"
-                                            className="w-full text-sm px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:border-[#1a367c] focus:ring-1 focus:ring-[#1a367c] bg-white text-slate-800 placeholder-slate-400"
+                                            className="w-full text-sm px-3 py-2 rounded-md border border-slate-200 dark:border-slate-600 focus:outline-none focus:border-[#1a367c] focus:ring-1 focus:ring-[#1a367c] bg-white dark:bg-[#0f172a] text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
                                             value={passwordData.newPassword}
                                             onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                                         />
@@ -164,7 +164,7 @@ const ProfileDropdown = () => {
                                         <input
                                             type="password"
                                             placeholder="Confirm new password"
-                                            className="w-full text-sm px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:border-[#1a367c] focus:ring-1 focus:ring-[#1a367c] bg-white text-slate-800 placeholder-slate-400"
+                                            className="w-full text-sm px-3 py-2 rounded-md border border-slate-200 dark:border-slate-600 focus:outline-none focus:border-[#1a367c] focus:ring-1 focus:ring-[#1a367c] bg-white dark:bg-[#0f172a] text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
                                             value={passwordData.confirmPassword}
                                             onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                                         />
@@ -184,7 +184,7 @@ const ProfileDropdown = () => {
                                                 setError('');
                                                 setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
                                             }}
-                                            className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-[#8ba3c7] text-sm font-bold py-2 rounded-md transition-colors shadow-sm"
+                                            className="flex-1 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-[#8ba3c7] text-sm font-bold py-2 rounded-md transition-colors shadow-sm"
                                         >
                                             Cancel
                                         </button>
@@ -195,10 +195,10 @@ const ProfileDropdown = () => {
                     </div>
 
                     {/* Footer Section */}
-                    <div className="p-4 border-t border-slate-100 bg-slate-50">
+                    <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-[#1e293b]">
                         <button
                             onClick={handleLogout}
-                            className="w-full py-2 bg-white border border-red-500 text-red-500 text-sm font-bold rounded-md hover:bg-red-50 transition-colors"
+                            className="w-full py-2 bg-white dark:bg-[#1e293b] border border-red-500 dark:border-red-400 text-red-500 dark:text-red-400 text-sm font-bold rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                         >
                             Log Out
                         </button>

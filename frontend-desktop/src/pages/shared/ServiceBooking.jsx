@@ -69,6 +69,7 @@ const ServiceBooking = () => {
 
     // Conference state
     const [rooms, setRooms] = useState([]);
+    const [roomBookings, setRoomBookings] = useState([]);
     const [loadingRooms, setLoadingRooms] = useState(true);
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [showRoomModal, setShowRoomModal] = useState(false);
@@ -224,11 +225,29 @@ const ServiceBooking = () => {
     const fetchRooms = async (showLoading = true) => {
         try {
             if (showLoading) setLoadingRooms(true);
-            const res = await deskService.getRooms({ page_size: 50 });
-            setRooms(res?.data || (Array.isArray(res) ? res : []));
+            const [roomsRes, bookingsRes] = await Promise.all([
+                deskService.getRooms({ page_size: 50 }),
+                deskService.getRoomBookings({ page_size: 100 })
+            ]);
+
+            setRooms(roomsRes?.data || (Array.isArray(roomsRes) ? roomsRes : []));
+
+            const today = new Date().toISOString().split('T')[0];
+            const now = new Date();
+            const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            const activeBookings = (bookingsRes?.data || []).filter(b => {
+                const status = (b.status || '').toLowerCase();
+                if (status !== 'confirmed' && status !== 'checked_in') return false;
+                if (b.booking_date && b.booking_date < today) return false;
+                if (b.booking_date === today && b.end_time && b.end_time <= currentTimeStr) return false;
+                return true;
+            });
+            setRoomBookings(activeBookings);
         } catch (err) {
             console.error('Error loading rooms:', err);
             setRooms([]);
+            setRoomBookings([]);
         } finally {
             if (showLoading) setLoadingRooms(false);
         }
@@ -871,24 +890,34 @@ const ServiceBooking = () => {
                         ) : (
                             <div className="space-y-4 mb-8">
                                 <p className="text-xs font-bold tracking-widest text-[#8892b0] mb-4">AVAILABLE ROOMS</p>
-                                {rooms.map((room, idx) => (
-                                    <motion.div key={room.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
-                                        onClick={() => { setSelectedRoom(room); setShowRoomModal(true); }}
-                                        className="flex items-center gap-4 bg-slate-50 rounded-2xl p-5 hover:shadow-md transition-all cursor-pointer group">
-                                        <div className="w-14 h-14 bg-[#1a367c] rounded-xl flex items-center justify-center text-white flex-shrink-0 group-hover:bg-[#f9b012] transition-colors">
-                                            <Users className="w-6 h-6" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-bold text-[#1a367c] text-sm">{room.room_label || room.room_code}</h3>
-                                            <p className="text-[0.65rem] text-[#8892b0] font-medium">
-                                                Capacity: {room.capacity || 'N/A'} • {room.floor ? `Floor ${room.floor}` : 'Main Building'}
-                                            </p>
-                                        </div>
-                                        <div className="text-[0.65rem] font-bold text-[#22c55e] tracking-wider uppercase flex-shrink-0">
-                                            {room.status === 'available' ? 'AVAILABLE' : room.status?.toUpperCase() || 'ACTIVE'}
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                {rooms.map((room, idx) => {
+                                    const isBooked = roomBookings.some(b => b.room_id === room.id);
+
+                                    return (
+                                        <motion.div key={room.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
+                                            onClick={() => { setSelectedRoom(room); setShowRoomModal(true); }}
+                                            className="flex items-center gap-4 bg-slate-50 rounded-2xl p-5 hover:shadow-md transition-all cursor-pointer group">
+                                            <div className="w-14 h-14 bg-[#1a367c] rounded-xl flex items-center justify-center text-white flex-shrink-0 group-hover:bg-[#f9b012] transition-colors">
+                                                <Users className="w-6 h-6" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-[#1a367c] text-sm">{room.room_label || room.room_code}</h3>
+                                                <p className="text-[0.65rem] text-[#8892b0] font-medium">
+                                                    Capacity: {room.capacity || 'N/A'} • {room.floor ? `Floor ${room.floor}` : 'Main Building'}
+                                                </p>
+                                            </div>
+                                            {isBooked ? (
+                                                <div className="text-[0.65rem] font-bold text-red-500 tracking-wider uppercase flex-shrink-0">
+                                                    BOOKED
+                                                </div>
+                                            ) : (
+                                                <div className="text-[0.65rem] font-bold text-[#22c55e] tracking-wider uppercase flex-shrink-0">
+                                                    {room.status === 'available' ? 'AVAILABLE' : room.status?.toUpperCase() || 'ACTIVE'}
+                                                </div>
+                                            )}
+                                        </motion.div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

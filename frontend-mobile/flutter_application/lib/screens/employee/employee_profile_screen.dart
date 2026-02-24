@@ -76,6 +76,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -115,7 +116,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
           alignment: Alignment.centerLeft,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
@@ -126,7 +127,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
               ],
             ),
             child: IconButton(
-              icon: const Icon(Icons.chevron_left, color: Color(0xFF1A367C)),
+              icon: Icon(Icons.chevron_left, color: Theme.of(context).textTheme.bodyLarge?.color),
               onPressed: () {
                 if (widget.onBack != null) {
                   widget.onBack!();
@@ -137,12 +138,12 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
             ),
           ),
         ),
-        const Text(
+        Text(
           'My Profile',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A367C),
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
       ],
@@ -158,16 +159,16 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: const Color(0xFF1A367C),
+                color: Theme.of(context).primaryColor,
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Center(
                 child: Text(
                   _avatarLetter(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                   ),
                 ),
               ),
@@ -178,9 +179,9 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
                 ),
                 child: Container(
                   padding: const EdgeInsets.all(6),
@@ -188,10 +189,10 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
                     color: Color(0xFFFDBB2D),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.camera_alt,
                     size: 14,
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                   ),
                 ),
               ),
@@ -201,10 +202,10 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
         const SizedBox(height: 16),
         Text(
           _fullName(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A367C),
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
         const SizedBox(height: 8),
@@ -232,10 +233,10 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
             const SizedBox(width: 8),
             Text(
               _userCode(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1A367C),
+                color: Theme.of(context).textTheme.bodyLarge?.color,
                 letterSpacing: 0.5,
               ),
             ),
@@ -261,7 +262,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -341,10 +342,10 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
                   const SizedBox(height: 4),
                   Text(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF1A367C),
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                   ),
                 ],
@@ -379,8 +380,8 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFFFEBEE),
-          foregroundColor: const Color(0xFFD32F2F),
+          backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.red.withOpacity(0.2) : const Color(0xFFFFEBEE),
+          foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.red[300] : const Color(0xFFD32F2F),
           padding: const EdgeInsets.symmetric(vertical: 20),
           elevation: 0,
           shape: RoundedRectangleBorder(

@@ -53,8 +53,13 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
   List<Map<String, dynamic>> _myDeskBookings = [];
   // Rooms that currently have pending requests (room_id strings)
   final Set<String> _pendingRoomIds = {};
+  // Rooms that are confirmed booked for the currently selected slot
+  final Set<String> _bookedRoomIds = {};
   // All room bookings for selected date (to display existing slots)
   List<Map<String, dynamic>> _allRoomBookingsForDate = [];
+  
+  // Track IDs cancelled by user locally to avoid false-positive manager cancellation alerts
+  final Set<String> _userCancelledIds = {};
 
   StreamSubscription? _realTimeSubscription;
 
@@ -135,14 +140,33 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
 
         // Process room bookings to find pending requests and store all bookings
         _pendingRoomIds.clear();
+        _bookedRoomIds.clear();
         if (todaysRoomBookingsResult['success'] == true) {
           final rawRoomBookings = List<Map<String, dynamic>>.from(todaysRoomBookingsResult['data'] ?? []);
           _allRoomBookingsForDate = rawRoomBookings;
+          
+          final newStart = _startTime.hour + _startTime.minute / 60.0;
+          final newEnd = _endTime.hour + _endTime.minute / 60.0;
+          
           for (final b in rawRoomBookings) {
             final status = (b['status'] ?? '').toString().toLowerCase();
             final roomId = (b['room_id'] ?? '').toString();
-            if (status.contains('pend') && roomId.isNotEmpty) {
-              _pendingRoomIds.add(roomId);
+            
+            if (roomId.isNotEmpty) {
+               if (status.contains('pend')) {
+                  _pendingRoomIds.add(roomId);
+               }
+               // Check if booking overlaps with user's selected time range
+               final bStartStr = b['start_time']?.toString() ?? '09:00:00';
+               final bEndStr = b['end_time']?.toString() ?? '18:00:00';
+               final bStart = _parseTimeToDouble(bStartStr);
+               final bEnd = _parseTimeToDouble(bEndStr);
+               
+               if (_isOverlapping(newStart, newEnd, bStart, bEnd)) {
+                  if (status.contains('confirm') || status.contains('approv') || status.contains('check')) {
+                      _bookedRoomIds.add(roomId);
+                  }
+               }
             }
           }
         }
@@ -170,6 +194,22 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
             final dateB = (b['booking_date'] ?? '').toString();
             return dateA.compareTo(dateB);
           });
+          
+          // Check for manager cancellations
+          if (_myRoomBookings.isNotEmpty) {
+             for (final oldBooking in _myRoomBookings) {
+                final oldId = oldBooking['id'].toString();
+                final roomName = oldBooking['room_label']?.toString() ?? 'Conference Room';
+                bool stillActive = active.any((b) => b['id'].toString() == oldId);
+                
+                if (!stillActive && !_userCancelledIds.contains(oldId)) {
+                   // Status changed to rejected/cancelled, and it wasn't the user
+                   WidgetsBinding.instance.addPostFrameCallback((_) {
+                      SnackbarHelper.showError(context, 'Your booking for $roomName was rejected/cancelled.');
+                   });
+                }
+             }
+          }
 
           setState(() {
             _myRoomBookings = active;
@@ -187,6 +227,22 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
           final s = (b['status'] ?? '').toString().toLowerCase();
           return s.contains('pend') || s.contains('confirm') || s.contains('approv');
         }).toList();
+        
+        // Check for manager cancellations
+        if (_myDeskBookings.isNotEmpty) {
+           for (final oldBooking in _myDeskBookings) {
+              final oldId = oldBooking['id'].toString();
+              final deskLabel = oldBooking['desk_label']?.toString() ?? 'Desk';
+              bool stillActive = active.any((b) => b['id'].toString() == oldId);
+              
+              if (!stillActive && !_userCancelledIds.contains(oldId)) {
+                 WidgetsBinding.instance.addPostFrameCallback((_) {
+                    SnackbarHelper.showError(context, 'Your booking for $deskLabel was cancelled by a manager.');
+                 });
+              }
+           }
+        }
+        
         setState(() {
           _myDeskBookings = active;
         });
@@ -699,6 +755,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     );
 
     if (confirmed == true) {
+      _userCancelledIds.add(bookingId);
       final result = await _deskService.cancelDeskBooking(bookingId);
       if (result['success'] == true) {
         if (!mounted) return;
@@ -868,6 +925,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     );
 
     if (confirmed == true) {
+      _userCancelledIds.add(bookingId);
       final result = await _deskService.cancelRoomBooking(bookingId);
       if (result['success'] == true) {
         if (!mounted) return;
@@ -1432,26 +1490,28 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
 
 
   Widget _buildConferenceCard(Map<String, dynamic> room) {
-    final bool isAvailable = room['available'] as bool;
-    final List<String> amenities = room['amenities'] as List<String>;
     final String roomId = room['id'] as String;
+    final bool isBooked = _bookedRoomIds.contains(roomId);
+    final bool isAvailable = (room['available'] as bool) && !isBooked;
+    final List<String> amenities = room['amenities'] as List<String>;
     final String roomName = room['name'] as String;
     final bool hasPending = _pendingRoomIds.contains(roomId);
 
     return GestureDetector(
-      onTap: () => _openBookingModal(roomName, 'Meeting Room', itemId: roomId, capacity: room['capacity'] ?? 10),
+      onTap: isAvailable ? () => _openBookingModal(roomName, 'Meeting Room', itemId: roomId, capacity: room['capacity'] ?? 10) : null,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isAvailable ? Colors.white : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFFE2E8F0)),
           boxShadow: [
-             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-             ),
+             if (isAvailable)
+               BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+               ),
           ],
         ),
         child: Stack(
@@ -1464,7 +1524,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
               child: Container(
                 width: 4,
                 decoration: BoxDecoration(
-                  color: isAvailable ? navyColor : Colors.grey,
+                  color: isAvailable ? navyColor : Colors.grey.shade400,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     bottomLeft: Radius.circular(20),
@@ -1477,7 +1537,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1487,10 +1547,10 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                           children: [
                             Text(
                               roomName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
-                                color: navyColor,
+                                color: isAvailable ? navyColor : Colors.grey.shade500,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -1505,7 +1565,38 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                           ],
                         ),
                       ),
-
+                      if (isBooked)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'BOOKED',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.red.shade700,
+                            ),
+                          ),
+                        )
+                      else if (isAvailable)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'AVAILABLE',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        )
                     ],
                   ),
                   const SizedBox(height: 12),

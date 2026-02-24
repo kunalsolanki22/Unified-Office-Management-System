@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -59,6 +60,11 @@
   background-color: var(--color-background);
   color: #1e293b;
   /* Slate 800 */
+}
+
+.dark {
+  background-color: #0F172A;
+  color: #F1F5F9;
 }
 
 body {
