@@ -475,6 +475,15 @@ class DeskService:
         )
         
         self.db.add(booking)
+        
+        # Update desk status to BOOKED if booking is for today (immediate update)
+        now = datetime.now()
+        if booking.start_date <= now.date() <= booking.end_date:
+            desk = await self.get_desk_by_id(booking.desk_id)
+            if desk:
+                desk.status = DeskStatus.BOOKED
+                self.db.add(desk)
+        
         await self.db.commit()
         await self.db.refresh(booking)
         
@@ -548,6 +557,12 @@ class DeskService:
         booking.status = BookingStatus.CANCELLED
         booking.cancellation_reason = reason
         booking.cancelled_at = datetime.now(timezone.utc)
+        
+        # Update desk status to AVAILABLE
+        desk = await self.get_desk_by_id(booking.desk_id)
+        if desk:
+            desk.status = DeskStatus.AVAILABLE
+            self.db.add(desk)
         
         await self.db.commit()
         
@@ -992,6 +1007,15 @@ class DeskService:
             return None, "Cannot approve: Time slot now conflicts with another confirmed booking"
         
         booking.status = BookingStatus.CONFIRMED
+        
+        # Update room status to BOOKED if booking is for today
+        now = datetime.now()
+        if booking.booking_date == now.date():
+            room = await self.get_room_by_id(booking.room_id)
+            if room:
+                room.status = DeskStatus.BOOKED
+                self.db.add(room)
+                
         if notes:
             booking.notes = (booking.notes or "") + f"\nApproval note: {notes}"
         

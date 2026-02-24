@@ -26,6 +26,7 @@ from app.models.enums import ManagerType, UserRole, ParkingType, VehicleType, Pa
 from app.services.parking_service import ParkingService
 from app.utils.response import create_response
 from app.schemas.base import APIResponse
+from app.utils.broadcast import trigger_broadcast
 
 router = APIRouter()
 
@@ -129,6 +130,9 @@ async def allocate_parking(
     await db.commit()
     await db.refresh(allocation)
     
+    # Trigger real-time update
+    await trigger_broadcast("/parking/allocate")
+    
     return create_response(
         data={
             "message": "Parking allocated successfully",
@@ -181,6 +185,9 @@ async def release_parking(
         slot.status = ParkingSlotStatus.AVAILABLE
     
     await db.commit()
+    
+    # Trigger real-time update
+    await trigger_broadcast("/parking/release")
     
     return create_response(
         data={
@@ -461,6 +468,9 @@ async def change_slot_status(
     
     slot.status = status_enum
     await db.commit()
+    
+    # Trigger real-time update
+    await trigger_broadcast("/parking/slots")
     
     return create_response(
         data={

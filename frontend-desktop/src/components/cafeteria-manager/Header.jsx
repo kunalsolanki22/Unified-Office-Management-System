@@ -1,5 +1,6 @@
 import { Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import ProfileDropdown from '../shared/ProfileDropdown';
 
 const Header = () => {
     const { user } = useAuth();
@@ -20,16 +21,7 @@ const Header = () => {
                     <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#f9b012] rounded-full border border-white"></div>
                 </div>
 
-                {/* User Profile */}
-                <div className="flex items-center gap-3 pl-4 border-l border-slate-200 ml-2">
-                    <div className="text-right hidden sm:block">
-                        <div className="text-[0.75rem] font-bold text-[#1a367c]">{user?.name || 'User'}</div>
-                        <div className="text-[0.65rem] text-[#f9b012] font-semibold text-right">Cafeteria Ops</div>
-                    </div>
-                    <div className="w-10 h-10 bg-[#1a367c] text-white rounded-full flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-blue-50">
-                        {user?.name ? user.name.charAt(0).toUpperCase() : 'C'}
-                    </div>
-                </div>
+                <ProfileDropdown />
             </div>
         </header>
     );

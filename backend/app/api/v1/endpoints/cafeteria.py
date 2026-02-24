@@ -26,6 +26,7 @@ from app.schemas.cafeteria import (
 from app.services.cafeteria_service import CafeteriaService
 from app.utils.response import create_response
 from app.schemas.base import APIResponse
+from app.utils.broadcast import trigger_broadcast
 
 router = APIRouter()
 
@@ -185,6 +186,9 @@ async def create_cafeteria_booking(
         "updated_at": booking.updated_at
     }
     
+    # Trigger real-time update
+    await trigger_broadcast("/cafeteria/bookings")
+    
     return create_response(
         data=response_data,
         message="Cafeteria booking created successfully"
@@ -309,6 +313,9 @@ async def update_cafeteria_booking(
         "updated_at": booking.updated_at
     }
     
+    # Trigger real-time update
+    await trigger_broadcast("/cafeteria/bookings")
+    
     return create_response(
         data=response_data,
         message="Cafeteria booking updated successfully"
@@ -327,6 +334,9 @@ async def cancel_cafeteria_booking(
     success, error = await service.cancel_booking(booking_id, current_user, reason)
     if error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
+    # Trigger real-time update
+    await trigger_broadcast("/cafeteria/bookings")
+    
     return create_response(
         data={"cancelled": True},
         message="Cafeteria booking cancelled successfully"

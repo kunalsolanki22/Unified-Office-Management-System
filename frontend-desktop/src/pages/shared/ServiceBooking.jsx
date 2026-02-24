@@ -239,6 +239,19 @@ const ServiceBooking = () => {
         const interval = setInterval(() => fetchRooms(false), 30000);
         return () => clearInterval(interval);
     }, []);
+    useEffect(() => {
+        const handleRefresh = () => {
+            console.log('Refreshing ServiceHub data due to real-time update...');
+            fetchOrdersData(false);
+            fetchTableData(false);
+            fetchDesks(false);
+            fetchParking(false);
+            fetchRooms(false);
+        };
+
+        window.addEventListener('dashboard-refresh', handleRefresh);
+        return () => window.removeEventListener('dashboard-refresh', handleRefresh);
+    }, []);
 
     // Cart helpers
     const cartCount = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
@@ -285,8 +298,17 @@ const ServiceBooking = () => {
         }
     };
 
-    // Table helpers
-    const bookedTableIds = new Set(cafeBookings.map(b => b.table_id));
+    // Table helpers — only count confirmed + active (non-expired) bookings
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const activeBookings = cafeBookings.filter(b => {
+        if (b.status?.toLowerCase() !== 'confirmed') return false;
+        if (b.booking_date && b.booking_date < todayStr) return false;
+        if (b.booking_date === todayStr && b.end_time && b.end_time <= currentTimeStr) return false;
+        return true;
+    });
+    const bookedTableIds = new Set(activeBookings.map(b => b.table_id));
     const isTableBooked = (tableId) => bookedTableIds.has(tableId);
 
     const calculateEndTime = (startTime, duration) => {

@@ -3,11 +3,14 @@ import 'screens/login_screen.dart';
 import 'screens/manager/manager_dashboard.dart';
 import 'screens/employee/employee_dashboard.dart';
 import 'services/auth_service.dart';
+import 'services/real_time_service.dart';
 import 'theme/app_theme.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  RealTimeService().connect();
   runApp(const MyApp());
 }
 

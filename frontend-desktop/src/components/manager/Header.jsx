@@ -1,5 +1,6 @@
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from './NotificationBell';
+import ProfileDropdown from '../shared/ProfileDropdown';
 
 const getPortalInfo = (user) => {
     if (!user) return { label: 'MANAGER PORTAL', role: 'Manager' };
@@ -21,8 +22,7 @@ const getPortalInfo = (user) => {
 
 const Header = () => {
     const { user } = useAuth();
-    const { label, role } = getPortalInfo(user);
-    const initial = user?.name ? user.name.charAt(0).toUpperCase() : role.charAt(0).toUpperCase();
+    const { label } = getPortalInfo(user);
 
     return (
         <header className="h-[90px] flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-40 border-b border-transparent pt-2.5 mb-8">
@@ -37,20 +37,7 @@ const Header = () => {
                 {/* Functional Notification Bell */}
                 <NotificationBell />
 
-                {/* User Profile */}
-                <div className="flex items-center gap-3 pl-4 border-l border-slate-200 ml-2">
-                    <div className="text-right hidden sm:block">
-                        <div className="text-[0.75rem] font-bold text-[#1a367c]">
-                            {user?.name || 'User'}
-                        </div>
-                        <div className="text-[0.65rem] text-[#f9b012] font-semibold text-right">
-                            {role}
-                        </div>
-                    </div>
-                    <div className="w-10 h-10 bg-[#1a367c] text-white rounded-full flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-blue-50">
-                        {initial}
-                    </div>
-                </div>
+                <ProfileDropdown />
             </div>
         </header>
     );

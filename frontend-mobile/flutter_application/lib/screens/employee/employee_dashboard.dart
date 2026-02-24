@@ -4,6 +4,7 @@ import '../../services/attendance_service.dart';
 import '../../services/holiday_service.dart';
 import '../../services/project_service.dart';
 import '../../utils/snackbar_helper.dart';
+import '../../services/real_time_service.dart';
 import 'package:intl/intl.dart';
 import 'employee_profile_screen.dart';
 import '../cafeteria_screen.dart';
@@ -12,6 +13,7 @@ import '../it_support_screen.dart';
 import '../desk_booking_screen.dart';
 import '../leave_screen.dart';
 import '../directory/directory_screen.dart';
+import '../chatbot_screen.dart';
 
 
 class EmployeeDashboard extends StatefulWidget {
@@ -61,6 +63,8 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
   static const Color yellowAccent = Color(0xFFFDBB2D);
   static const Color bgGray = Color(0xFFF8FAFC);
 
+  StreamSubscription? _realTimeSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -68,6 +72,16 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
     _startTimer();
     _fetchHolidays();
     _fetchMyProjects();
+
+    // Listen for real-time updates
+    _realTimeSubscription = RealTimeService().stream.listen((data) {
+      if (data['type'] == 'refresh') {
+        debugPrint('Refreshing dashboard due to real-time update');
+        _fetchAttendanceStatus();
+        _fetchHolidays();
+        _fetchMyProjects();
+      }
+    });
   }
 
   Future<void> _fetchMyProjects() async {
@@ -88,6 +102,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
   @override
   void dispose() {
     _timer?.cancel();
+    _realTimeSubscription?.cancel();
     super.dispose();
   }
 
@@ -540,6 +555,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
           children: [
             _buildDashboardContent(),
             const LeaveScreen(),
+            ChatbotScreen(),
             const DirectoryScreen(),
             EmployeeProfileScreen(
               onBack: () {
@@ -552,6 +568,12 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
         ),
       ),
       bottomNavigationBar: _buildFloatingBottomNav(),
+      floatingActionButton: _selectedIndex != 2 ? FloatingActionButton(
+        heroTag: 'employee_dashboard_fab',
+        onPressed: () => setState(() => _selectedIndex = 2),
+        backgroundColor: navyColor,
+        child: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
+      ) : null,
     );
   }
 
@@ -792,7 +814,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
               GestureDetector(
                 onTap: () {
                   setState(() {
-                    _selectedIndex = 3;
+                    _selectedIndex = 4;
                   });
                 },
                 child: Stack(
@@ -1272,29 +1294,45 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildNavItem(
-            icon: Icons.show_chart,
-            label: 'Dashboard',
-            isSelected: _selectedIndex == 0,
-            onTap: () => setState(() => _selectedIndex = 0),
+          Expanded(
+            child: _buildNavItem(
+              icon: Icons.show_chart,
+              label: 'Dashboard',
+              isSelected: _selectedIndex == 0,
+              onTap: () => setState(() => _selectedIndex = 0),
+            ),
           ),
-          _buildNavItem(
-            icon: Icons.calendar_today,
-            label: 'Leave',
-            isSelected: _selectedIndex == 1,
-            onTap: () => setState(() => _selectedIndex = 1),
+          Expanded(
+            child: _buildNavItem(
+              icon: Icons.calendar_today,
+              label: 'Leave',
+              isSelected: _selectedIndex == 1,
+              onTap: () => setState(() => _selectedIndex = 1),
+            ),
           ),
-          _buildNavItem(
-            icon: Icons.contacts,
-            label: 'Directory',
-            isSelected: _selectedIndex == 2,
-            onTap: () => setState(() => _selectedIndex = 2),
+          Expanded(
+            child: _buildNavItem(
+              icon: Icons.chat_bubble_rounded,
+              label: 'Assistant',
+              isSelected: _selectedIndex == 2,
+              onTap: () => setState(() => _selectedIndex = 2),
+            ),
           ),
-          _buildNavItem(
-            icon: Icons.person,
-            label: 'Profile',
-            isSelected: _selectedIndex == 3,
-            onTap: () => setState(() => _selectedIndex = 3),
+          Expanded(
+            child: _buildNavItem(
+              icon: Icons.contacts,
+              label: 'Directory',
+              isSelected: _selectedIndex == 3,
+              onTap: () => setState(() => _selectedIndex = 3),
+            ),
+          ),
+          Expanded(
+            child: _buildNavItem(
+              icon: Icons.person,
+              label: 'Profile',
+              isSelected: _selectedIndex == 4,
+              onTap: () => setState(() => _selectedIndex = 4),
+            ),
           ),
         ],
       ),
@@ -1353,7 +1391,6 @@ class _HoverableNavItemState extends State<_HoverableNavItem> {
           curve: Curves.easeOutCubic,
           transform: _isHovered ? (Matrix4.identity()..scale(1.15)) : Matrix4.identity(),
           transformAlignment: Alignment.center,
-          width: 70,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

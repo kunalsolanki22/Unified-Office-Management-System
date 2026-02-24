@@ -25,6 +25,7 @@ from ....schemas.desk import (
 from ....schemas.base import APIResponse, PaginatedResponse
 from ....services.desk_service import DeskService
 from ....utils.response import create_response, create_paginated_response
+from ....utils.broadcast import trigger_broadcast
 
 router = APIRouter()
 
@@ -147,6 +148,9 @@ async def create_desk_booking(
         "updated_at": booking.updated_at
     }
     
+    # Trigger real-time update
+    await trigger_broadcast("/desks/bookings")
+    
     return create_response(
         data=response_data,
         message="Desk booking created successfully"
@@ -255,6 +259,9 @@ async def cancel_desk_booking(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=error
         )
+    
+    # Trigger real-time update
+    await trigger_broadcast("/desks/bookings")
     
     return create_response(
         data={"cancelled": True},
@@ -366,6 +373,9 @@ async def create_room_booking(
         "created_at": booking.created_at,
         "updated_at": booking.updated_at
     }
+    
+    # Trigger real-time update
+    await trigger_broadcast("/rooms/bookings")
     
     return create_response(
         data=response_data,
@@ -482,6 +492,9 @@ async def cancel_room_booking(
             detail=error
         )
     
+    # Trigger real-time update
+    await trigger_broadcast("/rooms/bookings")
+    
     return create_response(
         data={"cancelled": True},
         message="Conference room booking cancelled successfully"
@@ -581,6 +594,9 @@ async def approve_room_booking(
         "updated_at": booking.updated_at
     }
     
+    # Trigger real-time update
+    await trigger_broadcast("/rooms/bookings")
+    
     return create_response(
         data=response_data,
         message="Conference room booking approved successfully"
@@ -627,6 +643,9 @@ async def reject_room_booking(
         "created_at": booking.created_at,
         "updated_at": booking.updated_at
     }
+    
+    # Trigger real-time update
+    await trigger_broadcast("/rooms/bookings")
     
     return create_response(
         data=response_data,

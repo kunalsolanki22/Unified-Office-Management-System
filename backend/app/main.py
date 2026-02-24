@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+import asyncio
 from datetime import datetime, timezone
 import logging
 
@@ -25,6 +26,56 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json"
 )
+
+# WebSocket Connection Manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        logger.info(f"New client connected. Total clients: {len(self.active_connections)}")
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+            logger.info(f"Client disconnected. Total clients: {len(self.active_connections)}")
+
+    async def broadcast(self, message: dict):
+        logger.info(f"Broadcasting update: {message}")
+        disconnected_clients = []
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception as e:
+                logger.error(f"Error sending message to client: {e}")
+                disconnected_clients.append(connection)
+        
+        for client in disconnected_clients:
+            self.disconnect(client)
+
+ws_manager = ConnectionManager()
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await ws_manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection alive
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket)
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+        ws_manager.disconnect(websocket)
+
+@app.post("/api/v1/internal/broadcast")
+async def broadcast_update(request: Request):
+    """Internal endpoint to trigger a broadcast."""
+    data = await request.json()
+    await ws_manager.broadcast(data)
+    return {"success": True}
 
 # Custom middleware
 app.add_middleware(ResponseMiddleware)

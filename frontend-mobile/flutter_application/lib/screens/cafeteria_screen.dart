@@ -6,6 +6,7 @@ import 'my_orders_screen.dart';
 import '../services/cafeteria_service.dart';
 import '../services/search_service.dart';
 import '../utils/snackbar_helper.dart';
+import 'chatbot_screen.dart';
 
 class CafeteriaScreen extends StatefulWidget {
   final bool initialShowDeskBooking;
@@ -755,6 +756,17 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
               _buildCartOverlay(),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'cafeteria_fab',
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ChatbotScreen()),
+          );
+        },
+        backgroundColor: const Color(0xFF1A367C),
+        child: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
       ),
     );
   }

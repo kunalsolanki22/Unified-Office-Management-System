@@ -1,4 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
+import ProfileDropdown from '../shared/ProfileDropdown';
 
 const Header = () => {
     const { user } = useAuth();
@@ -16,16 +17,7 @@ const Header = () => {
                 {/* User Actions */}
                 <div className="flex items-center gap-6 ml-2">
 
-
-                    <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                        <div className="text-right hidden sm:block">
-                            <div className="text-[0.75rem] font-bold text-[#1a367c]">{user?.name || 'User'}</div>
-                            <div className="text-[0.65rem] text-[#f9b012] font-semibold text-right">Attendance Manager</div>
-                        </div>
-                        <div className="w-10 h-10 bg-[#1a367c] text-white rounded-full flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-blue-50">
-                            {user?.name ? user.name.charAt(0).toUpperCase() : 'M'}
-                        </div>
-                    </div>
+                    <ProfileDropdown />
                 </div>
             </div>
         </header>

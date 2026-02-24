@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/snackbar_helper.dart';
 import '../services/it_request_service.dart';
+import 'chatbot_screen.dart';
 
 class ITSupportScreen extends StatefulWidget {
   const ITSupportScreen({super.key});
@@ -972,6 +973,17 @@ class _ITSupportScreenState extends State<ITSupportScreen> {
               ),
             ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'it_support_fab',
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ChatbotScreen()),
+          );
+        },
+        backgroundColor: navyColor,
+        child: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
       ),
     );
   }

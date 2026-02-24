@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/parking_service.dart';
 import '../utils/snackbar_helper.dart';
+import 'chatbot_screen.dart';
 
 class ParkingScreen extends StatefulWidget {
   const ParkingScreen({super.key});
@@ -233,6 +234,17 @@ class _ParkingScreenState extends State<ParkingScreen> {
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'parking_fab',
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ChatbotScreen()),
+          );
+        },
+        backgroundColor: const Color(0xFF1A367C),
+        child: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
       ),
     );
   }

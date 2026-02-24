@@ -15,6 +15,7 @@ from ....schemas.food import (
 from ....schemas.base import APIResponse, PaginatedResponse
 from ....services.food_service import FoodService
 from ....utils.response import create_response, create_paginated_response
+from ....utils.broadcast import trigger_broadcast
 
 router = APIRouter()
 
@@ -315,6 +316,9 @@ async def create_food_order(
             detail=error
         )
     
+    # Trigger real-time update
+    await trigger_broadcast("/food-orders/orders")
+    
     return create_response(
         data=FoodOrderResponse.model_validate(order),
         message="Food order created successfully"
@@ -436,6 +440,9 @@ async def cancel_my_order(
             detail=error
         )
     
+    # Trigger real-time update
+    await trigger_broadcast("/food-orders/orders")
+    
     return create_response(
         data=FoodOrderResponse.model_validate(order),
         message="Order cancelled successfully"
@@ -462,6 +469,9 @@ async def update_order_status(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=error
         )
+    
+    # Trigger real-time update
+    await trigger_broadcast("/food-orders/orders")
     
     return create_response(
         data=FoodOrderResponse.model_validate(order),

@@ -11,6 +11,8 @@ import '../parking_screen.dart';
 import '../leave_screen.dart';
 import 'attendance_review_screen.dart';
 import 'leave_review_screen.dart';
+import '../chatbot_screen.dart';
+import '../../services/real_time_service.dart';
 
 
 class ManagerDashboard extends StatefulWidget {
@@ -52,6 +54,8 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
   Timer? _timer;
   String? _attendanceStatus; // To store backend status like DRAFT, SUBMITTED
 
+  StreamSubscription? _realTimeSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +63,16 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     _startTimer();
     _fetchHolidays();
     _fetchMyProjects();
+
+    // Listen for real-time updates
+    _realTimeSubscription = RealTimeService().stream.listen((data) {
+      if (data['type'] == 'refresh') {
+        debugPrint('Refreshing manager dashboard due to real-time update');
+        _fetchAttendanceStatus();
+        _fetchHolidays();
+        _fetchMyProjects();
+      }
+    });
   }
 
   Future<void> _fetchMyProjects() async {
@@ -80,6 +94,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
   void dispose() {
     _scrollController.dispose();
     _timer?.cancel();
+    _realTimeSubscription?.cancel();
     super.dispose();
   }
 
@@ -354,6 +369,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
               children: [
                 _buildDashboardContent(),
                 const LeaveScreen(),
+                ChatbotScreen(),
                 ManagerProfileScreen(
                   userProfile: widget.userProfile,
                   onBack: () {
@@ -383,9 +399,10 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildNavItem(0, Icons.show_chart, 'Dashboard'),
-                    _buildNavItem(1, Icons.calendar_today, 'Leave'),
-                    _buildNavItem(2, Icons.person, 'Profile'),
+                    Expanded(child: _buildNavItem(0, Icons.show_chart, 'Dashboard')),
+                    Expanded(child: _buildNavItem(1, Icons.calendar_today, 'Leave')),
+                    Expanded(child: _buildNavItem(2, Icons.chat_bubble_rounded, 'Assistant')),
+                    Expanded(child: _buildNavItem(3, Icons.person, 'Profile')),
                   ],
                 ),
               ),
@@ -393,6 +410,12 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
           ],
         ),
       ),
+      floatingActionButton: _selectedIndex != 2 ? FloatingActionButton(
+        heroTag: 'manager_dashboard_fab',
+        onPressed: () => setState(() => _selectedIndex = 2),
+        backgroundColor: const Color(0xFF1A367C),
+        child: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
+      ) : null,
     );
   }
 
@@ -697,7 +720,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
               GestureDetector(
                 onTap: () {
                   setState(() {
-                    _selectedIndex = 2;
+                    _selectedIndex = 3;
                   });
                 },
                 child: Stack(
@@ -1380,7 +1403,6 @@ class _HoverableNavItemState extends State<_HoverableNavItem> {
           curve: Curves.easeOutCubic,
           transform: _isHovered ? (Matrix4.identity()..scale(1.15)) : Matrix4.identity(),
           transformAlignment: Alignment.center,
-          width: 70,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

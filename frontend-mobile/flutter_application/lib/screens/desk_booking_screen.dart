@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../utils/snackbar_helper.dart';
 import '../services/desk_service.dart';
+import '../services/real_time_service.dart';
+import 'chatbot_screen.dart';
 
 class DeskBookingScreen extends StatefulWidget {
   const DeskBookingScreen({super.key});
@@ -53,10 +56,20 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
   // All room bookings for selected date (to display existing slots)
   List<Map<String, dynamic>> _allRoomBookingsForDate = [];
 
+  StreamSubscription? _realTimeSubscription;
+
   @override
   void initState() {
     super.initState();
     _loadData();
+
+    // Listen for real-time updates
+    _realTimeSubscription = RealTimeService().stream.listen((data) {
+      if (data['type'] == 'refresh') {
+        debugPrint('Refreshing desk booking screen due to real-time update');
+        _loadData();
+      }
+    });
   }
 
   Future<void> _loadData() async {
@@ -444,6 +457,29 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                           ? _buildWorkstationView()
                           : _buildMeetingRoomView(),
                 ),
+                // My Active Desks / My Bookings bottom bar
+                if (!_isModalVisible)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 80, 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: _selectedTabIndex == 0 ? _showMyDeskModal : _showMyBookingsModal,
+                        icon: Icon(_selectedTabIndex == 0 ? Icons.desk : Icons.list_alt, size: 18),
+                        label: Text(
+                          _selectedTabIndex == 0 ? 'My Active Desks' : 'My Bookings',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: navyColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 4,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -451,17 +487,16 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
           if (_isModalVisible) _buildBookingModal(),
         ],
       ),
-      floatingActionButton: _isModalVisible ? null : FloatingActionButton.extended(
-        onPressed: _selectedTabIndex == 0 ? _showMyDeskModal : _showMyBookingsModal,
+      floatingActionButton: _isModalVisible ? null : FloatingActionButton(
+        heroTag: 'desk_booking_fab',
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ChatbotScreen()),
+          );
+        },
         backgroundColor: navyColor,
-        icon: Icon(_selectedTabIndex == 0 ? Icons.desk : Icons.list_alt, color: Colors.white),
-        label: Text(
-          _selectedTabIndex == 0 ? 'My Active Desks' : 'My Bookings',
-                  style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
       ),
     );
   }
@@ -1943,4 +1978,10 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
     );
   }
 
+  @override
+  void dispose() {
+    _realTimeSubscription?.cancel();
+    _attendeesController.dispose();
+    super.dispose();
+  }
 }

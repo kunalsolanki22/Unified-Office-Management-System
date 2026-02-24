@@ -318,6 +318,29 @@ const DeskManagement = () => {
 
     useEffect(() => { fetchData(); }, []);
 
+    // ─── Real-time refresh via WebSocket events + periodic auto-refresh ───
+    useEffect(() => {
+        const handleRefresh = (e) => {
+            const detail = e.detail || {};
+            // Refresh on any cafeteria/table related event or generic refresh
+            if (!detail.service || detail.service === 'cafeteria' || detail.service === 'table') {
+                console.log('[DeskManagement] Real-time refresh triggered:', detail);
+                fetchData();
+            }
+        };
+        window.addEventListener('dashboard-refresh', handleRefresh);
+
+        // Auto-refresh every 30 seconds to catch expired bookings
+        const interval = setInterval(() => {
+            fetchData();
+        }, 30000);
+
+        return () => {
+            window.removeEventListener('dashboard-refresh', handleRefresh);
+            clearInterval(interval);
+        };
+    }, []);
+
     const handleTableClick = (table, isBooked) => {
         if (isBooked) return;
         setSelectedTable(table);
