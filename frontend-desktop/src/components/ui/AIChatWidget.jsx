@@ -58,38 +58,43 @@ const AIChatWidget = () => {
     }, [isOpen, status, sessionId, isConnecting]);
 
     useEffect(() => {
-        // WebSocket for real-time updates
+        // WebSocket for real-time updates (optional feature — silently degrades if unavailable)
         const socketUrl = 'ws://localhost:8000/ws';
         let socket = null;
         let reconnectTimer = null;
+        let retryCount = 0;
+        const MAX_RETRIES = 2;
 
         const connect = () => {
-            console.log('Connecting to real-time updates WebSocket...');
-            socket = new WebSocket(socketUrl);
+            if (retryCount >= MAX_RETRIES) return; // Stop retrying after max attempts
+            try {
+                socket = new WebSocket(socketUrl);
 
-            socket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    console.log('Real-time update received:', data);
-                    if (data.type === 'refresh') {
-                        // Dispatch a global event that other components can listen to
-                        window.dispatchEvent(new CustomEvent('dashboard-refresh', { detail: data }));
+                socket.onopen = () => {
+                    retryCount = 0; // Reset on successful connection
+                };
+
+                socket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'refresh') {
+                            window.dispatchEvent(new CustomEvent('dashboard-refresh', { detail: data }));
+                        }
+                    } catch { /* ignore parse errors */ }
+                };
+
+                socket.onclose = () => {
+                    socket = null;
+                    retryCount++;
+                    if (retryCount < MAX_RETRIES) {
+                        reconnectTimer = setTimeout(connect, 10000);
                     }
-                } catch (err) {
-                    console.error('Error parsing WebSocket message:', err);
-                }
-            };
+                };
 
-            socket.onclose = () => {
-                console.log('WebSocket disconnected. Reconnecting in 5s...');
-                socket = null;
-                reconnectTimer = setTimeout(connect, 5000);
-            };
-
-            socket.onerror = (err) => {
-                console.error('WebSocket error:', err);
-                socket.close();
-            };
+                socket.onerror = () => {
+                    socket?.close();
+                };
+            } catch { /* WebSocket not available */ }
         };
 
         connect();

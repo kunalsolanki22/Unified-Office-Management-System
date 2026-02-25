@@ -43,12 +43,30 @@ const ConferenceBooking = () => {
         }
     };
 
-    useEffect(() => { fetchData(); }, []);
+    // Clock tick to force re-render for time-based room status checks
+    const [, setClockTick] = useState(0);
+
+    useEffect(() => {
+        fetchData();
+        const interval = setInterval(() => fetchData(), 15000);
+        const ticker = setInterval(() => setClockTick(t => t + 1), 30000);
+        return () => { clearInterval(interval); clearInterval(ticker); };
+    }, []);
 
     const getRoomStatus = (room) => {
-        const activeBooking = bookings.find(
-            b => b.room_id === room.id && (b.status.toLowerCase() === 'confirmed' || b.status.toLowerCase() === 'pending')
-        );
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const activeBooking = bookings.find(b => {
+            if (b.room_id !== room.id) return false;
+            const status = (b.status || '').toLowerCase();
+            if (status !== 'confirmed' && status !== 'pending') return false;
+            // Filter out past-date bookings
+            if (b.booking_date && b.booking_date < todayStr) return false;
+            // Filter out expired bookings for today
+            if (b.booking_date === todayStr && b.end_time && b.end_time <= currentTime) return false;
+            return true;
+        });
         return activeBooking ? 'Booked' : 'Available';
     };
 
@@ -168,12 +186,22 @@ const ConferenceBooking = () => {
         }
     };
 
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    const isBookingActive = (b) => {
+        if (b.booking_date && b.booking_date < todayStr) return false;
+        if (b.booking_date === todayStr && b.end_time && b.end_time <= currentTime) return false;
+        return true;
+    };
+
     const activeBookings = bookings.filter(b =>
-        b.status.toLowerCase() === 'confirmed'
+        b.status.toLowerCase() === 'confirmed' && isBookingActive(b)
     );
 
     const pendingBookings = bookings.filter(b =>
-        b.status.toLowerCase() === 'pending'
+        b.status.toLowerCase() === 'pending' && isBookingActive(b)
     );
 
     if (loading) {

@@ -16,6 +16,7 @@ import {
     Loader2
 } from 'lucide-react';
 import ActionHub from './ActionHub';
+import { holidayService } from '../../services/holidayService';
 
 // ... (imports remain the same, ensure ActionHub is imported)
 

@@ -95,10 +95,20 @@ const Dashboard = () => {
                         <Bell className="w-4 h-4 text-[#f9b012]" />
                         ORGANIZATION ANNOUNCEMENTS
                     </div>
-                    <div className="flex-1 flex flex-col items-center justify-center text-center text-[#8892b0]">
-                        <Bell className="w-10 h-10 mb-3 opacity-15" />
-                        <p className="text-sm font-medium">No announcements at this time.</p>
-                        <p className="text-xs mt-1 opacity-70">Check back later for updates.</p>
+
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                        {[
+                            { date: 'FEB 10', title: 'Town Hall Meeting', desc: 'Quadrimester updates with CEO. 4:00 PM IST.' },
+                            { date: 'FEB 08', title: 'Policy Update: Remote Work', desc: 'Revised guidelines available in HR Registry.' }
+                        ].map((ann, idx) => (
+                            <div key={idx} className="flex gap-4 pb-4 border-b border-slate-100 last:border-0">
+                                <div className="text-xs font-bold text-[#f9b012] min-w-[50px] pt-1">{ann.date}</div>
+                                <div className="flex-1">
+                                    <div className="font-bold text-[#1a367c] text-sm mb-1">{ann.title}</div>
+                                    <div className="text-xs text-[#8892b0]">{ann.desc}</div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                     <div className="h-1 w-10 bg-[#f9b012] mt-6 rounded-full transition-all duration-300 group-hover:w-20"></div>
                 </motion.div>

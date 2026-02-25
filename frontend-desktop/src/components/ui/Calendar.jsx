@@ -54,21 +54,33 @@ const Calendar = ({ events = [], title = "CALENDAR" }) => {
         // Days of current month
         for (let day = 1; day <= daysInMonth; day++) {
             const event = getEventForDate(day);
-            const isSelected = event || isToday(day);
+            const today = isToday(day);
+
+            let cellClass = 'text-[#1a367c] hover:bg-[#f8f9fa]';
+
+            if (today && event) {
+                // Today AND a holiday — blue ring with red background
+                cellClass = 'bg-red-100 text-red-700 ring-2 ring-[#1a367c] ring-offset-1 shadow-md scale-110';
+            } else if (today) {
+                // Today only — solid blue (Google Calendar style)
+                cellClass = 'bg-[#1a367c] text-white shadow-lg shadow-blue-900/30 scale-110';
+            } else if (event) {
+                // Holiday only — red/rose
+                cellClass = 'bg-red-100 text-red-700 shadow-sm';
+            }
 
             days.push(
                 <div
                     key={day}
-                    className={`h-12 rounded-xl flex items-center justify-center text-sm font-bold cursor-pointer transition-all duration-300 relative group
-                        ${isSelected
-                            ? 'bg-[#f9b012] text-white shadow-lg shadow-orange-500/30 scale-110'
-                            : 'text-[#1a367c] hover:bg-[#f8f9fa]'
-                        }`}
-                    title={event ? event.name : ''}
+                    className={`h-12 rounded-xl flex items-center justify-center text-sm font-bold cursor-pointer transition-all duration-300 relative group ${cellClass}`}
+                    title={event ? event.name : (today ? 'Today' : '')}
                 >
                     {day}
-                    {event && (
-                        <div className="absolute -bottom-1 w-1 h-1 bg-white rounded-full"></div>
+                    {event && !today && (
+                        <div className="absolute -bottom-1 w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                    )}
+                    {today && !event && (
+                        <div className="absolute -bottom-1 w-1.5 h-1.5 bg-[#1a367c] rounded-full"></div>
                     )}
                 </div>
             );
@@ -111,6 +123,18 @@ const Calendar = ({ events = [], title = "CALENDAR" }) => {
             </div>
             <div className="grid grid-cols-7 gap-4">
                 {renderCalendarDays()}
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-6 mt-6 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-2">
+                    <div className="w-3.5 h-3.5 rounded bg-[#1a367c]"></div>
+                    <span className="text-[0.65rem] font-bold text-[#8892b0] tracking-wide">TODAY</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-3.5 h-3.5 rounded bg-red-100 border border-red-200"></div>
+                    <span className="text-[0.65rem] font-bold text-[#8892b0] tracking-wide">HOLIDAY</span>
+                </div>
             </div>
         </div>
     );

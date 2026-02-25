@@ -25,7 +25,7 @@ const UserDirectory = () => {
             setTotal(res.total || usersArray.length);
 
             const mapped = usersArray.map((u, idx) => ({
-                id: u.id,
+                id: u.user_code || `user-${idx}`,
                 name: u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || '—',
                 userCode: u.user_code || '—',
                 email: u.email || '—',
@@ -104,7 +104,7 @@ const UserDirectory = () => {
                 <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
                     {users.length > 0 ? (
                         users.map((user) => (
-                            <div key={user.id} className="grid grid-cols-[50px_2fr_1fr_1fr_2fr] gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors group">
+                            <div key={user.userCode} className="grid grid-cols-[50px_2fr_1fr_1fr_2fr] gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors group">
                                 <div className={`w-10 h-10 ${user.color} text-white rounded-xl flex items-center justify-center font-bold text-sm shadow-md group-hover:scale-105 transition-transform`}>
                                     {user.initial}
                                 </div>

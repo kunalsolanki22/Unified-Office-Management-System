@@ -60,19 +60,9 @@ class LeaveBalance(Base, TimestampMixin):
 
 class LeaveRequest(Base, TimestampMixin):
     """
-<<<<<<< HEAD
     Leave request with hierarchical approval workflow.
     
     Approval Flow (based on user role):
-    - EMPLOYEE leave -> TEAM_LEAD approves (level1) -> MANAGER approves (level2)
-    - TEAM_LEAD leave -> MANAGER approves (direct)
-    - MANAGER leave -> SUPER_ADMIN approves (direct)
-    
-    Uses user_code instead of user_id throughout.
-=======
-    Leave request with single-level hierarchical approval workflow.
-    
-    Approval Flow (based on user role - single approver):
     - EMPLOYEE leave -> TEAM_LEAD approves
     - TEAM_LEAD leave -> MANAGER approves
     - MANAGER leave -> ADMIN approves
@@ -81,7 +71,6 @@ class LeaveRequest(Base, TimestampMixin):
     
     Uses user_code instead of user_id throughout.
     Approver details are automatically filled when approving/rejecting.
->>>>>>> origin/final-integration-Aakanksha/Aditya
     """
     __tablename__ = "leave_requests"
     

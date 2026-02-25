@@ -1,5 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
-import NotificationBell from './NotificationBell';
+
 import ProfileDropdown from '../shared/ProfileDropdown';
 
 const getPortalInfo = (user) => {
@@ -34,9 +34,6 @@ const Header = () => {
             </div>
 
             <div className="flex items-center gap-6">
-                {/* Functional Notification Bell */}
-                <NotificationBell />
-
                 <ProfileDropdown />
             </div>
         </header>

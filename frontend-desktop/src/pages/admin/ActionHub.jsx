@@ -3,11 +3,11 @@ import ActionHubShared from '../../components/shared/ActionHub';
 
 const ActionHub = () => {
     const actions = [
-        { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: '/admin/service-booking' },
-        { icon: Monitor, label: 'DESK MANAGEMENT', sub: 'Workspace Allocation', path: '/admin/service-booking?tab=desk' },
-        { icon: Car, label: 'PARKING MANAGER', sub: 'Slot & Capacity Controls', path: '/admin/service-booking?tab=parking' },
-        { icon: Users, label: 'CONFERENCE MGMT', sub: 'Room Booking & Scheduling', path: '/admin/service-booking?tab=conference' },
-        { icon: HardDrive, label: 'HARDWARE REGISTRY', sub: 'Inventory Assignment', path: '/admin/service-booking?tab=hardware' },
+        { icon: Coffee, label: 'Cafeteria Booking', sub: 'Order Food & Reserve Tables', path: '/admin/service-booking' },
+        { icon: Monitor, label: 'Desk Booking', sub: 'Book a Workspace', path: '/admin/service-booking?tab=desk' },
+        { icon: Car, label: 'Parking Allocation', sub: 'Reserve a Parking Slot', path: '/admin/service-booking?tab=parking' },
+        { icon: Users, label: 'Conference Room', sub: 'Book Meeting Rooms', path: '/admin/service-booking?tab=conference' },
+        { icon: HardDrive, label: 'IT Hardware Support', sub: 'Request IT Assets & Support', path: '/admin/service-booking?tab=hardware' },
     ];
 
     return <ActionHubShared actions={actions} title="SERVICES" />;

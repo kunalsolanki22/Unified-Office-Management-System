@@ -7,7 +7,7 @@ import { deskService } from '../../services/deskService';
 import { parkingService } from '../../services/parkingService';
 import { hardwareService } from '../../services/hardwareService';
 
-const FOOD_ICONS = ['🍛', '🥗', '🥪', '🍔', '🍝', '🍲', '🥘', '🍜', '🌮', '🥙'];
+
 
 const TAB_MAP = { cafeteria: 'cafeteria', desk: 'desk', parking: 'parking', conference: 'conference', hardware: 'hardware' };
 
@@ -66,6 +66,13 @@ const ServiceBooking = () => {
     const [loadingParking, setLoadingParking] = useState(true);
     const [allocatingParking, setAllocatingParking] = useState(false);
     const [releasingParking, setReleasingParking] = useState(false);
+
+    // Clock tick to force re-render for time-based room status checks
+    const [, setClockTick] = useState(0);
+    useEffect(() => {
+        const ticker = setInterval(() => setClockTick(t => t + 1), 30000);
+        return () => clearInterval(ticker);
+    }, []);
 
     // Conference state
     const [rooms, setRooms] = useState([]);
@@ -255,7 +262,7 @@ const ServiceBooking = () => {
 
     useEffect(() => {
         fetchRooms();
-        const interval = setInterval(() => fetchRooms(false), 30000);
+        const interval = setInterval(() => fetchRooms(false), 15000);
         return () => clearInterval(interval);
     }, []);
     useEffect(() => {
@@ -452,7 +459,10 @@ const ServiceBooking = () => {
             setRoomBooked(res?.data || res);
             setShowRoomModal(false);
             setSelectedRoom(null);
-            setRoomBookingForm({ booking_date: new Date().toISOString().split('T')[0], start_time: '09:00', end_time: '10:00', title: '', attendees_count: 1 });
+            setRoomBookingForm({ booking_date: new Date().toISOString().split('T')[0], start_time: getNextSlot(10), end_time: getNextSlot(70), title: '', attendees_count: 1 });
+
+            // Refresh rooms & bookings so status updates immediately
+            fetchRooms(false);
         } catch (err) {
             console.error('Error booking room:', err);
             alert(err?.response?.data?.detail || 'Failed to book conference room.');
@@ -554,9 +564,6 @@ const ServiceBooking = () => {
                                             {foodItems.map((item, idx) => (
                                                 <motion.div key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
                                                     className="flex items-center gap-4 bg-slate-50 rounded-2xl p-4 hover:shadow-md transition-all">
-                                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-xl shadow-sm flex-shrink-0">
-                                                        {FOOD_ICONS[idx % FOOD_ICONS.length]}
-                                                    </div>
                                                     <div className="flex-1 min-w-0">
                                                         <h3 className="font-bold text-[#1a367c] text-sm">{item.name}</h3>
                                                         <p className="font-extrabold text-[#1a367c] text-sm mt-0.5">₹{parseFloat(item.price).toFixed(2)}</p>
@@ -891,7 +898,17 @@ const ServiceBooking = () => {
                             <div className="space-y-4 mb-8">
                                 <p className="text-xs font-bold tracking-widest text-[#8892b0] mb-4">AVAILABLE ROOMS</p>
                                 {rooms.map((room, idx) => {
-                                    const isBooked = roomBookings.some(b => b.room_id === room.id);
+                                    const now = new Date();
+                                    const todayStr = now.toISOString().split('T')[0];
+                                    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                                    const isBooked = roomBookings.some(b => {
+                                        if (b.room_id !== room.id) return false;
+                                        // Already expired bookings for today
+                                        if (b.booking_date === todayStr && b.end_time && b.end_time <= currentTime) return false;
+                                        // Past date bookings
+                                        if (b.booking_date && b.booking_date < todayStr) return false;
+                                        return true;
+                                    });
 
                                     return (
                                         <motion.div key={room.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}

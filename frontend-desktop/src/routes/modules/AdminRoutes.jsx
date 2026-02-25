@@ -13,12 +13,14 @@ import MyAttendance from '../../pages/admin/MyAttendance';
 import ServiceBooking from '../../pages/shared/ServiceBooking';
 
 import ProjectApprovals from '../../pages/admin/ProjectApprovals';
+import UserManagement from '../../pages/admin/UserManagement';
 
 const AdminRoutes = () => {
     return (
         <Routes>
             <Route element={<AdminLayout />}>
                 <Route path="dashboard" element={<Dashboard />} />
+                <Route path="user-management" element={<UserManagement />} />
                 <Route path="project-approvals" element={<ProjectApprovals />} />
                 <Route path="user-directory" element={<UserDirectory />} />
                 <Route path="approvals-hub" element={<ApprovalsHub />} />

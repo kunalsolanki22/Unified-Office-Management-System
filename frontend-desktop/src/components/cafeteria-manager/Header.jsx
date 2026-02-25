@@ -1,4 +1,4 @@
-import { Bell } from 'lucide-react';
+
 import { useAuth } from '../../context/AuthContext';
 import ProfileDropdown from '../shared/ProfileDropdown';
 
@@ -15,12 +15,6 @@ const Header = () => {
             </div>
 
             <div className="flex items-center gap-6">
-                {/* Notification Bell */}
-                <div className="relative cursor-pointer">
-                    <Bell className="w-5 h-5 text-[#1a367c]" />
-                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#f9b012] rounded-full border border-white"></div>
-                </div>
-
                 <ProfileDropdown />
             </div>
         </header>

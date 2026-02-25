@@ -5,6 +5,10 @@ export const projectService = {
         const res = await api.get('/projects', { params });
         return res.data;
     },
+    getMyProjects: async () => {
+        const res = await api.get('/projects/my-projects');
+        return res.data;
+    },
     createProject: async (data) => {
         const res = await api.post('/projects', data);
         return res.data;

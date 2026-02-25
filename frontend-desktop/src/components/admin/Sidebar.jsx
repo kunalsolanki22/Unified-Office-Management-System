@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, CalendarCheck, CalendarDays, Zap, LogOut, CheckSquare } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarCheck, CalendarDays, Zap, LogOut, CheckSquare, UserPlus } from 'lucide-react';
 import logo from '../../assets/cygnet-logo.png';
 
 const Sidebar = () => {
@@ -18,6 +18,7 @@ const Sidebar = () => {
 
     const corePillars = [
         { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { name: 'User Management', path: '/admin/user-management', icon: UserPlus },
         { name: 'Project Approvals', path: '/admin/project-approvals', icon: CheckSquare },
         { name: 'User Directory', path: '/admin/user-directory', icon: Users },
         { name: 'Attendance', path: '/admin/attendance-validation', icon: CalendarCheck },

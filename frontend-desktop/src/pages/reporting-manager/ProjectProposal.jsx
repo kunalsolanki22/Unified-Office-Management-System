@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { projectService } from '../../services/projectService';
-import { cafeteriaService } from '../../services/cafeteriaService';
+import { userService } from '../../services/userService';
+import { useAuth } from '../../context/AuthContext';
 
 const STATUS_CONFIG = {
     draft: { label: 'Draft', color: 'bg-slate-100 text-slate-500', icon: Clock },
@@ -23,6 +24,7 @@ const STATUS_CONFIG = {
 };
 
 const ProjectProposal = () => {
+    const { user: currentUser } = useAuth();
     const [projects, setProjects] = useState([]);
     const [users, setUsers] = useState([]);
     const [loadingProjects, setLoadingProjects] = useState(true);
@@ -40,17 +42,26 @@ const ProjectProposal = () => {
         try {
             setLoadingProjects(true);
             const [projRes, userRes] = await Promise.all([
-                projectService.getProjects({ page_size: 50 }),
-                cafeteriaService.getUserDirectory({ page_size: 100 })
+                projectService.getMyProjects(),
+                userService.getDirectory({ page_size: 500 })
             ]);
-            setProjects(projRes?.data ?? []);
-            setUsers(userRes?.data ?? []);
+            // Show owned projects (proposals created by this user)
+            setProjects(projRes?.data?.owned_projects ?? []);
+
+            // Filter to only show users in the same department as the reporting manager
+            const myDept = currentUser?.department;
+            const myCode = currentUser?.user_code;
+            const allUsers = userRes?.data ?? [];
+            const myTeam = allUsers.filter(u =>
+                u.user_code !== myCode && myDept && u.department === myDept
+            );
+            setUsers(myTeam);
         } catch {
             toast.error('Failed to load data.');
         } finally {
             setLoadingProjects(false);
         }
-    }, []);
+    }, [currentUser]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
