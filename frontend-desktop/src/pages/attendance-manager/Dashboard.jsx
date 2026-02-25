@@ -18,11 +18,14 @@ import {
     Loader2
 } from 'lucide-react';
 import { holidayService } from '../../services/holidayService';
+import { projectService } from '../../services/projectService';
 
 const Dashboard = () => {
     const navigate = useNavigate();
     const [holidays, setHolidays] = useState([]);
     const [loadingHolidays, setLoadingHolidays] = useState(true);
+    const [pendingProjectCount, setPendingProjectCount] = useState(0);
+    const [loadingProjects, setLoadingProjects] = useState(true);
 
     useEffect(() => {
         const fetchHolidays = async () => {
@@ -33,7 +36,16 @@ const Dashboard = () => {
             } catch { setHolidays([]); }
             finally { setLoadingHolidays(false); }
         };
+        const fetchPendingProjects = async () => {
+            try {
+                setLoadingProjects(true);
+                const res = await projectService.getProjects({ status: 'pending_approval', page_size: 1 });
+                setPendingProjectCount(res?.total ?? 0);
+            } catch { setPendingProjectCount(0); }
+            finally { setLoadingProjects(false); }
+        };
         fetchHolidays();
+        fetchPendingProjects();
     }, []);
 
     const formatHolidayDate = (dateStr) => {
@@ -78,10 +90,14 @@ const Dashboard = () => {
                             PROJECT REQUESTS
                         </div>
                         <div className="text-[2.2rem] font-extrabold text-[#1a367c] leading-tight mb-2 bg-gradient-to-r from-[#1a367c] to-[#2c4a96] bg-clip-text text-transparent">
-                            3 Pending<br />Approvals
+                            {loadingProjects ? (
+                                <Loader2 className="w-8 h-8 animate-spin text-slate-300 inline-block" />
+                            ) : (
+                                <>{pendingProjectCount} Pending<br />Approval{pendingProjectCount !== 1 ? 's' : ''}</>
+                            )}
                         </div>
                         <p className="text-[#8892b0] text-[0.95rem] leading-relaxed max-w-[90%]">
-                            Review resource allocation and project initiation requests from Team Leads.
+                            Approve attendance from Managers & Team Leads.
                         </p>
                     </div>
 
