@@ -36,13 +36,13 @@ const HardwareDashboard = () => {
 
                 const assetsArray = assetsRes.data || [];
                 const total = assetsRes.total || assetsArray.length;
-                const available = assetsArray.filter(a => a.status === 'AVAILABLE').length;
-                const assigned = assetsArray.filter(a => a.status === 'ASSIGNED').length;
-                const maintenance = assetsArray.filter(a => a.status === 'MAINTENANCE').length;
+                const available = assetsArray.filter(a => (a.status || '').toLowerCase() === 'available').length;
+                const assigned = assetsArray.filter(a => (a.status || '').toLowerCase() === 'assigned').length;
+                const maintenance = assetsArray.filter(a => (a.status || '').toLowerCase() === 'maintenance').length;
 
                 let pendingCount = 0;
                 try {
-                    const reqRes = await hardwareService.getRequests({ status: 'PENDING' });
+                    const reqRes = await hardwareService.getRequests({ status: 'pending' });
                     pendingCount = reqRes.total || (reqRes.data || []).length;
                 } catch (e) {
                     console.warn('Could not fetch request count:', e.message);
