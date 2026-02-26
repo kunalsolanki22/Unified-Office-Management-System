@@ -60,6 +60,14 @@ const ServiceBooking = () => {
     const [selectedDesk, setSelectedDesk] = useState(null);
     const [bookingDesk, setBookingDesk] = useState(false);
     const [deskBooked, setDeskBooked] = useState(null);
+    const [showDeskModal, setShowDeskModal] = useState(false);
+    const initialToday = new Date().toISOString().split('T')[0];
+    const [deskBookingForm, setDeskBookingForm] = useState({
+        start_date: initialToday,
+        end_date: initialToday,
+        start_time: '09:00',
+        end_time: '18:00',
+    });
 
     // Parking state
     const [mySlot, setMySlot] = useState(null);
@@ -99,6 +107,14 @@ const ServiceBooking = () => {
     });
     const [submittingHw, setSubmittingHw] = useState(false);
     const [hwSubmitted, setHwSubmitted] = useState(null);
+
+    // My Recent Bookings state
+    const [myDeskBookings, setMyDeskBookings] = useState([]);
+    const [loadingMyDeskBookings, setLoadingMyDeskBookings] = useState(true);
+    const [myRoomBookings, setMyRoomBookings] = useState([]);
+    const [loadingMyRoomBookings, setLoadingMyRoomBookings] = useState(true);
+    const [myHwRequests, setMyHwRequests] = useState([]);
+    const [loadingMyHwRequests, setLoadingMyHwRequests] = useState(true);
 
     // Fetch food items
     useEffect(() => {
@@ -184,10 +200,15 @@ const ServiceBooking = () => {
             setDesks(desksRes?.data || []);
 
             const today = new Date().toISOString().split('T')[0];
+            const nowD = new Date();
+            const currentTimeStr = `${String(nowD.getHours()).padStart(2, '0')}:${String(nowD.getMinutes()).padStart(2, '0')}`;
             const activeBookings = (bookingsRes?.data || []).filter(b => {
                 const status = (b.status || '').toLowerCase();
-                return (status === 'confirmed' || status === 'checked_in') &&
-                    b.start_date <= today && b.end_date >= today;
+                if (status !== 'confirmed' && status !== 'checked_in') return false;
+                if (b.start_date > today || b.end_date < today) return false;
+                // Time-based release: if booking date ends today and end_time has passed, filter it out
+                if (b.end_date === today && b.end_time && b.end_time <= currentTimeStr) return false;
+                return true;
             });
             setDeskBookings(activeBookings);
         } catch (err) {
@@ -200,6 +221,69 @@ const ServiceBooking = () => {
     useEffect(() => {
         fetchDesks();
         const interval = setInterval(() => fetchDesks(false), 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Fetch my desk bookings
+    const fetchMyDeskBookings = async (showLoading = true) => {
+        try {
+            if (showLoading) setLoadingMyDeskBookings(true);
+            const res = await deskService.getMyDeskBookings();
+            const data = res?.data || (Array.isArray(res) ? res : []);
+            setMyDeskBookings(data);
+        } catch (err) {
+            console.error('Error loading my desk bookings:', err);
+            setMyDeskBookings([]);
+        } finally {
+            if (showLoading) setLoadingMyDeskBookings(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchMyDeskBookings();
+        const interval = setInterval(() => fetchMyDeskBookings(false), 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Fetch my room bookings
+    const fetchMyRoomBookings = async (showLoading = true) => {
+        try {
+            if (showLoading) setLoadingMyRoomBookings(true);
+            const res = await deskService.getRoomBookings({ page_size: 10 });
+            const data = res?.data || (Array.isArray(res) ? res : []);
+            setMyRoomBookings(data);
+        } catch (err) {
+            console.error('Error loading my room bookings:', err);
+            setMyRoomBookings([]);
+        } finally {
+            if (showLoading) setLoadingMyRoomBookings(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchMyRoomBookings();
+        const interval = setInterval(() => fetchMyRoomBookings(false), 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Fetch my IT requests
+    const fetchMyHwRequests = async (showLoading = true) => {
+        try {
+            if (showLoading) setLoadingMyHwRequests(true);
+            const res = await hardwareService.getRequests({ page_size: 10 });
+            const data = res?.data || (Array.isArray(res) ? res : []);
+            setMyHwRequests(data);
+        } catch (err) {
+            console.error('Error loading my IT requests:', err);
+            setMyHwRequests([]);
+        } finally {
+            if (showLoading) setLoadingMyHwRequests(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchMyHwRequests();
+        const interval = setInterval(() => fetchMyHwRequests(false), 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -273,6 +357,9 @@ const ServiceBooking = () => {
             fetchDesks(false);
             fetchParking(false);
             fetchRooms(false);
+            fetchMyDeskBookings(false);
+            fetchMyRoomBookings(false);
+            fetchMyHwRequests(false);
         };
 
         window.addEventListener('dashboard-refresh', handleRefresh);
@@ -393,19 +480,35 @@ const ServiceBooking = () => {
 
     const handleBookDesk = async () => {
         if (!selectedDesk) return;
+        const { start_date, end_date, start_time, end_time } = deskBookingForm;
+        if (!start_date || !end_date || !start_time || !end_time) {
+            alert('Please select date and time');
+            return;
+        }
+        if (end_date < start_date) {
+            alert('End date must be on or after start date');
+            return;
+        }
+        if (start_date === end_date && start_time >= end_time) {
+            alert('End time must be after start time');
+            return;
+        }
         try {
             setBookingDesk(true);
-            const today = new Date().toISOString().split('T')[0];
-            await deskService.createDeskBooking({ desk_id: selectedDesk.id, start_date: today, end_date: today, notes: 'Booked via Service Hub' });
-            setDeskBooked(selectedDesk);
-            setSelectedDesk(null);
-            const bookingsRes = await deskService.getDeskBookings({ page_size: 100 });
-            const todayStr = new Date().toISOString().split('T')[0];
-            const activeBookings = (bookingsRes?.data || []).filter(b => {
-                const status = (b.status || '').toLowerCase();
-                return (status === 'confirmed' || status === 'checked_in') && b.start_date <= todayStr && b.end_date >= todayStr;
+            await deskService.createDeskBooking({
+                desk_id: selectedDesk.id,
+                start_date,
+                end_date,
+                start_time,
+                end_time,
+                notes: 'Booked via Service Hub'
             });
-            setDeskBookings(activeBookings);
+            setDeskBooked({ ...selectedDesk, start_date, end_date, start_time, end_time });
+            setSelectedDesk(null);
+            setShowDeskModal(false);
+            // Refresh bookings
+            fetchDesks(false);
+            fetchMyDeskBookings(false);
         } catch (err) {
             console.error('Error booking desk:', err);
             alert(err?.response?.data?.detail || 'Failed to book desk. Please try again.');
@@ -463,6 +566,7 @@ const ServiceBooking = () => {
 
             // Refresh rooms & bookings so status updates immediately
             fetchRooms(false);
+            fetchMyRoomBookings(false);
         } catch (err) {
             console.error('Error booking room:', err);
             alert(err?.response?.data?.detail || 'Failed to book conference room.');
@@ -479,6 +583,7 @@ const ServiceBooking = () => {
             const res = await hardwareService.createRequest(hwForm);
             setHwSubmitted(res?.data || res);
             setHwForm({ request_type: 'new_asset', title: '', description: '', priority: 'medium' });
+            fetchMyHwRequests(false);
         } catch (err) {
             console.error('Error submitting request:', err);
             alert(err?.response?.data?.detail || 'Failed to submit request.');
@@ -829,9 +934,39 @@ const ServiceBooking = () => {
                                 ))}
                             </div>
                         )}
-                        <button onClick={handleBookDesk} disabled={!selectedDesk || bookingDesk}
+                        {/* My Recent Desk Bookings */}
+                        <div className="space-y-4 mt-8 mb-6">
+                            <h3 className="text-xs font-bold tracking-widest text-[#8892b0] mb-4">MY RECENT DESK BOOKINGS</h3>
+                            {loadingMyDeskBookings ? (
+                                <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-slate-200" /></div>
+                            ) : myDeskBookings.length === 0 ? (
+                                <div className="text-center py-8 text-[#8892b0] border border-dashed border-slate-200 rounded-2xl"><p className="text-[0.65rem] font-medium italic">No recent desk bookings</p></div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {myDeskBookings.slice(0, 3).map((b) => (
+                                        <div key={b.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-[#1a367c] flex-shrink-0">
+                                                    <Monitor className="w-5 h-5" />
+                                                </div>
+                                                <div className="overflow-hidden">
+                                                    <p className="text-[0.7rem] font-bold text-[#1a367c]">{b.desk_label || b.desk_code}</p>
+                                                    <p className="text-[0.6rem] text-[#8892b0] truncate">{b.start_date}{b.start_time ? ` • ${b.start_time.slice(0, 5)} – ${(b.end_time || '').slice(0, 5)}` : ''}</p>
+                                                </div>
+                                            </div>
+                                            <div className={`px-3 py-1 rounded-full text-[0.55rem] font-bold tracking-widest whitespace-nowrap flex-shrink-0 ${b.status === 'confirmed' ? 'bg-green-50 text-green-600' : b.status === 'checked_in' ? 'bg-blue-50 text-blue-600' : b.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-600'
+                                                }`}>
+                                                {(b.status || 'pending').toUpperCase()}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <button onClick={() => { if (selectedDesk) { const t = new Date().toISOString().split('T')[0]; setDeskBookingForm({ start_date: t, end_date: t, start_time: '09:00', end_time: '18:00' }); setShowDeskModal(true); } }} disabled={!selectedDesk}
                             className={`w-full py-4 rounded-2xl text-xs font-bold tracking-widest transition-all flex items-center justify-center gap-2 ${selectedDesk ? 'bg-[#1a367c] text-white hover:bg-[#2c4a96] shadow-lg' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                            {bookingDesk && <Loader2 className="w-4 h-4 animate-spin" />}CONFIRM DESK BOOKING
+                            BOOK DESK
                         </button>
                     </div>
                 )}
@@ -841,10 +976,11 @@ const ServiceBooking = () => {
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
                         <div className="w-16 h-16 bg-[#dcfce7] rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle className="w-8 h-8 text-[#22c55e]" /></div>
                         <h2 className="text-xl font-extrabold text-[#1a367c] mb-2">Desk Booked!</h2>
-                        <p className="text-sm text-[#8892b0] mb-8">Desk <span className="text-[#22c55e] font-semibold">{deskBooked.desk_label || deskBooked.desk_code}</span> has been reserved for today.</p>
+                        <p className="text-sm text-[#8892b0] mb-8">Desk <span className="text-[#22c55e] font-semibold">{deskBooked.desk_label || deskBooked.desk_code}</span> has been reserved.</p>
                         <div className="bg-slate-50 rounded-2xl p-6 mb-8">
                             <div className="flex justify-between items-center mb-3"><span className="text-sm font-semibold text-[#22c55e]">Desk</span><span className="text-sm font-bold text-[#1a367c]">{deskBooked.desk_label || deskBooked.desk_code}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-sm font-semibold text-[#22c55e]">Date</span><span className="text-sm font-bold text-[#1a367c]">{new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}</span></div>
+                            <div className="flex justify-between items-center mb-3"><span className="text-sm font-semibold text-[#22c55e]">Date</span><span className="text-sm font-bold text-[#1a367c]">{deskBooked.start_date}{deskBooked.end_date && deskBooked.end_date !== deskBooked.start_date ? ` — ${deskBooked.end_date}` : ''}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm font-semibold text-[#22c55e]">Time</span><span className="text-sm font-bold text-[#1a367c]">{deskBooked.start_time} — {deskBooked.end_time}</span></div>
                         </div>
                         <button onClick={() => setDeskBooked(null)} className="bg-[#1a367c] text-white px-8 py-3 rounded-xl text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all">BOOK ANOTHER DESK</button>
                     </motion.div>
@@ -937,6 +1073,36 @@ const ServiceBooking = () => {
                                 })}
                             </div>
                         )}
+
+                        {/* My Recent Room Bookings */}
+                        <div className="space-y-4 mt-4">
+                            <h3 className="text-xs font-bold tracking-widest text-[#8892b0] mb-4">MY RECENT ROOM BOOKINGS</h3>
+                            {loadingMyRoomBookings ? (
+                                <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-slate-200" /></div>
+                            ) : myRoomBookings.length === 0 ? (
+                                <div className="text-center py-8 text-[#8892b0] border border-dashed border-slate-200 rounded-2xl"><p className="text-[0.65rem] font-medium italic">No recent room bookings</p></div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {myRoomBookings.slice(0, 3).map((b) => (
+                                        <div key={b.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-[#1a367c] flex-shrink-0">
+                                                    <Users className="w-5 h-5" />
+                                                </div>
+                                                <div className="overflow-hidden">
+                                                    <p className="text-[0.7rem] font-bold text-[#1a367c]">{b.title || b.room_label || b.room_code || 'Room Booking'}</p>
+                                                    <p className="text-[0.6rem] text-[#8892b0] truncate">{b.booking_date} • {(b.start_time || '').slice(0, 5)} – {(b.end_time || '').slice(0, 5)}</p>
+                                                </div>
+                                            </div>
+                                            <div className={`px-3 py-1 rounded-full text-[0.55rem] font-bold tracking-widest whitespace-nowrap flex-shrink-0 ${b.status === 'confirmed' ? 'bg-green-50 text-green-600' : b.status === 'rejected' ? 'bg-red-50 text-red-500' : b.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-600'
+                                                }`}>
+                                                {(b.status || 'pending').toUpperCase()}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -1013,6 +1179,37 @@ const ServiceBooking = () => {
                             <Send className="w-4 h-4" />
                             SUBMIT REQUEST
                         </button>
+
+                        {/* My Recent IT Requests */}
+                        <div className="space-y-4 mt-8">
+                            <h3 className="text-xs font-bold tracking-widest text-[#8892b0] mb-4">MY RECENT IT REQUESTS</h3>
+                            {loadingMyHwRequests ? (
+                                <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-slate-200" /></div>
+                            ) : myHwRequests.length === 0 ? (
+                                <div className="text-center py-8 text-[#8892b0] border border-dashed border-slate-200 rounded-2xl"><p className="text-[0.65rem] font-medium italic">No recent IT requests</p></div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {myHwRequests.slice(0, 3).map((r) => (
+                                        <div key={r.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-[#1a367c] flex-shrink-0">
+                                                    <HardDrive className="w-5 h-5" />
+                                                </div>
+                                                <div className="overflow-hidden">
+                                                    <p className="text-[0.7rem] font-bold text-[#1a367c]">{r.title || 'IT Request'}</p>
+                                                    <p className="text-[0.6rem] text-[#8892b0] truncate">{(r.request_type || '').replace(/_/g, ' ')} • {r.priority || 'medium'}</p>
+                                                    <p className="text-[0.55rem] text-slate-400 mt-0.5">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}{r.request_number ? ` • #${r.request_number}` : ''}</p>
+                                                </div>
+                                            </div>
+                                            <div className={`px-3 py-1 rounded-full text-[0.55rem] font-bold tracking-widest whitespace-nowrap flex-shrink-0 ${r.status === 'completed' ? 'bg-green-50 text-green-600' : r.status === 'approved' ? 'bg-blue-50 text-blue-600' : r.status === 'rejected' ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-600'
+                                                }`}>
+                                                {(r.status || 'pending').toUpperCase()}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -1158,6 +1355,89 @@ const ServiceBooking = () => {
                                                 <Check className="w-5 h-5" />
                                             </>
                                         )}
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* ===== DESK BOOKING MODAL ===== */}
+                <AnimatePresence>
+                    {showDeskModal && selectedDesk && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowDeskModal(false)}>
+                            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                onClick={e => e.stopPropagation()} className="bg-white rounded-[28px] shadow-2xl p-8 w-full max-w-[460px]">
+
+                                {/* Header */}
+                                <div className="flex items-start justify-between mb-2">
+                                    <div>
+                                        <h2 className="text-xl font-extrabold text-[#1a367c] tracking-tight">Book Desk</h2>
+                                        <p className="text-sm text-[#8892b0] mt-1">{selectedDesk.desk_code} — {selectedDesk.desk_label || 'Desk'}</p>
+                                    </div>
+                                    <button onClick={() => setShowDeskModal(false)} className="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center text-[#8892b0] hover:bg-slate-100 hover:text-[#1a367c] transition-colors mt-1">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                {/* Availability Badge */}
+                                <div className="bg-[#dcfce7]/60 border border-[#bbf7d0] rounded-2xl px-5 py-4 mt-5 mb-7 flex items-center gap-3">
+                                    <div className="w-9 h-9 bg-[#dcfce7] rounded-full flex items-center justify-center flex-shrink-0">
+                                        <CheckCircle className="w-5 h-5 text-[#22c55e]" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-[#1a367c]">Available for Booking</p>
+                                        <p className="text-xs text-[#22c55e] font-medium mt-0.5">
+                                            {[selectedDesk.has_monitor && '🖥 Monitor', selectedDesk.has_docking_station && '🔌 Docking'].filter(Boolean).join('  ') || '✓ Ready'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Date Fields */}
+                                <div className="grid grid-cols-2 gap-4 mb-5">
+                                    <div>
+                                        <label className="text-xs font-bold text-[#1a367c] tracking-wider block mb-2">START DATE</label>
+                                        <input type="date" value={deskBookingForm.start_date}
+                                            onChange={e => setDeskBookingForm(p => ({ ...p, start_date: e.target.value, end_date: e.target.value < p.end_date ? p.end_date : e.target.value }))}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-sm text-[#1a367c] font-medium focus:outline-none focus:border-[#1a367c] focus:ring-1 focus:ring-[#1a367c]/10 transition-all" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-[#1a367c] tracking-wider block mb-2">END DATE</label>
+                                        <input type="date" value={deskBookingForm.end_date}
+                                            onChange={e => setDeskBookingForm(p => ({ ...p, end_date: e.target.value }))}
+                                            min={deskBookingForm.start_date}
+                                            className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-sm text-[#1a367c] font-medium focus:outline-none focus:border-[#1a367c] focus:ring-1 focus:ring-[#1a367c]/10 transition-all" />
+                                    </div>
+                                </div>
+
+                                {/* Time Fields */}
+                                <div className="grid grid-cols-2 gap-4 mb-8">
+                                    <div>
+                                        <label className="text-xs font-bold text-[#1a367c] tracking-wider block mb-2">START TIME</label>
+                                        <input type="time" value={deskBookingForm.start_time}
+                                            onChange={e => setDeskBookingForm(p => ({ ...p, start_time: e.target.value }))}
+                                            className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-sm text-[#1a367c] font-medium focus:outline-none focus:border-[#1a367c] focus:ring-1 focus:ring-[#1a367c]/10 transition-all" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-[#1a367c] tracking-wider block mb-2">END TIME</label>
+                                        <input type="time" value={deskBookingForm.end_time}
+                                            onChange={e => setDeskBookingForm(p => ({ ...p, end_time: e.target.value }))}
+                                            className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-sm text-[#1a367c] font-medium focus:outline-none focus:border-[#1a367c] focus:ring-1 focus:ring-[#1a367c]/10 transition-all" />
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button onClick={() => setShowDeskModal(false)}
+                                        className="py-4 rounded-2xl text-sm font-bold text-[#1a367c] border-2 border-slate-200 hover:border-[#1a367c] hover:bg-slate-50 transition-all">
+                                        Cancel
+                                    </button>
+                                    <button onClick={handleBookDesk} disabled={bookingDesk || !deskBookingForm.start_time || !deskBookingForm.end_time}
+                                        className="py-4 rounded-2xl text-sm font-bold text-white bg-[#1a367c] hover:bg-[#2c4a96] shadow-lg shadow-[#1a367c]/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                                        {bookingDesk && <Loader2 className="w-4 h-4 animate-spin" />}
+                                        Confirm Booking
                                     </button>
                                 </div>
                             </motion.div>

@@ -31,10 +31,15 @@ const DeskBooking = () => {
 
             const bookingsRes = await deskService.getDeskBookings({ page_size: 100 });
             const today = new Date().toISOString().split('T')[0];
+            const nowTime = new Date();
+            const currentTime = `${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}`;
             const activeBookings = (bookingsRes.data || []).filter(b => {
                 const status = b.status.toLowerCase();
                 if (status === 'cancelled' || status === 'rejected' || status === 'completed') return false;
-                return b.end_date >= today;
+                if (b.end_date < today) return false;
+                // Time-based release: if booking ends today and end_time has passed, filter it out
+                if (b.end_date === today && b.end_time && b.end_time <= currentTime) return false;
+                return true;
             });
             setBookings(activeBookings);
         } catch (err) {
