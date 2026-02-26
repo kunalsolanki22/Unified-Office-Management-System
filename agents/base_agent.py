@@ -1842,7 +1842,8 @@ OR if user did not explicitly request any available option:
 ## Guidelines
 - Use user's name naturally
 - Be concise with key details only
-- For failures: Be empathetic, explain simply
+- For failures: Be empathetic, explain simply, state ONLY the error from API - do NOT invent alternatives or fake options
+- NEVER make up room names, desk names, booking codes, or any data not in the API response
 - No technical jargon
 
 Respond with ONLY the message, no JSON.

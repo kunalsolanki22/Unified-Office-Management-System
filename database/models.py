@@ -181,7 +181,7 @@ class Message(Base):
     content = Column(Text, nullable=False)
     
     # Metadata
-    agent_id = Column(String(50), nullable=True)  # Which agent generated this response
+    agent_id = Column(String(150), nullable=True)  # Which agent generated this response (can be comma-separated for multi-agent)
     tokens_used = Column(Integer, nullable=True)  # LLM tokens consumed
     latency_ms = Column(Integer, nullable=True)  # Response time in milliseconds
     
