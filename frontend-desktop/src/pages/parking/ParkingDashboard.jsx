@@ -103,10 +103,10 @@ const ParkingDashboard = () => {
                             PARKING REQUESTS
                         </div>
                         <div className="text-[2.2rem] font-extrabold text-[#1a367c] leading-tight mb-2">
-                            Pending<br />Approvals
+                            {stats.occupied} Active<br />Allocations
                         </div>
                         <p className="text-[#8892b0] text-[0.95rem] leading-relaxed max-w-[90%]">
-                            Employee parking slot requests awaiting your review and approval.
+                            Currently occupied parking slots. Review and manage allocations.
                         </p>
                     </div>
                     <div className="relative z-10">

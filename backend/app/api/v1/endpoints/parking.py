@@ -284,7 +284,7 @@ async def list_slots(
     
     if status_filter:
         try:
-            status_enum = ParkingSlotStatus(status_filter.upper())
+            status_enum = ParkingSlotStatus(status_filter.lower())
             query = query.where(ParkingSlot.status == status_enum)
         except ValueError:
             pass
@@ -445,12 +445,14 @@ async def change_slot_status(
             detail="Slot not found"
         )
     
+    # Clean and parse the status
+    clean_status = new_status.strip().strip("'").strip('"').lower()
     try:
-        status_enum = ParkingSlotStatus(new_status.upper())
+        status_enum = ParkingSlotStatus(clean_status)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid status. Use: AVAILABLE, OCCUPIED, or DISABLED"
+            detail=f"Invalid status: {repr(new_status)}. Use: AVAILABLE, OCCUPIED, or DISABLED"
         )
     
     # If changing from OCCUPIED to AVAILABLE, release the parking
