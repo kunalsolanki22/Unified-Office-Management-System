@@ -131,6 +131,13 @@ class FoodOrder(Base, TimestampMixin):
     user = relationship("User", foreign_keys=[user_code], primaryjoin="FoodOrder.user_code == User.user_code")
     processed_by = relationship("User", foreign_keys=[processed_by_code], primaryjoin="FoodOrder.processed_by_code == User.user_code")
     items = relationship("FoodOrderItem", back_populates="order")
+
+    @property
+    def user_name(self):
+        """Return the user's full name from the loaded relationship."""
+        if self.user:
+            return f"{self.user.first_name} {self.user.last_name}"
+        return None
     
     __table_args__ = (
         Index("ix_food_orders_user_status", "user_code", "status"),

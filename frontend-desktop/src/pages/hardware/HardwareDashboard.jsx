@@ -31,24 +31,22 @@ const HardwareDashboard = () => {
         const fetchDashboardData = async () => {
             try {
                 setLoading(true);
-                const assetsRes = await hardwareService.getAssets({ page_size: 100 });
-                console.log('Hardware assets response:', assetsRes);
+                // Use server-side filtering for accurate counts
+                const [allRes, availableRes, assignedRes, maintenanceRes, reqRes] = await Promise.all([
+                    hardwareService.getAssets({ page_size: 1 }),
+                    hardwareService.getAssets({ page_size: 1, status: 'available' }),
+                    hardwareService.getAssets({ page_size: 1, status: 'assigned' }),
+                    hardwareService.getAssets({ page_size: 1, status: 'maintenance' }),
+                    hardwareService.getRequests({ status: 'pending', page_size: 1 }).catch(() => ({ total: 0 })),
+                ]);
 
-                const assetsArray = assetsRes.data || [];
-                const total = assetsRes.total || assetsArray.length;
-                const available = assetsArray.filter(a => (a.status || '').toLowerCase() === 'available').length;
-                const assigned = assetsArray.filter(a => (a.status || '').toLowerCase() === 'assigned').length;
-                const maintenance = assetsArray.filter(a => (a.status || '').toLowerCase() === 'maintenance').length;
-
-                let pendingCount = 0;
-                try {
-                    const reqRes = await hardwareService.getRequests({ status: 'pending' });
-                    pendingCount = reqRes.total || (reqRes.data || []).length;
-                } catch (e) {
-                    console.warn('Could not fetch request count:', e.message);
-                }
-
-                setStats({ total, available, assigned, maintenance, pending_requests: pendingCount });
+                setStats({
+                    total: allRes.total || 0,
+                    available: availableRes.total || 0,
+                    assigned: assignedRes.total || 0,
+                    maintenance: maintenanceRes.total || 0,
+                    pending_requests: reqRes.total || 0,
+                });
             } catch (err) {
                 console.error('Hardware dashboard error:', err);
             } finally {
@@ -56,6 +54,7 @@ const HardwareDashboard = () => {
             }
         };
         fetchDashboardData();
+        const interval = setInterval(() => fetchDashboardData(), 30000);
 
         // Fetch holidays
         const fetchHolidays = async () => {
@@ -67,7 +66,10 @@ const HardwareDashboard = () => {
             finally { setLoadingHolidays(false); }
         };
         fetchHolidays();
+
+        return () => clearInterval(interval);
     }, []);
+
 
     const quickActions = [
         { icon: Coffee, label: 'CAFETERIA OPS', sub: 'Food Provisioning Oversight', path: '/hardware/service-booking' },

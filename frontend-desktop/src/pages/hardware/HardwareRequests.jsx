@@ -13,6 +13,13 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
+// Extract asset type from description prefix [Asset Type: ...]
+const extractAssetType = (description) => {
+    if (!description) return '';
+    const match = description.match(/^\[Asset Type: (.+?)\]/);
+    return match ? match[1] : '';
+};
+
 function HardwareRequests() {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -23,13 +30,14 @@ function HardwareRequests() {
             setLoading(true);
             const res = await hardwareService.getRequests();
             console.log('Hardware requests response:', res);
-            
+
             // Backend returns: { data: [...], total, page, page_size }
             const requestsArray = res.data || [];
             const mapped = requestsArray.map(r => ({
                 id: r.id,
                 employee: r.user_name || r.requested_by || '—',
                 type: r.request_type || r.title || '—',
+                assetType: extractAssetType(r.description),
                 priority: (r.priority || 'medium').charAt(0).toUpperCase() + (r.priority || 'medium').slice(1).toLowerCase(),
                 status: (r.status || 'pending').charAt(0).toUpperCase() + (r.status || 'pending').slice(1).toLowerCase(),
                 date: r.created_at
@@ -49,7 +57,8 @@ function HardwareRequests() {
 
     const filtered = requests.filter(r =>
         r.employee.toLowerCase().includes(search.toLowerCase()) ||
-        r.type.toLowerCase().includes(search.toLowerCase())
+        r.type.toLowerCase().includes(search.toLowerCase()) ||
+        r.assetType.toLowerCase().includes(search.toLowerCase())
     );
 
     const handleApprove = async (id) => {
@@ -104,16 +113,17 @@ function HardwareRequests() {
                     <Search className="w-4 h-4 text-[#b0b0b0]" />
                     <input
                         type="text"
-                        placeholder="SEARCH EMPLOYEE OR TYPE..."
+                        placeholder="SEARCH EMPLOYEE, TYPE OR ASSET..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         className="bg-transparent outline-none ml-2.5 w-full text-[0.8rem] tracking-wide text-[#1a367c] placeholder:text-[#b0b0b0] placeholder:text-[0.7rem] placeholder:tracking-[1.5px] font-medium border-none"
                     />
                 </div>
 
-                <div className="grid grid-cols-[2fr_2fr_1fr_1.5fr_1fr_1.5fr] pb-4 border-b border-slate-100 mb-2 px-4 text-[0.7rem] font-bold text-[#8892b0] tracking-widest">
+                <div className="grid grid-cols-[2fr_1.5fr_1.5fr_1fr_1.5fr_1fr_1.5fr] pb-4 border-b border-slate-100 mb-2 px-4 text-[0.7rem] font-bold text-[#8892b0] tracking-widest">
                     <div>EMPLOYEE</div>
                     <div>REQUEST TYPE</div>
+                    <div>ASSET TYPE</div>
                     <div>PRIORITY</div>
                     <div>DATE</div>
                     <div>STATUS</div>
@@ -129,35 +139,35 @@ function HardwareRequests() {
                                 key={req.id}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                className="grid grid-cols-[2fr_2fr_1fr_1.5fr_1fr_1.5fr] items-center p-4 rounded-xl hover:bg-[#fafbfb] transition-colors group"  
+                                className="grid grid-cols-[2fr_1.5fr_1.5fr_1fr_1.5fr_1fr_1.5fr] items-center p-4 rounded-xl hover:bg-[#fafbfb] transition-colors group"
                             >
                                 <div className="text-sm font-bold text-[#1a367c]">{req.employee}</div>
                                 <div className="text-sm text-[#8892b0]">{req.type}</div>
+                                <div className="text-sm text-[#1a367c] font-medium">{req.assetType || '—'}</div>
                                 <div>
-                                    <span className={`px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide ${
-                                        req.priority === 'High' ? 'bg-red-50 text-red-500' :
-                                        req.priority === 'Medium' ? 'bg-yellow-50 text-yellow-600' :
-                                        'bg-green-50 text-green-600'
-                                    }`}>{req.priority}</span>
+                                    <span className={`px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide ${req.priority === 'High' ? 'bg-red-50 text-red-500' :
+                                            req.priority === 'Critical' ? 'bg-red-100 text-red-600' :
+                                                req.priority === 'Medium' ? 'bg-yellow-50 text-yellow-600' :
+                                                    'bg-green-50 text-green-600'
+                                        }`}>{req.priority}</span>
                                 </div>
                                 <div className="text-sm text-[#8892b0]">{req.date}</div>
                                 <div>
-                                    <span className={`px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide ${
-                                        req.status === 'Approved' ? 'bg-green-50 text-green-600' :
-                                        req.status === 'Rejected' ? 'bg-red-50 text-red-500' :
-                                        'bg-[#fff8e6] text-[#f9b012]'
-                                    }`}>{req.status}</span>
+                                    <span className={`px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide ${req.status === 'Approved' ? 'bg-green-50 text-green-600' :
+                                            req.status === 'Rejected' ? 'bg-red-50 text-red-500' :
+                                                'bg-[#fff8e6] text-[#f9b012]'
+                                        }`}>{req.status}</span>
                                 </div>
                                 <div>
                                     {req.status === 'Pending' && (
                                         <div className="flex gap-2">
-                                            <button 
+                                            <button
                                                 onClick={() => handleApprove(req.id)}
                                                 className="bg-[#1a367c] text-white px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest hover:bg-[#2c4a96] transition-all"
                                             >
                                                 APPROVE
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleReject(req.id)}
                                                 className="border border-red-200 text-red-500 px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest hover:bg-red-50 transition-all"
                                             >

@@ -99,8 +99,25 @@ const ServiceBooking = () => {
     const [roomBooked, setRoomBooked] = useState(null);
 
     // Hardware state
+    const ASSET_TYPES = [
+        { value: 'laptop', label: 'Laptop' },
+        { value: 'desktop', label: 'Desktop' },
+        { value: 'monitor', label: 'Monitor' },
+        { value: 'keyboard', label: 'Keyboard' },
+        { value: 'mouse', label: 'Mouse' },
+        { value: 'headset', label: 'Headset' },
+        { value: 'webcam', label: 'Webcam' },
+        { value: 'docking_station', label: 'Docking Station' },
+        { value: 'mobile_phone', label: 'Mobile Phone' },
+        { value: 'tablet', label: 'Tablet' },
+        { value: 'printer', label: 'Printer' },
+        { value: 'scanner', label: 'Scanner' },
+        { value: 'other', label: 'Other' },
+    ];
+    const ASSET_REQUEST_TYPES = ['new_asset', 'new', 'repair', 'replacement'];
     const [hwForm, setHwForm] = useState({
         request_type: 'new_asset',
+        asset_type: '',
         title: '',
         description: '',
         priority: 'medium',
@@ -580,9 +597,20 @@ const ServiceBooking = () => {
         if (!hwForm.title || !hwForm.description) return;
         try {
             setSubmittingHw(true);
-            const res = await hardwareService.createRequest(hwForm);
-            setHwSubmitted(res?.data || res);
-            setHwForm({ request_type: 'new_asset', title: '', description: '', priority: 'medium' });
+            // Embed asset type into description so IT manager can see it
+            const assetLabel = ASSET_TYPES.find(t => t.value === hwForm.asset_type)?.label || '';
+            const descWithAsset = assetLabel
+                ? `[Asset Type: ${assetLabel}]\n${hwForm.description}`
+                : hwForm.description;
+            const payload = {
+                request_type: hwForm.request_type,
+                title: hwForm.title,
+                description: descWithAsset,
+                priority: hwForm.priority,
+            };
+            const res = await hardwareService.createRequest(payload);
+            setHwSubmitted({ ...(res?.data || res), _asset_type: assetLabel });
+            setHwForm({ request_type: 'new_asset', asset_type: '', title: '', description: '', priority: 'medium' });
             fetchMyHwRequests(false);
         } catch (err) {
             console.error('Error submitting request:', err);
@@ -1130,7 +1158,7 @@ const ServiceBooking = () => {
                         {/* Request Type */}
                         <div>
                             <label className="text-xs font-bold text-[#1a367c] tracking-wider block mb-2">REQUEST TYPE</label>
-                            <select value={hwForm.request_type} onChange={e => setHwForm(p => ({ ...p, request_type: e.target.value }))}
+                            <select value={hwForm.request_type} onChange={e => setHwForm(p => ({ ...p, request_type: e.target.value, asset_type: ASSET_REQUEST_TYPES.includes(e.target.value) ? p.asset_type : '' }))}
                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-[#1a367c] font-medium focus:outline-none focus:border-[#1a367c] transition-colors">
                                 <option value="new_asset">New Asset</option>
                                 <option value="new">New Request</option>
@@ -1142,6 +1170,20 @@ const ServiceBooking = () => {
                                 <option value="other">Other</option>
                             </select>
                         </div>
+
+                        {/* Asset Type — shown for hardware-related request types */}
+                        {ASSET_REQUEST_TYPES.includes(hwForm.request_type) && (
+                            <div>
+                                <label className="text-xs font-bold text-[#1a367c] tracking-wider block mb-2">ASSET TYPE</label>
+                                <select value={hwForm.asset_type} onChange={e => setHwForm(p => ({ ...p, asset_type: e.target.value }))}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-[#1a367c] font-medium focus:outline-none focus:border-[#1a367c] transition-colors">
+                                    <option value="">Select Asset Type</option>
+                                    {ASSET_TYPES.map(at => (
+                                        <option key={at.value} value={at.value}>{at.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
                         {/* Title */}
                         <div>
@@ -1197,7 +1239,7 @@ const ServiceBooking = () => {
                                                 </div>
                                                 <div className="overflow-hidden">
                                                     <p className="text-[0.7rem] font-bold text-[#1a367c]">{r.title || 'IT Request'}</p>
-                                                    <p className="text-[0.6rem] text-[#8892b0] truncate">{(r.request_type || '').replace(/_/g, ' ')} • {r.priority || 'medium'}</p>
+                                                    <p className="text-[0.6rem] text-[#8892b0] truncate">{(r.request_type || '').replace(/_/g, ' ')} • {r.priority || 'medium'}{r.description && r.description.match(/^\[Asset Type: (.+?)\]/) ? ` • ${r.description.match(/^\[Asset Type: (.+?)\]/)[1]}` : ''}</p>
                                                     <p className="text-[0.55rem] text-slate-400 mt-0.5">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}{r.request_number ? ` • #${r.request_number}` : ''}</p>
                                                 </div>
                                             </div>
@@ -1221,6 +1263,9 @@ const ServiceBooking = () => {
                         <p className="text-sm text-[#8892b0] mb-8">Your IT request has been submitted for review. Request <span className="text-[#f9b012] font-semibold">#{hwSubmitted.request_number || 'REQ-' + Math.floor(Math.random() * 9999)}</span></p>
                         <div className="bg-slate-50 rounded-2xl p-6 mb-8 text-left">
                             <div className="flex justify-between items-center mb-3"><span className="text-sm text-[#8892b0]">Type</span><span className="text-sm font-bold text-[#1a367c]">{(hwSubmitted.request_type || '').replace(/_/g, ' ').toUpperCase()}</span></div>
+                            {hwSubmitted._asset_type && (
+                                <div className="flex justify-between items-center mb-3"><span className="text-sm text-[#8892b0]">Asset Type</span><span className="text-sm font-bold text-[#1a367c]">{hwSubmitted._asset_type.toUpperCase()}</span></div>
+                            )}
                             <div className="flex justify-between items-center mb-3"><span className="text-sm text-[#8892b0]">Priority</span><span className="text-sm font-bold text-[#f9b012]">{(hwSubmitted.priority || 'medium').toUpperCase()}</span></div>
                             <div className="flex justify-between items-center"><span className="text-sm text-[#8892b0]">Status</span><span className="text-sm font-bold text-[#22c55e]">{(hwSubmitted.status || 'pending').toUpperCase()}</span></div>
                         </div>

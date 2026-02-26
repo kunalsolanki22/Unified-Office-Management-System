@@ -250,7 +250,7 @@ class FoodService:
         result = await self.db.execute(
             select(FoodOrder)
             .where(FoodOrder.id == order_id)
-            .options(selectinload(FoodOrder.items))
+            .options(selectinload(FoodOrder.items), selectinload(FoodOrder.user))
         )
         return result.scalar_one_or_none()
     
@@ -324,7 +324,7 @@ class FoodService:
         result = await self.db.execute(
             select(FoodOrder)
             .where(FoodOrder.id == order.id)
-            .options(selectinload(FoodOrder.items))
+            .options(selectinload(FoodOrder.items), selectinload(FoodOrder.user))
         )
         order = result.scalar_one()
         
@@ -375,7 +375,7 @@ class FoodService:
         page_size: int = 20
     ) -> Tuple[List[FoodOrder], int]:
         """List food orders with filtering."""
-        query = select(FoodOrder).options(selectinload(FoodOrder.items))
+        query = select(FoodOrder).options(selectinload(FoodOrder.items), selectinload(FoodOrder.user))
         count_query = select(func.count(FoodOrder.id))
         
         if user_code:
