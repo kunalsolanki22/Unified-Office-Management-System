@@ -117,6 +117,19 @@ const Dashboard = () => {
 
         fetchDashboardData();
 
+        // ─── Real-time refresh via WebSocket events ───
+        const ws = new WebSocket('ws://localhost:8000/ws');
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'broadcast' && (data.channel === '/food-orders/orders' || data.channel === '/cafeteria/bookings')) {
+                    fetchDashboardData();
+                }
+            } catch (error) {
+                console.error("WS Parse error", error);
+            }
+        };
+
         // Fetch holidays separately
         const fetchHolidays = async () => {
             try {
@@ -127,6 +140,10 @@ const Dashboard = () => {
             finally { setLoadingHolidays(false); }
         };
         fetchHolidays();
+
+        return () => {
+            ws.close();
+        };
     }, []);
 
     return (

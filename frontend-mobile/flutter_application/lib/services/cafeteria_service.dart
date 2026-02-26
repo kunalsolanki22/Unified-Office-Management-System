@@ -104,6 +104,27 @@ class CafeteriaService {
     }
   }
 
+  // ==================== CANCEL FOOD ORDER ====================
+  Future<Map<String, dynamic>> cancelFoodOrder(String orderId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/food-orders/orders/$orderId/cancel'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data']};
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'message': errorData['detail'] ?? 'Failed to cancel order'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
   // ==================== CAFETERIA TABLES ====================
 
   /// Fetch all cafeteria tables

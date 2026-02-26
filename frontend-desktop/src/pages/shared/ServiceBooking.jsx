@@ -770,42 +770,32 @@ const ServiceBooking = () => {
                                     ) : cafeTables.length === 0 ? (
                                         <div className="text-center py-12 text-[#8892b0] bg-slate-50 rounded-2xl"><p className="text-sm font-medium">No tables available</p></div>
                                     ) : (() => {
-                                        const detectZone = (t) => {
-                                            const label = (t.table_label || '').toLowerCase();
-                                            if (label.includes('window')) return 'WINDOW';
-                                            if (label.includes('corner')) return 'CORNER';
-                                            if (label.includes('open area') || label.includes('open')) return 'OPEN';
-                                            if (label.includes('quiet')) return 'QUIET';
-                                            const type = (t.table_type || 'regular').toLowerCase();
-                                            if (type.includes('center') || type.includes('large')) return 'CENTER';
-                                            if (type.includes('round')) return 'ROUND';
-                                            if (type.includes('high')) return 'HIGH';
-                                            return 'OTHER';
-                                        };
-                                        const zoneNames = { WINDOW: 'Window Desks', CORNER: 'Corner Desks', OPEN: 'Open Area', QUIET: 'Quiet Zone', CENTER: 'Center Tables (Large)', ROUND: 'Round Tables', HIGH: 'High Top Tables', OTHER: 'Other Tables' };
-                                        const zoneOrder = ['WINDOW', 'CORNER', 'OPEN', 'QUIET', 'CENTER', 'ROUND', 'HIGH', 'OTHER'];
-                                        const zonePrefix = { WINDOW: 'A', CORNER: 'B', OPEN: 'C', QUIET: 'D', CENTER: 'E', ROUND: 'F', HIGH: 'G', OTHER: 'H' };
-                                        const zones = {};
-                                        cafeTables.forEach(t => { const z = detectZone(t); if (!zones[z]) zones[z] = []; zones[z].push(t); });
-                                        Object.keys(zones).forEach(z => zones[z].sort((a, b) => (a.table_label || '').localeCompare(b.table_label || '')));
+                                        const capacityGroups = {};
+                                        cafeTables.forEach(t => {
+                                            const cap = t.capacity || 4; // Default to 4 if missing
+                                            if (!capacityGroups[cap]) capacityGroups[cap] = [];
+                                            capacityGroups[cap].push(t);
+                                        });
+                                        const sortedCapacities = Object.keys(capacityGroups).map(Number).sort((a, b) => a - b);
+                                        Object.keys(capacityGroups).forEach(cap => capacityGroups[cap].sort((a, b) => (a.table_label || '').localeCompare(b.table_label || '')));
                                         return (
                                             <div className="space-y-8 max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
-                                                {zoneOrder.filter(z => zones[z]).map(z => {
-                                                    const zoneTables = zones[z];
-                                                    const prefix = zonePrefix[z] || 'Z';
-                                                    const freeCount = zoneTables.filter(t => !isTableBooked(t.id)).length;
+                                                {sortedCapacities.map(cap => {
+                                                    const capTables = capacityGroups[cap];
+                                                    const freeCount = capTables.filter(t => !isTableBooked(t.id)).length;
                                                     return (
-                                                        <div key={z}>
+                                                        <div key={cap}>
                                                             <div className="flex items-center justify-between mb-3">
-                                                                <span className="text-[0.7rem] font-bold text-[#8892b0]">{zoneNames[z]}</span>
+                                                                <span className="text-[0.7rem] font-bold text-[#8892b0]">{cap}-Seater Tables</span>
                                                                 <span className="text-[0.65rem] font-extrabold text-green-600 tracking-wide">{freeCount} FREE</span>
                                                             </div>
                                                             <div className="flex justify-center">
                                                                 <div className="bg-[#fafbfb] rounded-[20px] border-2 border-slate-100 border-dashed px-6 py-5 inline-flex flex-wrap gap-3 justify-center">
-                                                                    {zoneTables.map((table, idx) => {
+                                                                    {capTables.map((table, idx) => {
                                                                         const booked = isTableBooked(table.id);
                                                                         const isSelected = selectedTable?.id === table.id;
-                                                                        const shortLabel = `${prefix}${idx + 1}`;
+                                                                        const tableLabel = table.table_label || table.table_code || '';
+                                                                        const shortLabel = tableLabel.replace(/ Table/gi, '').replace(/ Top/gi, '');
                                                                         return (
                                                                             <button key={table.id} disabled={booked}
                                                                                 onClick={() => setSelectedTable(isSelected ? null : table)}

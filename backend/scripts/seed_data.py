@@ -444,18 +444,14 @@ async def seed_cafeteria_tables(db: AsyncSession, users: list):
         return
     
     tables = [
-        {"label": "A1", "capacity": 4, "table_type": "regular"},
-        {"label": "A2", "capacity": 4, "table_type": "regular"},
-        {"label": "A3", "capacity": 6, "table_type": "regular"},
-        {"label": "A4", "capacity": 4, "table_type": "booth"},
-        {"label": "A5", "capacity": 2, "table_type": "high_top"},
-        {"label": "A6", "capacity": 4, "table_type": "regular"},
-        {"label": "A7", "capacity": 6, "table_type": "regular"},
-        {"label": "A8", "capacity": 4, "table_type": "booth"},
-        {"label": "B1", "capacity": 4, "table_type": "regular"},
-        {"label": "B2", "capacity": 2, "table_type": "high_top"},
-        {"label": "B3", "capacity": 6, "table_type": "regular"},
-        {"label": "B4", "capacity": 4, "table_type": "regular"},
+        {"label": "Table 2A", "capacity": 2, "table_type": "regular"},
+        {"label": "Table 2B", "capacity": 2, "table_type": "regular"},
+        {"label": "Table 4A", "capacity": 4, "table_type": "regular"},
+        {"label": "Table 4B", "capacity": 4, "table_type": "regular"},
+        {"label": "Table 6A", "capacity": 6, "table_type": "regular"},
+        {"label": "Table 6B", "capacity": 6, "table_type": "regular"},
+        {"label": "Table 8A", "capacity": 8, "table_type": "regular"},
+        {"label": "Table 8B", "capacity": 8, "table_type": "regular"},
     ]
     
     for table_data in tables:

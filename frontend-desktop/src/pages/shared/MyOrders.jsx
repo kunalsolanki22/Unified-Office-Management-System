@@ -11,6 +11,22 @@ const MyOrders = () => {
 
     useEffect(() => {
         fetchMyOrders();
+
+        const ws = new WebSocket('ws://localhost:8000/ws');
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'broadcast' && data.channel === '/food-orders/orders') {
+                    fetchMyOrders();
+                }
+            } catch (error) {
+                console.error("WS Parse error", error);
+            }
+        };
+
+        return () => {
+            ws.close();
+        };
     }, []);
 
     const fetchMyOrders = async () => {

@@ -215,6 +215,59 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                                     ),
                                   ],
                                 ),
+                                if (status.toString().toUpperCase() == 'PENDING') ...[
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton(
+                                      onPressed: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('Cancel Order'),
+                                            content: const Text('Are you sure you want to cancel this order?'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context, false),
+                                                child: const Text('No'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context, true),
+                                                child: const Text('Yes', style: TextStyle(color: Colors.red)),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                          setState(() => _isLoading = true);
+                                          final result = await _cafeteriaService.cancelFoodOrder(order['id']);
+                                          if (result['success']) {
+                                            if (mounted) {
+                                              scaffoldMessenger.showSnackBar(
+                                                const SnackBar(content: Text('Order cancelled successfully'), backgroundColor: Colors.green),
+                                              );
+                                              _fetchOrders();
+                                            }
+                                          } else {
+                                            if (mounted) {
+                                              setState(() => _isLoading = false);
+                                              scaffoldMessenger.showSnackBar(
+                                                SnackBar(content: Text(result['message'] ?? 'Failed to cancel order'), backgroundColor: Colors.red),
+                                              );
+                                            }
+                                          }
+                                        }
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                        side: const BorderSide(color: Colors.red),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                      child: const Text('Cancel Order'),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),

@@ -20,7 +20,6 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
-  bool _rememberMe = false;
   bool _obscurePassword = true;
 
   @override
@@ -46,8 +45,6 @@ class _LoginPageState extends State<LoginPage> {
                 _buildEmailField(),
                 const SizedBox(height: 20),
                 _buildPasswordField(),
-                const SizedBox(height: 16),
-                _buildRememberMe(),
                 const SizedBox(height: 24),
                 _buildLoginButton(),
                 const SizedBox(height: 16),
@@ -211,40 +208,6 @@ class _LoginPageState extends State<LoginPage> {
                 });
               },
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRememberMe() {
-    return Row(
-      children: [
-        SizedBox(
-          width: 24,
-          height: 24,
-          child: Checkbox(
-            value: _rememberMe,
-            onChanged: (value) {
-              setState(() {
-                _rememberMe = value ?? false;
-              });
-            },
-            activeColor: const Color(0xFF1A367C),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        const Expanded(
-          child: Text(
-            'Remember Me',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF333333),
-            ),
-            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

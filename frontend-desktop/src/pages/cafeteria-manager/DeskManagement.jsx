@@ -443,60 +443,37 @@ const DeskManagement = () => {
                                     className="text-xs font-bold text-[#1a367c] underline underline-offset-2">Add your first table</button>
                             </div>
                         ) : (() => {
-                            // Group tables by zone
-                            const detectZone = (t) => {
-                                const label = (t.table_label || '').toLowerCase();
-                                if (label.includes('window')) return 'WINDOW';
-                                if (label.includes('corner')) return 'CORNER';
-                                if (label.includes('open area') || label.includes('open')) return 'OPEN';
-                                if (label.includes('quiet')) return 'QUIET';
-                                const type = (t.table_type || 'regular').toLowerCase();
-                                if (type.includes('center') || type.includes('large')) return 'CENTER';
-                                if (type.includes('round')) return 'ROUND';
-                                if (type.includes('high')) return 'HIGH';
-                                return 'OTHER';
-                            };
-                            const zoneNames = {
-                                WINDOW: 'Window Desks', CORNER: 'Corner Desks', OPEN: 'Open Area',
-                                QUIET: 'Quiet Zone', CENTER: 'Center Tables (Large)', ROUND: 'Round Tables',
-                                HIGH: 'High Top Tables', OTHER: 'Other Tables',
-                            };
-                            const zoneOrder = ['WINDOW', 'CORNER', 'OPEN', 'QUIET', 'CENTER', 'ROUND', 'HIGH', 'OTHER'];
-                            const zonePrefix = { WINDOW: 'A', CORNER: 'B', OPEN: 'C', QUIET: 'D', CENTER: 'E', ROUND: 'F', HIGH: 'G', OTHER: 'H' };
-
-                            const zones = {};
+                            const capacityGroups = {};
                             tables.forEach(t => {
-                                const z = detectZone(t);
-                                if (!zones[z]) zones[z] = [];
-                                zones[z].push(t);
+                                const cap = t.capacity || 4;
+                                if (!capacityGroups[cap]) capacityGroups[cap] = [];
+                                capacityGroups[cap].push(t);
                             });
-                            // Sort within each zone and assign labels
-                            Object.keys(zones).forEach(z => {
-                                zones[z].sort((a, b) => (a.table_label || '').localeCompare(b.table_label || ''));
-                            });
+                            const sortedCapacities = Object.keys(capacityGroups).map(Number).sort((a, b) => a - b);
+                            Object.keys(capacityGroups).forEach(cap => capacityGroups[cap].sort((a, b) => (a.table_label || '').localeCompare(b.table_label || '')));
 
                             return (
                                 <div className="space-y-10">
-                                    {zoneOrder.filter(z => zones[z]).map(z => {
-                                        const zoneTables = zones[z];
-                                        const prefix = zonePrefix[z] || 'Z';
-                                        const freeCount = zoneTables.filter(t => !isTableBooked(t.id)).length;
+                                    {sortedCapacities.map(cap => {
+                                        const capTables = capacityGroups[cap];
+                                        const freeCount = capTables.filter(t => !isTableBooked(t.id)).length;
                                         return (
-                                            <div key={z}>
+                                            <div key={cap}>
                                                 {/* Zone Header */}
                                                 <div className="flex items-center justify-between mb-4">
-                                                    <span className="text-sm font-bold text-[#8892b0]">{zoneNames[z] || z}</span>
+                                                    <span className="text-sm font-bold text-[#8892b0]">{cap}-Seater Tables</span>
                                                     <span className="text-xs font-extrabold text-green-600 tracking-wide">{freeCount} FREE</span>
                                                 </div>
                                                 {/* Zone Card */}
                                                 <div className="flex justify-center">
                                                     <div className="bg-[#fafbfb] rounded-[20px] border-2 border-slate-100 border-dashed px-8 py-6 inline-flex flex-wrap gap-4 justify-center">
-                                                        {zoneTables.map((table, idx) => {
+                                                        {capTables.map((table, idx) => {
                                                             if (!table?.id) return null;
                                                             const booked = isTableBooked(table.id);
                                                             const booking = getBookingForTable(table.id);
                                                             const isHovered = hoveredTable === table.id;
-                                                            const shortLabel = `${prefix}${idx + 1}`;
+                                                            const tableLabel = table.table_label || table.table_code || '';
+                                                            const shortLabel = tableLabel.replace(/ Table/gi, '').replace(/ Top/gi, '');
                                                             return (
                                                                 <div key={table.id} className="relative"
                                                                     onMouseEnter={() => setHoveredTable(table.id)}

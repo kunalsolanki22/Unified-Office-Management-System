@@ -1092,57 +1092,21 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
       );
     }
 
-    // Group desks by detected area (based on fullLabel) and assign A1/A2.. labels per area
-    final Map<String, List<String>> areas = {};
-    String _detectArea(String fullLabel, String zoneKey) {
-      final label = fullLabel.toLowerCase();
-      if (label.contains('window')) return 'WINDOW';
-      if (label.contains('corner')) return 'CORNER';
-      if (label.contains('open area') || label.contains('open')) return 'OPEN';
-      if (label.contains('quiet')) return 'QUIET';
-      // fallback to zoneKey
-      return zoneKey;
-    }
+    // Group desks by capacity
+    final Map<int, List<String>> capacityGroups = {};
 
     for (final entry in _desks.entries) {
-      final area = _detectArea(entry.value.fullLabel, entry.value.zoneKey);
-      areas.putIfAbsent(area, () => []).add(entry.key);
+      final cap = entry.value.capacity;
+      // If capacity is 0 or invalid, we can group it under a default like 2 or 4, but let's just use cap.
+      capacityGroups.putIfAbsent(cap, () => []).add(entry.key);
     }
 
-    final areaNames = {
-      'WINDOW': 'Window Desks',
-      'CORNER': 'Corner Desks',
-      'OPEN': 'Open Area',
-      'QUIET': 'Quiet Zone',
-      'CENTER': 'Center Tables (Large)',
-      'ROUND': 'Round Tables',
-      'HIGH': 'High Top Tables',
-      'OTHER': 'Other Tables',
-    };
+    // Sort the capacity keys so smaller tables appear first
+    final sortedCapacities = capacityGroups.keys.toList()..sort();
 
-    // Preferred ordering for areas
-    final areaOrder = ['WINDOW', 'CORNER', 'OPEN', 'QUIET', 'CENTER', 'ROUND', 'HIGH', 'OTHER'];
-
-    // Letter prefixes per area for labeling (A, B, C, D...)
-    final Map<String, String> areaLetter = {
-      'WINDOW': 'A',
-      'CORNER': 'B',
-      'OPEN': 'C',
-      'QUIET': 'D',
-      'CENTER': 'E',
-      'ROUND': 'F',
-      'HIGH': 'G',
-      'OTHER': 'H',
-    };
-
-    // Sort desks in each area by fullLabel and assign sequential labels like A1, A2...
-    for (final a in areas.keys) {
-      areas[a]!.sort((x, y) => _desks[x]!.fullLabel.compareTo(_desks[y]!.fullLabel));
-      final prefix = areaLetter[a] ?? 'Z';
-      for (var i = 0; i < areas[a]!.length; i++) {
-        final id = areas[a]![i];
-        _desks[id]!.label = '$prefix${i + 1}';
-      }
+    // Sort desks in each capacity group by fullLabel
+    for (final cap in sortedCapacities) {
+      capacityGroups[cap]!.sort((x, y) => _desks[x]!.fullLabel.compareTo(_desks[y]!.fullLabel));
     }
 
     return ListView(
@@ -1167,9 +1131,9 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
             ),
           )
         else
-          ...areaOrder.where(areas.containsKey).map((areaKey) {
-            final deskIds = areas[areaKey]!;
-            final areaName = areaNames[areaKey] ?? areaKey;
+          ...sortedCapacities.map((cap) {
+            final deskIds = capacityGroups[cap]!;
+            final areaName = '$cap-Seater Tables';
             return Column(
               children: [
                 _buildZoneSection(
