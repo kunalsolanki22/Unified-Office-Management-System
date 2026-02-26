@@ -477,12 +477,7 @@ class DeskService:
         self.db.add(booking)
         
         # Update desk status to BOOKED if booking is for today (immediate update)
-        now = datetime.now()
-        if booking.start_date <= now.date() <= booking.end_date:
-            desk = await self.get_desk_by_id(booking.desk_id)
-            if desk:
-                desk.status = DeskStatus.BOOKED
-                self.db.add(desk)
+        # Removed: Desk availability is determined dynamically based on time slot.
         
         await self.db.commit()
         await self.db.refresh(booking)
@@ -559,10 +554,7 @@ class DeskService:
         booking.cancelled_at = datetime.now(timezone.utc)
         
         # Update desk status to AVAILABLE
-        desk = await self.get_desk_by_id(booking.desk_id)
-        if desk:
-            desk.status = DeskStatus.AVAILABLE
-            self.db.add(desk)
+        # Removed: Desk availability is determined dynamically based on time slot.
         
         await self.db.commit()
         
@@ -789,7 +781,7 @@ class DeskService:
         end_time: time,
         exclude_booking_id: Optional[UUID] = None,
         user_code: Optional[str] = None
-    ) -> bool:
+    ) -> List[ConferenceRoomBooking]:
         """
         Check if there's an overlapping CONFIRMED room booking,
         or if the same user already has a PENDING request for this slot.
@@ -797,6 +789,7 @@ class DeskService:
         This allows multiple different users to request the same time slot,
         with the manager deciding which one to approve, but prevents a single
         user from submitting duplicate requests.
+        Returns the list of overlapping bookings.
         """
         time_overlap = or_(
             and_(
@@ -813,6 +806,8 @@ class DeskService:
             )
         )
 
+        overlapping_bookings = []
+
         # Check 1: Overlapping CONFIRMED bookings (any user)
         confirmed_query = select(ConferenceRoomBooking).where(
             and_(
@@ -826,8 +821,7 @@ class DeskService:
             confirmed_query = confirmed_query.where(ConferenceRoomBooking.id != exclude_booking_id)
         
         result = await self.db.execute(confirmed_query)
-        if result.scalar_one_or_none() is not None:
-            return True
+        overlapping_bookings.extend(result.scalars().all())
 
         # Check 2: Same user's own PENDING bookings for the same slot
         if user_code:
@@ -844,10 +838,9 @@ class DeskService:
                 pending_query = pending_query.where(ConferenceRoomBooking.id != exclude_booking_id)
             
             result = await self.db.execute(pending_query)
-            if result.scalar_one_or_none() is not None:
-                return True
+            overlapping_bookings.extend(result.scalars().all())
 
-        return False
+        return overlapping_bookings
     
     async def create_room_booking(
         self,
@@ -873,18 +866,22 @@ class DeskService:
         if booking_data.attendees_count > room.capacity:
             return None, f"Attendees count exceeds room capacity ({room.capacity})"
         
-        # Check for overlapping bookings
-        # We pass user.user_code to ensure they can't book the same slot twice
-        # (even if it's just PENDING)
-        has_overlap = await self.check_room_booking_overlap(
+        # Only block if the same user already has a PENDING request for this slot.
+        # Other users' confirmed/pending bookings are allowed — the manager decides at approval time.
+        overlaps = await self.check_room_booking_overlap(
             booking_data.room_id,
             booking_data.booking_date,
             booking_data.start_time,
             booking_data.end_time,
             user_code=user.user_code
         )
-        if has_overlap:
-            return None, "Time slot overlaps with an existing confirmed booking or your own pending request"
+        # Filter: only block on same-user pending duplicates
+        user_pending_overlaps = [
+            o for o in overlaps
+            if o.user_code == user.user_code and o.status == BookingStatus.PENDING
+        ]
+        if user_pending_overlaps:
+            return None, "You already have a pending request for this time slot"
         
         booking = ConferenceRoomBooking(
             room_id=booking_data.room_id,
@@ -982,7 +979,8 @@ class DeskService:
         self,
         booking_id: UUID,
         user: User,
-        notes: Optional[str] = None
+        notes: Optional[str] = None,
+        cancel_existing: bool = False
     ) -> Tuple[Optional[ConferenceRoomBooking], Optional[str]]:
         """Approve a pending conference room booking. Manager only."""
         if not self.can_manage_desks(user):
@@ -995,26 +993,41 @@ class DeskService:
         if booking.status != BookingStatus.PENDING:
             return None, f"Cannot approve booking with status '{booking.status.value}'. Only PENDING bookings can be approved."
         
-        # Check for overlapping confirmed bookings (in case another was approved first)
-        has_overlap = await self.check_room_booking_overlap(
+        # Check for overlapping confirmed bookings
+        overlaps = await self.check_room_booking_overlap(
             booking.room_id,
             booking.booking_date,
             booking.start_time,
             booking.end_time,
             exclude_booking_id=booking_id
         )
-        if has_overlap:
-            return None, "Cannot approve: Time slot now conflicts with another confirmed booking"
+        confirmed_overlaps = [o for o in overlaps if o.status == BookingStatus.CONFIRMED]
+        if confirmed_overlaps:
+            if not cancel_existing:
+                # Return structured error with conflicting booking details
+                conflicts = []
+                for o in confirmed_overlaps:
+                    conflicts.append({
+                        "id": str(o.id),
+                        "user_code": o.user_code,
+                        "title": o.title,
+                        "booking_date": str(o.booking_date),
+                        "start_time": str(o.start_time),
+                        "end_time": str(o.end_time),
+                    })
+                return None, {
+                    "code": "OVERLAP_EXISTS",
+                    "message": "Time slot conflicts with existing confirmed booking(s).",
+                    "conflicts": conflicts
+                }
+            else:
+                # Auto-cancel conflicting bookings
+                for overlap in confirmed_overlaps:
+                    overlap.status = BookingStatus.CANCELLED
+                    overlap.cancellation_reason = "Cancelled: Manager approved a different booking for this time slot."
+                    overlap.cancelled_at = datetime.now(timezone.utc)
         
         booking.status = BookingStatus.CONFIRMED
-        
-        # Update room status to BOOKED if booking is for today
-        now = datetime.now()
-        if booking.booking_date == now.date():
-            room = await self.get_room_by_id(booking.room_id)
-            if room:
-                room.status = DeskStatus.BOOKED
-                self.db.add(room)
                 
         if notes:
             booking.notes = (booking.notes or "") + f"\nApproval note: {notes}"

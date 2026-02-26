@@ -134,7 +134,7 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
           'name': room['room_label']?.toString() ?? room['name']?.toString() ?? 'Conference Room',
           'room_code': room['room_code']?.toString() ?? '',
           'capacity': room['capacity'] ?? 10,
-          'available': (room['status']?.toString().toUpperCase() ?? 'AVAILABLE') == 'AVAILABLE',
+          'available': (room['status']?.toString().toUpperCase() ?? 'AVAILABLE') != 'MAINTENANCE',
           'amenities': List<String>.from(room['amenities'] ?? ['Whiteboard']),
         }).toList();
 
@@ -349,6 +349,20 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
       SnackbarHelper.showError(context, 'End time must be after start time');
       setState(() => _isBooking = false);
       return;
+    }
+
+    // Validate start time is not in the past for today's date
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final startDate = _selectedDateRange.start;
+    if (startDate.year == today.year && startDate.month == today.month && startDate.day == today.day) {
+      final currentMinutes = now.hour * 60 + now.minute;
+      final selectedStartMinutes = _startTime.hour * 60 + _startTime.minute;
+      if (selectedStartMinutes <= currentMinutes) {
+        SnackbarHelper.showError(context, 'Start time must be after the current time for today\'s booking');
+        setState(() => _isBooking = false);
+        return;
+      }
     }
 
     int successCount = 0;
@@ -1816,25 +1830,50 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                 const SizedBox(height: 24),    // Date Picker
                 GestureDetector(
                   onTap: () async {
-                    final picked = await showDateRangePicker(
-                      context: context,
-                      initialDateRange: _selectedDateRange,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 180)), // Max 6 months
-                      builder: (context, child) {
-                        return Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: const ColorScheme.light(
-                              primary: navyColor,
-                              onPrimary: Colors.white,
+                    if (_currentBookingType == 'Meeting Room') {
+                      // Single date picker for conference rooms
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDateRange.start,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 180)),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.light(
+                                primary: navyColor,
+                                onPrimary: Colors.white,
+                              ),
                             ),
-                          ),
-                          child: child!,
-                        );
-                      },
-                    );
-                    if (picked != null) {
-                      _onDateRangeSelected(picked);
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (picked != null) {
+                        _onDateRangeSelected(DateTimeRange(start: picked, end: picked));
+                      }
+                    } else {
+                      // Date range picker for workstations
+                      final picked = await showDateRangePicker(
+                        context: context,
+                        initialDateRange: _selectedDateRange,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 180)),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.light(
+                                primary: navyColor,
+                                onPrimary: Colors.white,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (picked != null) {
+                        _onDateRangeSelected(picked);
+                      }
                     }
                   },
                   child: Container(
@@ -1847,9 +1886,9 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Dates',
-                          style: TextStyle(
+                        Text(
+                          _currentBookingType == 'Meeting Room' ? 'Date' : 'Dates',
+                          style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             color: textMuted,
                           ),
@@ -1857,11 +1896,13 @@ class _DeskBookingScreenState extends State<DeskBookingScreen> {
                         Row(
                           children: [
                             Text(
-                              _selectedDateRange.start.year == _selectedDateRange.end.year && 
-                              _selectedDateRange.start.month == _selectedDateRange.end.month &&
-                              _selectedDateRange.start.day == _selectedDateRange.end.day 
+                              _currentBookingType == 'Meeting Room'
                                   ? '${_selectedDateRange.start.day}/${_selectedDateRange.start.month}/${_selectedDateRange.start.year}'
-                                  : '${_selectedDateRange.start.day}/${_selectedDateRange.start.month} - ${_selectedDateRange.end.day}/${_selectedDateRange.end.month}',
+                                  : (_selectedDateRange.start.year == _selectedDateRange.end.year && 
+                                     _selectedDateRange.start.month == _selectedDateRange.end.month &&
+                                     _selectedDateRange.start.day == _selectedDateRange.end.day 
+                                        ? '${_selectedDateRange.start.day}/${_selectedDateRange.start.month}/${_selectedDateRange.start.year}'
+                                        : '${_selectedDateRange.start.day}/${_selectedDateRange.start.month} - ${_selectedDateRange.end.day}/${_selectedDateRange.end.month}'),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: navyColor,

@@ -572,9 +572,16 @@ async def approve_room_booking(
     """
     desk_service = DeskService(db)
     notes = approval_data.notes if approval_data else None
-    booking, error = await desk_service.approve_room_booking(booking_id, current_user, notes)
+    cancel_existing = approval_data.cancel_existing if approval_data else False
+    booking, error = await desk_service.approve_room_booking(booking_id, current_user, notes, cancel_existing)
     
     if error:
+        # Structured overlap error — return 409 with conflict details
+        if isinstance(error, dict) and error.get("code") == "OVERLAP_EXISTS":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=error
+            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=error

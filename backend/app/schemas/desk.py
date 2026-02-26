@@ -270,6 +270,7 @@ class ConferenceRoomBookingUpdate(BaseModel):
 class ConferenceRoomBookingApproval(BaseModel):
     """Conference room booking approval schema. Manager only."""
     notes: Optional[str] = Field(None, max_length=500, description="Optional approval notes")
+    cancel_existing: bool = Field(False, description="Whether to automatically cancel conflicting bookings")
 
 
 class ConferenceRoomBookingRejection(BaseModel):

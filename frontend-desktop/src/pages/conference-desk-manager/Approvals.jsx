@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, X, AlertCircle, Projector, RefreshCw, Ghost, Calendar, Clock, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle, XCircle, X, AlertCircle, AlertTriangle, Projector, RefreshCw, Ghost, Calendar, Clock, Users } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { deskService } from '../../services/deskService';
 
@@ -11,6 +11,10 @@ const Approvals = () => {
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [rejectionReason, setRejectionReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
+
+    // Conflict resolution modal
+    const [showConflictModal, setShowConflictModal] = useState(false);
+    const [conflictData, setConflictData] = useState({ pending: null, existing: null });
 
     const fetchPending = async () => {
         try {
@@ -34,7 +38,33 @@ const Approvals = () => {
             toast.success(`Booking "${booking.title}" approved!`);
             await fetchPending();
         } catch (err) {
-            toast.error(err.response?.data?.detail || 'Failed to approve booking');
+            const detail = err.response?.data?.detail;
+            if (detail?.code === 'OVERLAP_EXISTS' && detail.conflicts?.length > 0) {
+                setConflictData({ pending: booking, existing: detail.conflicts[0] });
+                setShowConflictModal(true);
+            } else {
+                toast.error(typeof detail === 'string' ? detail : 'Failed to approve booking');
+            }
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleConflictChoice = async (choice) => {
+        try {
+            setSubmitting(true);
+            if (choice === 'new') {
+                await deskService.approveRoomBooking(conflictData.pending.id, 'Approved by manager (replaced existing)', true);
+                toast.success(`"${conflictData.pending.title}" approved! Previous booking was cancelled.`);
+            } else {
+                await deskService.rejectRoomBooking(conflictData.pending.id, 'Rejected: Existing booking was retained for this time slot.');
+                toast.info(`"${conflictData.pending.title}" rejected. Existing booking retained.`);
+            }
+            setShowConflictModal(false);
+            setConflictData({ pending: null, existing: null });
+            await fetchPending();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || 'Action failed');
         } finally {
             setSubmitting(false);
         }
@@ -217,6 +247,74 @@ const Approvals = () => {
                     )}
                 </div>
             </div>
+
+            {/* Conflict Resolution Modal */}
+            <AnimatePresence>
+                {showConflictModal && conflictData.pending && conflictData.existing && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        onClick={() => setShowConflictModal(false)}>
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white rounded-[24px] shadow-2xl p-8 w-full max-w-2xl border border-slate-100"
+                            onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <AlertTriangle className="w-5 h-5 text-amber-500" />
+                                        <h2 className="text-lg font-bold text-[#1a367c]">Booking Conflict</h2>
+                                    </div>
+                                    <p className="text-xs text-[#8892b0] font-medium">This time slot already has a confirmed booking. Choose which one to keep.</p>
+                                </div>
+                                <button onClick={() => setShowConflictModal(false)} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
+                                    <X className="w-5 h-5 text-slate-400" />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                {/* Existing Confirmed Booking */}
+                                <div className="border-2 border-slate-200 rounded-2xl p-5 hover:border-blue-400 hover:shadow-lg cursor-pointer transition-all group relative"
+                                    onClick={() => handleConflictChoice('existing')}>
+                                    <div className="absolute top-3 right-3">
+                                        <span className="text-[0.6rem] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100">Confirmed</span>
+                                    </div>
+                                    <div className="text-[0.6rem] font-bold text-[#8892b0] uppercase tracking-widest mb-3">Existing Booking</div>
+                                    <div className="font-bold text-[#1a367c] text-sm mb-2">{conflictData.existing.title}</div>
+                                    <div className="space-y-1.5 text-xs text-[#8892b0]">
+                                        <div className="flex items-center gap-1.5"><Calendar className="w-3 h-3" /> {conflictData.existing.booking_date}</div>
+                                        <div className="flex items-center gap-1.5"><Clock className="w-3 h-3" /> {conflictData.existing.start_time} — {conflictData.existing.end_time}</div>
+                                        <div className="flex items-center gap-1.5"><Users className="w-3 h-3" /> {conflictData.existing.user_code}</div>
+                                    </div>
+                                    <button disabled={submitting}
+                                        className="mt-4 w-full py-2.5 rounded-xl bg-blue-50 text-[#1a367c] text-xs font-bold hover:bg-blue-100 transition-colors border border-blue-100 group-hover:bg-[#1a367c] group-hover:text-white">
+                                        Keep This Booking
+                                    </button>
+                                </div>
+
+                                {/* New Pending Request */}
+                                <div className="border-2 border-slate-200 rounded-2xl p-5 hover:border-amber-400 hover:shadow-lg cursor-pointer transition-all group relative"
+                                    onClick={() => handleConflictChoice('new')}>
+                                    <div className="absolute top-3 right-3">
+                                        <span className="text-[0.6rem] font-bold uppercase tracking-wider bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full border border-amber-100">Pending</span>
+                                    </div>
+                                    <div className="text-[0.6rem] font-bold text-[#8892b0] uppercase tracking-widest mb-3">New Request</div>
+                                    <div className="font-bold text-[#1a367c] text-sm mb-2">{conflictData.pending.title}</div>
+                                    <div className="space-y-1.5 text-xs text-[#8892b0]">
+                                        <div className="flex items-center gap-1.5"><Calendar className="w-3 h-3" /> {conflictData.pending.booking_date}</div>
+                                        <div className="flex items-center gap-1.5"><Clock className="w-3 h-3" /> {conflictData.pending.start_time} — {conflictData.pending.end_time}</div>
+                                        <div className="flex items-center gap-1.5"><Users className="w-3 h-3" /> {conflictData.pending.user_code}</div>
+                                    </div>
+                                    <button disabled={submitting}
+                                        className="mt-4 w-full py-2.5 rounded-xl bg-amber-50 text-amber-700 text-xs font-bold hover:bg-amber-100 transition-colors border border-amber-100 group-hover:bg-amber-500 group-hover:text-white">
+                                        Approve This Instead
+                                    </button>
+                                </div>
+                            </div>
+
+                            <p className="text-[0.65rem] text-center text-[#8892b0] italic">The booking you don't select will be automatically cancelled.</p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

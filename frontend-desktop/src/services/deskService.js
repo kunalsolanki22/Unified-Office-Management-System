@@ -72,8 +72,8 @@ export const deskService = {
         const res = await api.get('/desks/rooms/bookings/pending', { params });
         return res.data;
     },
-    approveRoomBooking: async (id, notes = '') => {
-        const res = await api.post(`/desks/rooms/bookings/${id}/approve`, { notes });
+    approveRoomBooking: async (id, notes = '', cancelExisting = false) => {
+        const res = await api.post(`/desks/rooms/bookings/${id}/approve`, { notes, cancel_existing: cancelExisting });
         return res.data;
     },
     rejectRoomBooking: async (id, reason) => {
