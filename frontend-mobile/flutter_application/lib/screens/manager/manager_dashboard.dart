@@ -701,22 +701,6 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
           ),
           Row(
             children: [
-              IconButton(
-                icon: Icon(
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Icons.light_mode
-                      : Icons.dark_mode,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.orange
-                      : navyColor,
-                ),
-                onPressed: () {
-                  if (widget.onToggleTheme != null) {
-                    widget.onToggleTheme!();
-                  }
-                },
-              ),
-              const SizedBox(width: 8),
               GestureDetector(
                 onTap: () {
                   setState(() {

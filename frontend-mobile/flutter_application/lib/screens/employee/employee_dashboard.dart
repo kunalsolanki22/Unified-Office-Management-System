@@ -800,16 +800,6 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
           ),
           Row(
             children: [
-              // Theme toggle button
-              IconButton(
-                icon: Icon(
-                  (widget.isDark ?? false) ? Icons.dark_mode : Icons.light_mode,
-                  color: yellowAccent,
-                ),
-                tooltip: 'Toggle Theme',
-                onPressed: widget.onToggleTheme,
-              ),
-              const SizedBox(width: 8),
               // Profile icon
               GestureDetector(
                 onTap: () {
