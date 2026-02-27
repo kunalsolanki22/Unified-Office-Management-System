@@ -85,15 +85,15 @@ function Login() {
                             placeholder="••••••••"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") handleLogin(); }}
+                            onKeyDown={(e) => { if (e.key === "Entezr") handleLogin(); }}
                         />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 focus:outline-none">
                             <img src={showPassword ? eyeCrossIcon : eyeIcon} alt="Toggle" className="w-5 h-5 opacity-70 hover:opacity-100" />
                         </button>
                     </div>
-                    <div className="text-right mb-4">
+                    {/* <div className="text-right mb-4">
                         <button type="button" className="text-sm text-blue-600 hover:underline">Forgot password?</button>
-                    </div>
+                    </div> */}
                     {error && (
                         <p className="text-sm text-red-500 mb-4 bg-red-50 p-2 rounded border border-red-100">{error}</p>
                     )}

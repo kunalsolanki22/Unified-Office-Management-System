@@ -18,7 +18,9 @@ export const hardwareService = {
         return res.data;
     },
     assignAsset: async (id, user_code, notes = '') => {
-        const res = await api.post(`/it-assets/${id}/assign`, { user_code, notes });
+        const res = await api.post(`/it-assets/${id}/assign`, null, {
+            params: { user_code, notes }
+        });
         return res.data;
     },
     unassignAsset: async (id) => {

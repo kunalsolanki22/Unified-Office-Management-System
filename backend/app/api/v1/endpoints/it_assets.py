@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from typing import Optional, List
 from uuid import UUID
 
@@ -82,7 +83,8 @@ async def update_it_asset(
 @router.post("/{asset_id}/assign", response_model=APIResponse[ITAssetAssignmentResponse])
 async def assign_asset(
     asset_id: UUID,
-    user_id: UUID,
+    user_id: Optional[UUID] = None,
+    user_code: Optional[str] = None,
     notes: Optional[str] = None,
     current_user: User = Depends(require_it_support_manager),
     db: AsyncSession = Depends(get_db)
@@ -93,8 +95,22 @@ async def assign_asset(
     **IT Support Manager only**
     """
     asset_service = ITAssetService(db)
+    # Resolve user_id from user_code if needed
+    actual_user_id = user_id
+    if not actual_user_id and user_code:
+        from app.models.user import User as UserModel
+        user_result = await db.execute(
+            select(UserModel).where(UserModel.user_code == user_code)
+        )
+        found_user = user_result.scalar_one_or_none()
+        if not found_user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with code {user_code} not found")
+        actual_user_id = found_user.id
+    if not actual_user_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Provide either user_id or user_code")
+
     assignment, error = await asset_service.assign_asset(
-        asset_id, user_id, current_user, notes
+        asset_id, actual_user_id, current_user, notes
     )
     
     if error:
