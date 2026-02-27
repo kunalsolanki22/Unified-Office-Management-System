@@ -199,6 +199,7 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
   Widget _buildAccountDetails() {
     final String email = widget.userProfile['email'] ?? 'N/A';
     final String phone = widget.userProfile['phone'] ?? 'N/A';
+    final String department = widget.userProfile['department']?.toString() ?? '';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,6 +236,15 @@ class _ManagerProfileScreenState extends State<ManagerProfileScreen> {
                 value: email,
                 showDivider: true,
               ),
+              if (department.isNotEmpty)
+                _buildDetailItem(
+                  icon: Icons.business,
+                  iconColor: Colors.orange,
+                  iconBgColor: Colors.orange.shade50,
+                  label: 'DEPARTMENT',
+                  value: department,
+                  showDivider: true,
+                ),
               _buildDetailItem(
                 icon: Icons.phone,
                 iconColor: Colors.green,

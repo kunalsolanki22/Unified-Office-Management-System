@@ -85,7 +85,7 @@ function Login() {
                             placeholder="••••••••"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Entezr") handleLogin(); }}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleLogin(); }}
                         />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 focus:outline-none">
                             <img src={showPassword ? eyeCrossIcon : eyeIcon} alt="Toggle" className="w-5 h-5 opacity-70 hover:opacity-100" />

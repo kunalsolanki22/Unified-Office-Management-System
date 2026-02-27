@@ -754,19 +754,27 @@ class _CafeteriaScreenState extends State<CafeteriaScreen> {
             // Cart overlay
             if (_showCartOverlay)
               _buildCartOverlay(),
+            // Chatbot FAB — shifts up when cart bar is visible, hides on cart overlay
+            if (!_showCartOverlay)
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                right: 16,
+                bottom: (_isOrderingFood && _totalCartItems > 0) ? 90 : 16,
+                child: FloatingActionButton(
+                  heroTag: 'cafeteria_fab',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ChatbotScreen()),
+                    );
+                  },
+                  backgroundColor: const Color(0xFF1A367C),
+                  child: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
+                ),
+              ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'cafeteria_fab',
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => ChatbotScreen()),
-          );
-        },
-        backgroundColor: const Color(0xFF1A367C),
-        child: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
       ),
     );
   }

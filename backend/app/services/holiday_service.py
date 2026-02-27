@@ -33,7 +33,10 @@ class HolidayService:
     
     async def _invalidate_holiday_cache(self):
         """Invalidate all holiday cache entries."""
-        await cache_manager.delete_pattern(f"{self._cache_prefix}:*")
+        try:
+            await cache_manager.delete_pattern(f"{self._cache_prefix}:*")
+        except Exception:
+            pass
     
     def _serialize_holiday(self, holiday: Holiday) -> dict:
         """Serialize holiday for caching."""
@@ -177,8 +180,11 @@ class HolidayService:
         # Build cache key
         cache_key = f"{self._cache_prefix}:list:{upcoming_only}:{include_inactive}:{year}:{page}:{page_size}"
         
-        # Try cache first
-        cached = await cache_manager.get(cache_key)
+        # Try cache first (fail silently if Redis is unavailable)
+        try:
+            cached = await cache_manager.get(cache_key)
+        except Exception:
+            cached = None
         if cached:
             # For now, still query DB for ORM objects (cache used for validation)
             pass
@@ -212,13 +218,16 @@ class HolidayService:
         holidays = result.scalars().all()
         holidays_list = list(holidays)
         
-        # Cache the serialized result
+        # Cache the serialized result (fail silently if Redis is unavailable)
         if holidays_list:
-            cached_data = {
-                "holidays": [self._serialize_holiday(h) for h in holidays_list],
-                "total": total
-            }
-            await cache_manager.set(cache_key, cached_data, self.CACHE_TTL_HOLIDAY_LIST)
+            try:
+                cached_data = {
+                    "holidays": [self._serialize_holiday(h) for h in holidays_list],
+                    "total": total
+                }
+                await cache_manager.set(cache_key, cached_data, self.CACHE_TTL_HOLIDAY_LIST)
+            except Exception:
+                pass
         
         return holidays_list, total
     
@@ -248,9 +257,12 @@ class HolidayService:
         
         holidays = list(result.scalars().all())
         
-        # Cache the result
+        # Cache the result (fail silently if Redis is unavailable)
         if holidays:
-            cached_data = [self._serialize_holiday(h) for h in holidays]
-            await cache_manager.set(cache_key, cached_data, self.CACHE_TTL_UPCOMING)
+            try:
+                cached_data = [self._serialize_holiday(h) for h in holidays]
+                await cache_manager.set(cache_key, cached_data, self.CACHE_TTL_UPCOMING)
+            except Exception:
+                pass
         
         return holidays

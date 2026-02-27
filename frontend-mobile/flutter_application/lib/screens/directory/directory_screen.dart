@@ -221,6 +221,8 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
     final role = user['role']?.toString() ?? '';
     final team = user['team']?.toString() ?? '';
     final desk = user['desk_label']?.toString() ?? '';
+    final department = user['department']?.toString() ?? '';
+    final phone = user['phone']?.toString() ?? '';
 
     String initials = '';
     if (name.isNotEmpty) {
@@ -278,8 +280,12 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
               ),
             const SizedBox(height: 18),
             if (team.isNotEmpty) _infoRow(Icons.groups, 'Team', team),
+            if (department.isNotEmpty)
+              _infoRow(Icons.business, 'Department', department),
             if (email.isNotEmpty)
               _infoRow(Icons.email, 'Email', email, copyable: true),
+            if (phone.isNotEmpty)
+              _infoRow(Icons.phone, 'Phone', phone, copyable: true),
             if (desk.isNotEmpty) _infoRow(Icons.chair, 'Desk', desk),
             const SizedBox(height: 18),
           ],

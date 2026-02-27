@@ -27,11 +27,29 @@ class _ITSupportScreenState extends State<ITSupportScreen> {
 
   // Form state
   String? _selectedRequestType;
+  String? _selectedAssetType;
   String? _selectedPriority = 'medium';
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _assetCodeController = TextEditingController();
   bool _showForm = false;
+
+  // Asset types from backend AssetType enum
+  static const List<Map<String, String>> _assetTypes = [
+    {'value': 'laptop', 'label': 'Laptop'},
+    {'value': 'desktop', 'label': 'Desktop'},
+    {'value': 'monitor', 'label': 'Monitor'},
+    {'value': 'keyboard', 'label': 'Keyboard'},
+    {'value': 'mouse', 'label': 'Mouse'},
+    {'value': 'headset', 'label': 'Headset'},
+    {'value': 'webcam', 'label': 'Webcam'},
+    {'value': 'docking_station', 'label': 'Docking Station'},
+    {'value': 'mobile_phone', 'label': 'Mobile Phone'},
+    {'value': 'tablet', 'label': 'Tablet'},
+    {'value': 'printer', 'label': 'Printer'},
+    {'value': 'scanner', 'label': 'Scanner'},
+    {'value': 'other', 'label': 'Other'},
+  ];
 
   @override
   void initState() {
@@ -151,6 +169,7 @@ class _ITSupportScreenState extends State<ITSupportScreen> {
     setState(() {
       _showForm = true;
       _selectedRequestType = null;
+      _selectedAssetType = null;
       _selectedPriority = 'medium';
       _titleController.clear();
       _descriptionController.clear();
@@ -162,6 +181,7 @@ class _ITSupportScreenState extends State<ITSupportScreen> {
     setState(() {
       _showForm = false;
       _selectedRequestType = null;
+      _selectedAssetType = null;
       _selectedPriority = 'medium';
       _titleController.clear();
       _descriptionController.clear();
@@ -169,9 +189,18 @@ class _ITSupportScreenState extends State<ITSupportScreen> {
     });
   }
 
+  bool _needsAssetType(String? requestType) {
+    return requestType == 'new_asset' || requestType == 'repair' || requestType == 'replacement';
+  }
+
   Future<void> _submitForm() async {
     if (_selectedRequestType == null || _titleController.text.isEmpty || _descriptionController.text.isEmpty || _selectedPriority == null) {
       SnackbarHelper.showError(context, 'Please fill in all required fields');
+      return;
+    }
+    // Require asset type for new_asset/repair/replacement
+    if (_needsAssetType(_selectedRequestType) && _selectedAssetType == null) {
+      SnackbarHelper.showError(context, 'Please select an asset type');
       return;
     }
     if (_titleController.text.trim().length < 1) {
@@ -183,10 +212,21 @@ class _ITSupportScreenState extends State<ITSupportScreen> {
       return;
     }
     setState(() => _isSubmitting = true);
+
+    // Prepend asset type to description if selected
+    String description = _descriptionController.text.trim();
+    if (_selectedAssetType != null) {
+      final assetLabel = _assetTypes.firstWhere(
+        (a) => a['value'] == _selectedAssetType,
+        orElse: () => {'label': _selectedAssetType!},
+      )['label']!;
+      description = '[Asset Type: $assetLabel] $description';
+    }
+
     final result = await _itRequestService.createRequest(
       requestType: _selectedRequestType!,
       title: _titleController.text.trim(),
-      description: _descriptionController.text.trim(),
+      description: description,
       priority: _selectedPriority!,
       relatedAssetCode: _assetCodeController.text.trim(),
     );
@@ -699,7 +739,6 @@ class _ITSupportScreenState extends State<ITSupportScreen> {
                                   color: navyColor,
                                 ),
                                 items: [
-                                  {'value': 'new', 'label': 'New'},
                                   {'value': 'new_asset', 'label': 'New Asset'},
                                   {'value': 'repair', 'label': 'Repair'},
                                   {'value': 'replacement', 'label': 'Replacement'},
@@ -716,12 +755,67 @@ class _ITSupportScreenState extends State<ITSupportScreen> {
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedRequestType = value;
+                                    // Reset asset type when request type changes
+                                    if (!_needsAssetType(value)) {
+                                      _selectedAssetType = null;
+                                    }
                                   });
                                 },
                               ),
                             ),
                           ],
                         ),
+                        // Asset Type Dropdown (shown for new_asset, repair, replacement)
+                        if (_needsAssetType(_selectedRequestType)) ...[
+                          const SizedBox(height: 20),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'ASSET TYPE',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: textMuted,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: DropdownButton<String>(
+                                  value: _selectedAssetType,
+                                  hint: const Text('Select asset type'),
+                                  isExpanded: true,
+                                  underline: const SizedBox(),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: navyColor,
+                                  ),
+                                  items: _assetTypes.map<DropdownMenuItem<String>>((type) {
+                                    return DropdownMenuItem<String>(
+                                      value: type['value'],
+                                      child: Text(type['label']!),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedAssetType = value;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 20),
                         if (_selectedRequestType != null) ...[
                           // Title/Short Description
@@ -974,7 +1068,7 @@ class _ITSupportScreenState extends State<ITSupportScreen> {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: _showForm ? null : FloatingActionButton(
         heroTag: 'it_support_fab',
         onPressed: () {
           Navigator.push(
