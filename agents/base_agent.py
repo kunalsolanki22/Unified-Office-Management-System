@@ -1289,6 +1289,7 @@ JSON only: {{"ok":true,"idx":1,"id":"UUID","qty":1}} or {{"ok":false}}"""
         Returns AgentResult if LLM match successful, None otherwise.
         """
         from datetime import datetime
+        import re as regex_module
         
         target_api_id = action.target_api_id
         collected = action.collected_params or {}
@@ -1309,6 +1310,46 @@ JSON only: {{"ok":true,"idx":1,"id":"UUID","qty":1}} or {{"ok":false}}"""
             logger.info(f"LLM Auto-match: No items found in options_data")
             return None
         
+        # Determine if this is a booking API (room/desk/table)
+        is_booking_api = any(x in target_api_id.lower() for x in ['room', 'desk', 'table', 'cafeteria_book'])
+        
+        # CODE-LEVEL CHECK: For booking APIs (room/desk/table), require explicit selection
+        # Do NOT auto-select unless user explicitly says "any" or mentions a specific room/desk name
+        if is_booking_api:
+            user_msg_lower = context.user_message.lower()
+            
+            # Keywords that indicate user wants any available option (auto-select is OK)
+            any_keywords = [
+                'any room', 'any desk', 'any table', 'any available',
+                'any free', 'whichever', 'whatever', 'doesn\'t matter',
+                'don\'t care', 'first available', 'available one',
+                'any one', 'anyone', 'any conference', 'any meeting room'
+            ]
+            
+            # Check if user explicitly wants "any" option
+            user_wants_any = any(kw in user_msg_lower for kw in any_keywords)
+            
+            # Extract option names from the items list for specific matching
+            option_names = []
+            for item in items_list:
+                if isinstance(item, dict):
+                    name = (item.get('name') or item.get('room_label') or 
+                            item.get('desk_label') or item.get('table_label') or '').lower()
+                    if name:
+                        option_names.append(name)
+            
+            # Check if user mentioned a specific option by name
+            user_mentioned_specific = any(
+                regex_module.search(r'\b' + regex_module.escape(name.split()[0]) + r'\b', user_msg_lower)
+                for name in option_names if name
+            )
+            
+            # If user didn't say "any" AND didn't mention a specific option name,
+            # DO NOT auto-select - return None to show options for user choice
+            if not user_wants_any and not user_mentioned_specific:
+                logger.info(f"LLM Auto-match: Booking API detected but user didn't specify which option - showing choices")
+                return None
+        
         # Format options for LLM - create a simple list with IDs and names
         options_text = []
         for idx, item in enumerate(items_list[:20], 1):  # Limit to 20 items
@@ -1323,9 +1364,6 @@ JSON only: {{"ok":true,"idx":1,"id":"UUID","qty":1}} or {{"ok":false}}"""
         
         options_str = "\n".join(options_text)
         today = datetime.now().strftime("%Y-%m-%d")
-        
-        # Determine if this is a booking API (room/desk/table)
-        is_booking_api = any(x in target_api_id.lower() for x in ['room', 'desk', 'table', 'cafeteria_book'])
         
         # Build LLM prompt for matching - VERY strict about JSON only
         match_prompt = f"""Match this user request to the available options.
