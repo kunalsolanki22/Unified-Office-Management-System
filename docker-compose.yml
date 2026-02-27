@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: office_management_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: office_management
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: office_management_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: office_management_backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/office_management
+      - DATABASE_URL_SYNC=postgresql://postgres:postgres@db:5432/office_management
+      - SECRET_KEY=your-super-secret-key-change-in-production-minimum-32-chars
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
+      - APP_NAME=Unified Office Management System
+      - DEBUG=true
+      - API_V1_PREFIX=/api/v1
+      - COMPANY_DOMAIN=company.com
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - VECTOR_DIMENSION=384
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_MAX_CONNECTIONS=50
+      - CACHE_DEFAULT_EXPIRE=300
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_PER_MINUTE=60
+      - RATE_LIMIT_PER_HOUR=1000
+      - GUNICORN_WORKERS=4
+      - GUNICORN_LOG_LEVEL=info
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head || true && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  chatbot:
+    build:
+      context: ./ai-chatbot
+      dockerfile: Dockerfile
+    container_name: office_management_chatbot
+    environment:
+      # If you have a GROQ key in .env, export it before running docker-compose up, 
+      # or Docker will use this fallback.
+      - GROQ_API_KEY=${GROQ_API_KEY:-replace_this_with_your_key}
+      - BACKEND_BASE_URL=http://backend:8000/api/v1
+      - DATABASE_URL=sqlite:///./chatbot.db
+      - LLM_PROVIDER=groq
+      - LOG_LEVEL=INFO
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
+  frontend-desktop:
+    build:
+      context: ./frontend-desktop
+      dockerfile: Dockerfile
+    container_name: office_management_desktop
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+      - chatbot
+
+  frontend-mobile:
+    build:
+      context: ./frontend-mobile/flutter_application
+      dockerfile: Dockerfile
+    container_name: office_management_mobile
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+      - chatbot
+
+volumes:
+  postgres_data:
+  redis_data:
