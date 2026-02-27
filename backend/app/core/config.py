@@ -26,6 +26,16 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     VECTOR_DIMENSION: int = 384
     
+    # Redis Configuration
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_MAX_CONNECTIONS: int = 50
+    CACHE_DEFAULT_EXPIRE: int = 300  # 5 minutes default cache expiry
+    
+    # Rate Limiting
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_PER_MINUTE: int = 60
+    RATE_LIMIT_PER_HOUR: int = 1000
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
