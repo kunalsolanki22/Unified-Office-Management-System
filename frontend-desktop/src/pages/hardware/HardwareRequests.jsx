@@ -229,16 +229,16 @@ function HardwareRequests() {
                                 <div className="text-sm text-[#1a367c] font-medium">{req.assetType || '—'}</div>
                                 <div>
                                     <span className={`px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide ${req.priority === 'High' ? 'bg-red-50 text-red-500' :
-                                            req.priority === 'Critical' ? 'bg-red-100 text-red-600' :
-                                                req.priority === 'Medium' ? 'bg-yellow-50 text-yellow-600' :
-                                                    'bg-green-50 text-green-600'
+                                        req.priority === 'Critical' ? 'bg-red-100 text-red-600' :
+                                            req.priority === 'Medium' ? 'bg-yellow-50 text-yellow-600' :
+                                                'bg-green-50 text-green-600'
                                         }`}>{req.priority}</span>
                                 </div>
                                 <div className="text-sm text-[#8892b0]">{req.date}</div>
                                 <div>
                                     <span className={`px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-wide ${req.rawStatus === 'approved' ? 'bg-green-50 text-green-600' :
-                                            req.rawStatus === 'rejected' ? 'bg-red-50 text-red-500' :
-                                                'bg-[#fff8e6] text-[#f9b012]'
+                                        req.rawStatus === 'rejected' ? 'bg-red-50 text-red-500' :
+                                            'bg-[#fff8e6] text-[#f9b012]'
                                         }`}>{req.status}</span>
                                 </div>
                                 <div className="flex gap-2">

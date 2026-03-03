@@ -447,7 +447,6 @@ async def change_slot_status(
     
     # Clean and parse the status
     clean_status = new_status.strip().strip("'").strip('"').lower()
-
     try:
         status_enum = ParkingSlotStatus(clean_status)
     except ValueError:
