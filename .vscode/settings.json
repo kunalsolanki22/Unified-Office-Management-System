@@ -1,0 +1,10 @@
+{
+    "python.analysis.extraPaths": [
+        "/home/cygnet/Desktop/Unified-Office-Management-System/backend"
+    ],
+    "python.analysis.useLibraryCodeForTypes": true,
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none",
+        "reportMissingModuleSource": "none"
+    }
+}

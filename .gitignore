@@ -1,0 +1,33 @@
+# Python cache
+**/__pycache__/
+*.pyc
+*.pyo
+
+frontend-desktop/.vite/
+frontend-desktop/node_modules/
+docker-compose.override.yml
+backend/docker-compose.override.yml
+.env
+frontend-desktop/.env
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+dist/
+build/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Logs
+*.log
+
+# Database
+*.db
+
+# OS
+.DS_Store

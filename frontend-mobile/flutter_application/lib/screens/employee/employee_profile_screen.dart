@@ -1,0 +1,414 @@
+import 'package:flutter/material.dart';
+import '../login_screen.dart';
+import '../../services/auth_service.dart';
+import '../change_password_screen.dart';
+
+class EmployeeProfileScreen extends StatefulWidget {
+  final VoidCallback? onBack;
+
+  const EmployeeProfileScreen({super.key, this.onBack});
+
+  @override
+  State<EmployeeProfileScreen> createState() => _EmployeeProfileScreenState();
+}
+
+class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
+  final AuthService _authService = AuthService();
+  Map<String, dynamic>? _profile;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final profile = await _authService.getUserProfile();
+    if (!mounted) return;
+
+    setState(() {
+      _profile = profile;
+      _isLoading = false;
+      if (profile == null) {
+        _errorMessage = 'Failed to load profile data';
+      }
+    });
+  }
+
+  String _fullName() {
+    if (_profile == null) return 'Loading...';
+    final fullName = _profile?['full_name']?.toString() ?? '';
+    if (fullName.isNotEmpty) {
+      return fullName;
+    }
+    return '${_profile?['first_name'] ?? ''} ${_profile?['last_name'] ?? ''}'.trim();
+  }
+
+  String _role() {
+    final role = _profile?['role']?.toString();
+    if (role == null || role.isEmpty) return 'ROLE';
+    return role.toUpperCase().replaceAll('_', ' ');
+  }
+
+  String _userCode() {
+    return _profile?['user_code']?.toString().isNotEmpty == true
+        ? '#${_profile?['user_code']}'
+        : '#USER';
+  }
+
+  String _valueOrDash(dynamic value) {
+    final str = value?.toString() ?? '';
+    return str.isEmpty ? '—' : str;
+  }
+
+  String _avatarLetter() {
+    final name = _fullName().trim();
+    if (name.isEmpty || name == 'Loading...') return 'A';
+    return name.substring(0, 1).toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          _buildHeader(context),
+          const SizedBox(height: 32),
+          _buildProfileSection(),
+          const SizedBox(height: 32),
+          _buildAccountDetails(),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: CircularProgressIndicator(),
+            )
+          else if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ),
+          const SizedBox(height: 48),
+          _buildChangePasswordButton(),
+          const SizedBox(height: 12),
+          _buildLogoutButton(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(Icons.chevron_left, color: Theme.of(context).textTheme.bodyLarge?.color),
+              onPressed: () {
+                if (widget.onBack != null) {
+                  widget.onBack!();
+                } else {
+                  Navigator.of(context).maybePop();
+                }
+              },
+            ),
+          ),
+        ),
+        Text(
+          'My Profile',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileSection() {
+    return Column(
+      children: [
+        Stack(
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Center(
+                child: Text(
+                  _avatarLetter(),
+                  style: TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).cardColor,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: -4,
+              bottom: -4,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFDBB2D),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.camera_alt,
+                    size: 14,
+                    color: Theme.of(context).cardColor,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          _fullName(),
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _role(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[400],
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 4,
+              height: 4,
+              decoration: const BoxDecoration(
+                color: Colors.grey,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _userCode(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAccountDetails() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ACCOUNT DETAILS',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[400],
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              _buildDetailItem(
+                icon: Icons.email,
+                iconColor: const Color(0xFF1A367C),
+                iconBgColor: const Color(0xFFE3F2FD),
+                label: 'WORK EMAIL',
+                value: _valueOrDash(_profile?['email']),
+                showDivider: true,
+              ),
+              _buildDetailItem(
+                icon: Icons.phone,
+                iconColor: const Color(0xFF4CAF50),
+                iconBgColor: const Color(0xFFE8F5E9),
+                label: 'PHONE NUMBER',
+                value: _valueOrDash(_profile?['phone']),
+                showDivider: true,
+              ),
+              _buildDetailItem(
+                icon: Icons.business,
+                iconColor: const Color(0xFFFDBB2D),
+                iconBgColor: const Color(0xFFFFF8E1),
+                label: 'DEPARTMENT',
+                value: _valueOrDash(_profile?['department']),
+                showDivider: false,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailItem({
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+    required String label,
+    required String value,
+    required bool showDivider,
+  }) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (showDivider)
+          Divider(height: 1, thickness: 1, color: Colors.grey[100], indent: 60),
+      ],
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          await _authService.logout();
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+            (route) => false,
+          );
+        },
+        icon: const Icon(Icons.logout, size: 20),
+        label: const Text(
+          'LOGOUT ACCOUNT',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.red.withOpacity(0.2) : const Color(0xFFFFEBEE),
+          foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.red[300] : const Color(0xFFD32F2F),
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChangePasswordButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+          );
+        },
+        icon: const Icon(Icons.lock_outline),
+        label: const Text('Change Password'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+}
